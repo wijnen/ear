@@ -1,0 +1,12 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --with python2
+
+override_dh_auto_build:
+	$(MAKE) ear.gui
+	ronn -r ear.1.ronn
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -f ear.1 *.pyc *.pyo *.gui.in

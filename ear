@@ -1,0 +1,429 @@
+#!/usr/bin/python
+# vim: set foldmethod=marker :
+
+# Imports. {{{
+import os
+import gui
+import xdgbasedir
+
+import fileselector
+import markers
+import media
+import script
+# }}}
+
+# Classes. {{{
+class Track:
+	def __init__(self, name, dbname):
+		self.iter = None
+		self.name = name
+		self.dbname = dbname
+		self.tags = []
+		self.files = []
+		self.markers = []
+		self.scripts = {}
+		self.duration = 0
+		for i in range(12):
+			self.scripts[i + 1] = ''
+
+class Marker:
+	def __init__(self, n, s, e):
+		self.iter = None
+		self.name = n
+		self.start = s
+		self.end = e
+	def __repr__(self):
+		return 'Marker(%s, %d, %d)' % (repr(self.name), self.start, self.end)
+# }}}
+
+# Read database. {{{
+db = []
+for dirname in xdgbasedir.data_files_read('db'):
+	for dbfilename in os.listdir(dirname):
+		if os.path.splitext(dbfilename)[1] != os.extsep + 'db':
+			#print('skipping %s' % dbfilename)
+			continue
+		dbname = os.path.join(dirname, dbfilename)
+		with open(dbname) as f:
+			line = f.readline()
+			if not line:
+				continue
+			assert line.startswith('=')
+			db.append(Track(line[1:].strip(), dbname))
+			for i in range(12):
+				db[-1].scripts[i + 1] = None
+			line = f.readline()
+			while True:
+				if line.startswith('#'):
+					db[-1].tags.append(line[1:].strip())
+					line = f.readline()
+					continue
+				elif line.startswith('+'):
+					offset, filename = line[1:].strip().split(None, 1)
+					line = f.readline()
+					duration = media.Media.get_duration(os.path.join(dirname, filename))
+					if not duration:
+						continue
+					#print('new track %s' % line.strip())
+					db[-1].files.append([filename, float(offset), duration])
+					if db[-1].duration < duration:
+						db[-1].duration = duration
+					continue
+				elif line.startswith('!'):
+					num, code = line[1:].split(None, 1)
+					line = f.readline()
+					num = int(num)
+					assert 1 <= num <= 12 and db[-1].scripts[num] is None
+					db[-1].scripts[num] = code.strip()
+					continue
+				# Done with tags, scripts and filenames; fill up scripts, then read markers.
+				for s in range(12):
+					if db[-1].scripts[s + 1] is None:
+						db[-1].scripts[s + 1] = ''
+				while True:
+					if not line.startswith('\t'):
+						break
+					start, end, name = line.strip().split(None, 2)
+					line = f.readline()
+					db[-1].markers.append(Marker(name, media.parsemoment(start), media.parsemoment(end)))
+				if line == '':
+					break
+				assert line.startswith('=')
+				db.append(Track(line[1:].strip(), dbname))
+				line = f.readline()
+# }}}
+
+# Event responses. {{{
+def file_new(dummy = None):
+	db.append(Track('', data['track'].dbname if data['track'] else xdgbasedir.data_filename_write(os.path.join('db', 'default' + os.extsep + 'db'))))
+	g.update_files = True
+	data['track'] = db[-1]
+	new_file()
+
+def new_file():
+	if len(data['track'].files) > 0:
+		data['media'].load(data['track'], 0)
+		g.length = (max(0, data['track'].files[0][1]), data['track'].files[0][1] + data['track'].files[0][2])
+	else:
+		data['media'].load(data['track'], None)
+		g.length = (0, 1)
+	g.position = 0
+	g.load_markers = True
+	g.set_player = True
+	if data['track'].media is not None:
+		set_pos(data['track'].files[data['track'].media][1])
+	g.media_list = [x[0] for x in data['track'].files]
+	g.media = 0
+	g.script1 = data['track'].scripts[1]
+	g.script2 = data['track'].scripts[2]
+	g.script3 = data['track'].scripts[3]
+	g.script4 = data['track'].scripts[4]
+	g.script5 = data['track'].scripts[5]
+	g.script6 = data['track'].scripts[6]
+	g.script7 = data['track'].scripts[7]
+	g.script8 = data['track'].scripts[8]
+	g.script9 = data['track'].scripts[9]
+	g.script10 = data['track'].scripts[10]
+	g.script11 = data['track'].scripts[11]
+	g.script12 = data['track'].scripts[12]
+
+def get_before():
+	if not g.before_active:
+		return 0
+	try:
+		return int(float(g.before) * 1000)
+	except:
+		return 0
+
+def get_delay():
+	if not g.delay_active:
+		return 0
+	try:
+		return int(float(g.delay) * 1000)
+	except:
+		return 0
+
+setting_pos = False
+def set_pos(pos):
+	global setting_pos
+	g.status = media.mkmomentstr(pos)
+	setting_pos = True
+	g.position = pos
+	setting_pos = False
+	if not data['track']:
+		return
+	g.marker_target = pos
+
+def marker_add(arg = None):
+	if not g.editable or data['track'] is None:
+		return
+	pos = data['media'].get_pos()
+	markers = data['track'].markers
+	found = None
+	limit = None
+	for i, m in enumerate(markers):
+		if m.start < pos <= m.end:
+			found = i
+			continue
+		if m.start >= pos:
+			limit = m.start
+			break
+	if found is not None:
+		end = markers[found].end
+		markers[found].end = pos
+	else:
+		end = data['track'].duration if limit is None else limit
+	new = Marker(media.mkmomentstr(pos), pos, end)
+	markers.append(new)
+	markers.sort(key = lambda x: (x.start, -x.end))
+	g.markers_update = True
+	g.marker_current = (new, True)
+
+def marker_remove(arg = None):
+	if not g.editable:
+		return
+	obj = g.marker_current
+	if obj is None:
+		return
+	data['track'].markers.remove(obj)
+	g.markers_update = True
+
+def marker_set_start(arg = None):
+	if not g.editable:
+		return
+	obj = g.marker_current
+	if obj is None:
+		return
+	obj.start = data['media'].get_pos()
+	if obj.start > obj.end:
+		obj.end = obj.start
+	for m in data['track'].markers:
+		if obj.start < m.start and m.start < obj.end < m.end:
+			obj.end = m.start
+		if obj.end > m.end and m.start < obj.start < m.end:
+			obj.end = m.end
+	data['track'].markers.sort(key = lambda x: (x.start, -x.end))
+	g.markers_update = True
+
+def marker_set_end(arg = None):
+	if not g.editable:
+		return
+	obj = g.marker_current
+	if obj is None:
+		return
+	obj.end = data['media'].get_pos()
+	if obj.start > obj.end:
+		obj.start = obj.end
+	for m in data['track'].markers:
+		if obj.start < m.start and m.start < obj.end < m.end:
+			obj.start = m.start
+		if obj.end > m.end and m.start < obj.start < m.end:
+			obj.start = m.end
+	data['track'].markers.sort(key = lambda x: (x.start, -x.end))
+	g.markers_update = True
+
+def save(dbname):
+	with open(dbname, 'w') as f:
+		for track in db:
+			if track.dbname != dbname:
+				continue
+			f.write('=%s\n' % track.name)
+			for filename, offset, duration in track.files:
+				f.write('+%f %s\n' % (offset, filename))
+			for tag in track.tags:
+				f.write('#%s\n' % tag)
+			for s in range(1, 13):
+				if track.scripts[s]:
+					f.write('!%d %s\n' % (s, track.scripts[s]))
+			for m in track.markers:
+				f.write('\t%s %s %s\n' % (media.unparsemoment(m.start), media.unparsemoment(m.end), m.name))
+
+def stop(stopped):
+	g.playing = not stopped
+	data['media'].pause(stopped)
+
+def speed_change(change):
+	g.speed = g.speed + change
+	data['media'].set_speed(g.speed / 100.)
+
+def edit_change(arg = None):
+	g.editable = not g.editable
+	g.markers_update = True
+
+def new_media(filename):
+	duration = media.Media.get_duration(os.path.join(os.path.dirname(data['track'].dbname), filename))
+	if not duration:
+		return
+	#print('new track %s' % line.strip())
+	data['track'].files.append([filename, 0., duration])
+	if data['track'].duration < duration:
+		data['track'].duration = duration
+	data['media'].load(data['track'], len(data['track'].files) - 1)
+	g.media_list = [x[0] for x in data['track'].files]
+	g.media = len(data['track'].files) - 1
+
+def remove_media():
+	if len(data['track'].files) < 2:
+		return
+	n = g.media
+	data['track'].files.pop(n)
+	g.media_list = [x[0] for x in data['track'].files]
+	if n < len(data['track'].files):
+		g.media = n
+	else:
+		g.media = n - 1
+
+def new_offset():
+	data['track'].files[data['track'].media][1] = g.offset
+	data['media'].play(g.position, play = None)
+	g.length = (max(0, data['track'].files[data['track'].media][1]), data['track'].files[data['track'].media][1] + data['track'].files[data['track'].media][2])
+
+def run_script(num):
+	script.run(data['track'].scripts[num], data, data['media'].play, lambda txt: setattr(g, 'status', txt), lambda: g.speed, lambda pct: setattr(g, 'speed', pct))
+
+def save_all():
+	dbs = set()
+	for track in db:
+		if track.dbname not in dbs:
+			dbs.add(track.dbname)
+	for d in dbs:
+		save(d)
+
+def scripts_changed():
+	data['track'].scripts[1] = g.script1.strip()
+	data['track'].scripts[2] = g.script2.strip()
+	data['track'].scripts[3] = g.script3.strip()
+	data['track'].scripts[4] = g.script4.strip()
+	data['track'].scripts[5] = g.script5.strip()
+	data['track'].scripts[6] = g.script6.strip()
+	data['track'].scripts[7] = g.script7.strip()
+	data['track'].scripts[8] = g.script8.strip()
+	data['track'].scripts[9] = g.script9.strip()
+	data['track'].scripts[10] = g.script10.strip()
+	data['track'].scripts[11] = g.script11.strip()
+	data['track'].scripts[12] = g.script12.strip()
+# }}}
+
+# Build interface. {{{
+data = {
+	'db': db,
+	'track': None,
+	'tag': '',
+	'media': media.Media(set_pos, lambda min, max: setattr(g, 'offset_range', (min, max)), lambda p: setattr(g, 'marker_endtarget', p)),
+	'before': get_before,
+	'delay': get_delay,
+	'editable': lambda: g.editable,
+	'playing': lambda x: setattr(g, 'playing', x),
+	'rename_track': lambda x: setattr(g, 'rename_track', x),
+	'position': lambda pos: setattr(g, 'position', pos),
+	'scalemarks': lambda m: setattr(g, 'scalemarks', m),
+	}
+data['media'].send_pixbuf = lambda pixbuf: setattr(g, 'image', pixbuf)
+g = gui.Gui(widgets = {'Markers': markers.Markers, 'Fileselector': fileselector.Fileselector}, data = data,
+		events = {
+			'help_about': lambda x: setattr(g, 'show_about', True),
+			'file_new': file_new,
+			'save': lambda x: save(data['track'].dbname),
+			'file_quit': lambda x: g(False),
+			'new_file': new_file,
+			'pause': lambda: data['media'].pause(not g.playing),
+			'marker_add': marker_add,
+			'marker_remove': marker_remove,
+			'marker_set_start': marker_set_start,
+			'marker_set_end': marker_set_end,
+			'edit_change': lambda: setattr(g, 'markers_update', True),
+			'save_all': save_all,
+			'new_speed': lambda: speed_change(0),
+			'new_position': lambda: data['media'].play(g.position, play = None) if not setting_pos else None,
+			'stop': lambda x: stop(True),
+			'continue': lambda x: stop(False),
+			'seek_b_10s': lambda x: data['media'].seek(-10 * 1000),
+			'seek_b_2s': lambda x: data['media'].seek(-2 * 1000),
+			'seek_f_2s': lambda x: data['media'].seek(2 * 1000),
+			'seek_f_10s': lambda x: data['media'].seek(10 * 1000),
+			'seek_10p': lambda x: data['media'].play(data['track'].duration * 10 / 100, play = None),
+			'seek_20p': lambda x: data['media'].play(data['track'].duration * 20 / 100, play = None),
+			'seek_30p': lambda x: data['media'].play(data['track'].duration * 30 / 100, play = None),
+			'seek_40p': lambda x: data['media'].play(data['track'].duration * 40 / 100, play = None),
+			'seek_50p': lambda x: data['media'].play(data['track'].duration * 50 / 100, play = None),
+			'seek_60p': lambda x: data['media'].play(data['track'].duration * 60 / 100, play = None),
+			'seek_70p': lambda x: data['media'].play(data['track'].duration * 70 / 100, play = None),
+			'seek_80p': lambda x: data['media'].play(data['track'].duration * 80 / 100, play = None),
+			'seek_90p': lambda x: data['media'].play(data['track'].duration * 90 / 100, play = None),
+			'seek_start': lambda x: data['media'].play(g.marker_current.start, play = None),
+			'seek_end': lambda x: data['media'].play(g.marker_current.end, play = None),
+			'set_endtarget_start': lambda x: data['media'].play(None, (lambda m: m.start if m else 0) (g.marker_current), play = None),
+			'set_endtarget_end': lambda x: data['media'].play(None, (lambda m: m.end if m else 0) (g.marker_current), play = None),
+			'toggle_delay': lambda x: setattr(g, 'delay_active', not g.delay_active),
+			'toggle_intro': lambda x: setattr(g, 'before_active', not g.before_active),
+			'toggle_edit': edit_change,
+			'slower': lambda x: speed_change(-5),
+			'faster': lambda x: speed_change(5),
+			'show_library': lambda x: setattr(g, 'set_select', True),
+			'media_changed': lambda: data['media'].load(data['track'], g.media),
+			'remove_media': remove_media,
+			'new_media': new_media,
+			'new_offset': new_offset,
+			'run_script1': lambda x: run_script(1),
+			'run_script2': lambda x: run_script(2),
+			'run_script3': lambda x: run_script(3),
+			'run_script4': lambda x: run_script(4),
+			'run_script5': lambda x: run_script(5),
+			'run_script6': lambda x: run_script(6),
+			'run_script7': lambda x: run_script(7),
+			'run_script8': lambda x: run_script(8),
+			'run_script9': lambda x: run_script(9),
+			'run_script10': lambda x: run_script(10),
+			'run_script11': lambda x: run_script(11),
+			'run_script12': lambda x: run_script(12),
+			'scripts_changed': scripts_changed,
+			},
+		inputs = (
+			'before_active',
+			'before',
+			'delay_active',
+			'delay',
+			'editable',
+			'marker_current',
+			'playing',
+			'speed',
+			'position',
+			'media',
+			'offset',
+			'script1',
+			'script2',
+			'script3',
+			'script4',
+			'script5',
+			'script6',
+			'script7',
+			'script8',
+			'script9',
+			'script10',
+			'script11',
+			'script12',
+			),
+		outputs = (
+			'title',
+			'status',
+			'show_about',
+			'set_select',
+			'set_player',
+			'about',
+			'load_markers',
+			'markers_update',
+			'marker_target',
+			'marker_endtarget',
+			'rename_track',
+			'length',
+			'image',
+			'scalemarks',
+			'media_list',
+			'offset_range',
+			'update_files',
+			)
+		)
+# }}}
+
+set_pos(0)
+g()
