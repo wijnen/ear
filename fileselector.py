@@ -1,11 +1,11 @@
-import gtk
+from gi.repository import Gtk
 import media
 
-class Fileselector(gtk.TreeView):
+class Fileselector(Gtk.TreeView):
 	def __init__(self, gui):
 		self.data = gui.data
-		self.store = gtk.ListStore(object, str, str)
-		gtk.TreeView.__init__(self, self.store)
+		self.store = Gtk.ListStore(object, str, str)
+		Gtk.TreeView.__init__(self, self.store)
 		self.namecol = self.mkcol('Name', 1)
 		self.timecol = self.mkcol('Duration', 2)
 		self.update_list()
@@ -14,10 +14,10 @@ class Fileselector(gtk.TreeView):
 		gui.register_attribute('rename_track', None, self.rename_track)
 		gui.register_attribute('update', None, self.update_list)
 	def mkcol(self, title, col):
-		ret = gtk.TreeViewColumn(title)
-		renderer = gtk.CellRendererText()
+		ret = Gtk.TreeViewColumn(title)
+		renderer = Gtk.CellRendererText()
 		self.append_column(ret)
-		ret.pack_start(renderer)
+		ret.pack_start(renderer, True)
 		ret.add_attribute(renderer, 'text', col)
 		return ret
 	def rename_track(self, track):

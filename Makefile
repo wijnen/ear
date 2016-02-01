@@ -5,5 +5,4 @@ all: ear.gui
 	xmlgen < $< > $@
 
 clean:
-	rm -f *.pyc *.pyo
-	rm ear.gui
+	rm -f *.pyc *.pyo ear.gui

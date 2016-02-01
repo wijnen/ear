@@ -1,4 +1,4 @@
-gtk
+Gtk
 	AboutDialog setup=about show=show_about
 	Window title=title:Ear
 		VBox

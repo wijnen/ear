@@ -73,7 +73,7 @@ class Track (object):
 def marker (regex):
 	result = markers (regex)
 	if len (result) != 1:
-		print 'not returning %s' % repr (result)
+		print('not returning %s' % repr (result))
 		return None
 	return result[0]
 
