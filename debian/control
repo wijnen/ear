@@ -2,12 +2,12 @@ Source: ear
 Section: sound
 Priority: optional
 Maintainer: Bas Wijnen <wijnen@debian.org>
-Build-Depends: debhelper (>= 9), python, ruby-ronn, xmlgen
-Standards-Version: 3.9.5
+Build-Depends: debhelper (>= 9), python3, ruby-ronn, xmlgen
+Standards-Version: 3.9.6
 
 Package: ear
 Architecture: all
-Depends: ${misc:Depends}, python, python-lua, python-gui
+Depends: ${misc:Depends}, python3, python3-lua, python3-gui
 Description: play audio and video with markers and at different speeds
  For choreography dancing rehearsal, it is often useful to be able to play the
  music at a lower or higher speed than normal.  This program allows that.  It
