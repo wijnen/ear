@@ -106,7 +106,7 @@ class Markers(Gtk.TreeView):
 			return
 		if not c or not self.row_expanded(self.store.get_path(node)):
 			# If the row is not expanded, the marker must be at the parent.
-			if self.endtarget == self.data['track'].duration or(obj and obj.end == self.endtarget):
+			if self.endtarget == self.data['track'].duration or (obj and obj.end == self.endtarget):
 				if self.store.get_value(node, 6) != self.stoppers[2]:
 					self.store.set_value(node, 6, self.stoppers[2])
 			else:

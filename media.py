@@ -19,12 +19,12 @@ def parseinterval(i):
 	return int(float(m) * 1000)
 
 def mktimestr(t):
-	t = int(t / 100)
+	t = int(t // 100)
 	frac = t % 10
-	s = t / 10
-	m = s / 60
+	s = t // 10
+	m = s // 60
 	s -= m * 60
-	h = m / 60
+	h = m // 60
 	m -= h * 60
 	ret = ''
 	if h > 0:
@@ -79,7 +79,7 @@ class Media:
 		cls.probe_pipeline.set_state(Gst.State.PAUSED)
 		cls.probe_pipeline.get_state(Gst.CLOCK_TIME_NONE)
 		try:
-			ret = cls.probe_pipeline.query_duration(Gst.Format(Gst.Format.TIME))[0] / Gst.MSECOND
+			ret = cls.probe_pipeline.query_duration(Gst.Format(Gst.Format.TIME))[1] / Gst.MSECOND
 		except:
 			#import traceback
 			#traceback.print_exc()
@@ -160,7 +160,7 @@ class Media:
 	def update(self):
 		self.pipeline.get_state(Gst.CLOCK_TIME_NONE)
 		try:
-			pos = self.pipeline.query_position(Gst.Format(Gst.Format.TIME))[0] / Gst.MSECOND * self.speed + self.offset
+			pos = self.pipeline.query_position(Gst.Format(Gst.Format.TIME))[1] / Gst.MSECOND * self.speed + self.offset
 		except:
 			self.updater = None
 			if self.cb:
@@ -175,7 +175,7 @@ class Media:
 	def get_pos(self):
 		self.pipeline.get_state(Gst.CLOCK_TIME_NONE)
 		try:
-			pos = self.pipeline.query_position(Gst.Format(Gst.Format.TIME))[0] / Gst.MSECOND * self.speed + self.offset
+			pos = self.pipeline.query_position(Gst.Format(Gst.Format.TIME))[1] / Gst.MSECOND * self.speed + self.offset
 		except:
 			return 0
 		return pos #if self.speed <= 1 else pos / self.speed

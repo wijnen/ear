@@ -97,7 +97,7 @@ for dirname in fhs.read_data('db', dir = True, opened = False, multiple = True):
 
 # Event responses. {{{
 def file_new(dummy = None):
-	db.append(Track('', data['track'].dbname if data['track'] else xdgbasedir.data_filename_write(os.path.join('db', 'default' + os.extsep + 'db'))))
+	db.append(Track('', data['track'].dbname if data['track'] else fhs.write_data(os.path.join('db', 'default' + os.extsep + 'db'), opened = False)))
 	g.update_files = True
 	data['track'] = db[-1]
 	new_file()
