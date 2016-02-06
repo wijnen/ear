@@ -63,12 +63,15 @@ class Media:
 		self.audiobin = Gst.Bin()
 		self.convert = Gst.ElementFactory.make('audioconvert')
 		self.pitch = Gst.ElementFactory.make('pitch', 'pitch')
+		self.convert2 = Gst.ElementFactory.make('audioconvert')
 		self.audiosink = Gst.ElementFactory.make('autoaudiosink')
 		self.audiobin.add(self.convert)
 		self.audiobin.add(self.pitch)
+		self.audiobin.add(self.convert2)
 		self.audiobin.add(self.audiosink)
 		self.convert.link(self.pitch)
-		self.pitch.link(self.audiosink)
+		self.pitch.link(self.convert2)
+		self.convert2.link(self.audiosink)
 		pad = Gst.GhostPad.new('sink', self.convert.get_static_pad('sink'))
 		pad.set_active(True)
 		self.audiobin.add_pad(pad)
@@ -122,7 +125,7 @@ class Media:
 			self.cb = cb
 		if end is None:
 			end = self.endtarget
-		if end is not None and end < start:
+		if end is not None and start is not None and end < start:
 			end = None
 		self.endtarget = end
 		if play is None:
