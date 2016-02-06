@@ -325,7 +325,7 @@ g = gui.Gui(widgets = {'Markers': markers.Markers, 'Fileselector': fileselector.
 		events = {
 			'help_about': lambda x: setattr(g, 'show_about', True),
 			'file_new': file_new,
-			'save': lambda x: save(data['track'].dbname),
+			'save': lambda: save(data['track'].dbname),
 			'file_quit': lambda x: g(False),
 			'new_file': new_file,
 			'pause': lambda: data['media'].pause(not g.playing),
