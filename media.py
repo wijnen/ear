@@ -7,7 +7,7 @@ GObject.threads_init()
 from gi.repository import GLib
 import os
 
-Gst.init()
+Gst.init(())
 
 def parsemoment(m):
 	return int(float(m) * 1000)

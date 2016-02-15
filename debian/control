@@ -7,7 +7,8 @@ Standards-Version: 3.9.6
 
 Package: ear
 Architecture: all
-Depends: ${misc:Depends}, python3, python3-lua, python3-gui
+Depends: ${misc:Depends}, python3, python3-lua, python3-gui, python3-gst-1.0, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad
+Recommends: gstreamer1.0-plugins-ugly
 Description: play audio and video with markers and at different speeds
  For choreography dancing rehearsal, it is often useful to be able to play the
  music at a lower or higher speed than normal.  This program allows that.  It
