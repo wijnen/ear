@@ -120,6 +120,7 @@ class Media:
 		self.speed = speed
 		self.play(pos, play = None)
 	def play(self, start = None, end = None, cb = (), play = True): # For cb, None means no cb, so use something else for "no change".
+		self.pitch.set_property('tempo', self.speed)
 		self.offset = self.track.files[self.track.media][1] * 1000.
 		if cb != ():
 			self.cb = cb
@@ -138,9 +139,11 @@ class Media:
 			self.set_endtarget(end)
 		if start is not None and start < self.offset:
 			start = self.offset
-		self.pitch.set_property('tempo', self.speed)
 		if start is not None and start < self.offset + self.media_duration:
 			start -= self.offset
+			start /= self.speed
+			if end is not None:
+				end /= self.speed
 			self.pause()
 			self.pipeline.get_state(Gst.CLOCK_TIME_NONE)
 			if end is not None and (start is None or end > start):
