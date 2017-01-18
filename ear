@@ -322,8 +322,9 @@ data = {
 	'scalemarks': lambda m: setattr(g, 'scalemarks', m),
 	}
 data['media'].send_pixbuf = lambda pixbuf: setattr(g, 'image', pixbuf)
-g = gui.Gui(widgets = {'Markers': markers.Markers, 'Fileselector': fileselector.Fileselector}, data = data,
-		events = {
+
+kwargs = {'Markers': markers.Markers, 'Fileselector': fileselector.Fileselector}, data : data,
+		"events" : {
 			'help_about': lambda x: setattr(g, 'show_about', True),
 			'file_new': file_new,
 			'save': lambda x: save(data['track'].dbname),
@@ -381,7 +382,7 @@ g = gui.Gui(widgets = {'Markers': markers.Markers, 'Fileselector': fileselector.
 			'run_script12': lambda x: run_script(12),
 			'scripts_changed': scripts_changed,
 			},
-		inputs = (
+		inputs : (
 			'before_active',
 			'before',
 			'delay_active',
@@ -406,7 +407,7 @@ g = gui.Gui(widgets = {'Markers': markers.Markers, 'Fileselector': fileselector.
 			'script11',
 			'script12',
 			),
-		outputs = (
+		'outputs' :  (
 			'title',
 			'status',
 			'show_about',
