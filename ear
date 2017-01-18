@@ -5,6 +5,7 @@
 import os
 import gui
 import fhs
+config = fhs.init({"webUI":True,"gtkUI":False })
 
 import fileselector
 import markers
@@ -426,6 +427,131 @@ g = gui.Gui(widgets = {'Markers': markers.Markers, 'Fileselector': fileselector.
 			)
 		)
 # }}}
+
+
+if config['webUI']:
+    import zmq
+    import simplejson.scanner
+    import subprocess
+    zmqcontext=zmq.Context()
+    zmq_socket=zmqcontext.socket(zmq.REP)
+    zmq_socket.bind("tcp://*:5555")
+    zmq_fd=zmq_socket.getsockopt(zmq.FD)
+    g.before_active = True
+    def zmq_callback(fd,condition,zmq_socket):
+        while zmq_socket.getsockopt(zmq.EVENTS) & zmq.POLLIN:
+            wt = False
+            try:
+                msg = zmq_socket.recv_json()
+            except simplejson.scanner.JSONDecodeError as e:
+                print(e)
+                zmq_socket.send_string("something recieved, please send json")
+                continue
+            except Exception as e:
+                print(e)
+                continue
+            if type(msg) == list:
+                if len(msg) ==1:
+                    msg=msg[0]
+                    print("Message recieved:"+msg)
+            if type(msg)==str:
+                if msg =="events?":
+                    print("dirring")
+                    events=list(kwargs['events'].keys())
+                    events.sort()
+                    events.append("play") #Special temp usecase
+                    events = [event for event in events if "set" not in event]
+                    events = [event for event in events if "marker" not in event]
+                    events = [event for event in events if "toggle" not in event]
+                    events = [event for event in events if "file" not in event]
+                    events = [event for event in events if "new" not in event]
+                    events = [event for event in events if "show" not in event]
+                    events = [event for event in events if "media" not in event]
+                    events = [event for event in events if "help" not in event]
+                    events = [event for event in events if "edit" not in event] #We probably want to make this a curated list somewhere in the source or something. I'm open for ideas"""
+                    #The Wt JSON parser needs to know if stuff is a dict or a list before parsing (otherwise you can't assign to an Array or Object. That's why _EVERYTHING_ is a dict. We might use the second argument to describe the text on the widget instead of using the command name for that.
+                    events = OrderedDict ( [(k,None) for k in events ])
+                    print(events)
+                    zmq_socket.send_json(events)
+                elif msg.startswith('event:'):
+                    event=msg[len('event:'):]
+                    print ("Event:{}".format(event))
+                    if event == "pause":
+                        data['media'].pause()
+                        zmq_socket.send_json({"state":g.playing}) 
+                    elif event in kwargs['events'].keys():
+                        try:
+                            ret=kwargs['events'][event]("foo")
+                        except TypeError:
+                            ret=kwargs['events'][event]()
+                        if ret ==None:
+                            ret=="None"
+                        zmq_socket.send_json({"ret":ret})   
+                    elif event == "play":
+                        g.playing = True
+                        data['media'].play()
+                        zmq_socket.send_json({"state":g.playing}) 
+                    else:
+                        zmq_socket.send_json("No such event")
+                        print("No such event")
+                elif msg =="inputs?":
+                    inputs = {"speed":[50,200],"before":[0,10]} #Needs volume as well at some point (min,max,cur)
+                    print(g)
+                    for inp in inputs.keys():
+                        inputs[inp].append(getattr(g,inp))
+                    zmq_socket.send_json(inputs)
+                elif msg.startswith("input:"):
+                    _,inp,val=msg.split(":")
+                    try:
+                        val=float(val)
+                    except ValueError as e:
+                        print(e)
+                        continue
+                    print("Setting {} to {}".format(inp,val))
+                    setattr(g,inp,val)
+                    print("Set {} to {}".format(inp,val))
+                    zmq_socket.send_json({"dummy":"dummy"})
+                elif msg =="track?":
+                    if not data['track']:
+                        zmq_socket.send_json({"current":-1})
+                    else:
+                        zmq_socket.send_json({"current":db.index(data['track'])})
+                elif msg =="tracks?":
+                    zmq_socket.send_json({"tracks":[t.name for t in db]})
+                elif msg.startswith('track:'):
+                    select=msg[len('track:'):]
+                    try:
+                        sel = int(select)
+                    except ValueError as e:
+                        print (e)
+                        continue
+                    data['track']=db[sel]    
+                    new_file()
+                    zmq_socket.send_json({"dummy":"dummy"})
+                elif msg =="markers?":
+                    if not data['track']:
+                        zmq_socket.send_json({"markers":[]})
+                        continue
+                    sendMarkers=[]
+                    for marker in data["track"].markers:
+                        sendMarkers.append({"name":marker.name, "start":marker.start,"end":marker.end})
+                    zmq_socket.send_json({"markers":sendMarkers})
+                elif msg.startswith("play:"): #This at least works...
+                    try:
+                        startTime=float(msg[len("play:"):])
+                    except:
+                        zmq_socket.send_json({"dummy":"dummy"})
+                        continue
+                    data['media'].play(startTime, play = True)
+                    zmq_socket.send_json({"dummy":"dummy"})
+                else:
+                    print ("Event not handled:{}".format(msg))
+        return True
+
+    from gi.repository import GObject
+    GObject.io_add_watch(zmq_fd,GObject.IO_IN, zmq_callback, zmq_socket)
+
+
 
 set_pos(0)
 g()
