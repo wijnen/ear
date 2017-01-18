@@ -322,8 +322,11 @@ data = {
 	'scalemarks': lambda m: setattr(g, 'scalemarks', m),
 	}
 data['media'].send_pixbuf = lambda pixbuf: setattr(g, 'image', pixbuf)
-
-kwargs = {'Markers': markers.Markers, 'Fileselector': fileselector.Fileselector}, data : data,
+if config['gtkUI']:
+    widgets =  {'Markers': markers.Markers, 'Fileselector': fileselector.Fileselector}
+else:
+    widgets = None
+kwargs = {"widgets" : widgets, 'data' :data ,
 		"events" : {
 			'help_about': lambda x: setattr(g, 'show_about', True),
 			'file_new': file_new,
@@ -345,15 +348,15 @@ kwargs = {'Markers': markers.Markers, 'Fileselector': fileselector.Fileselector}
 			'seek_b_2s': lambda x: data['media'].seek(-2 * 1000),
 			'seek_f_2s': lambda x: data['media'].seek(2 * 1000),
 			'seek_f_10s': lambda x: data['media'].seek(10 * 1000),
-			'seek_10p': lambda x: data['media'].play(data['track'].duration * 10 / 100, play = None),
-			'seek_20p': lambda x: data['media'].play(data['track'].duration * 20 / 100, play = None),
-			'seek_30p': lambda x: data['media'].play(data['track'].duration * 30 / 100, play = None),
-			'seek_40p': lambda x: data['media'].play(data['track'].duration * 40 / 100, play = None),
-			'seek_50p': lambda x: data['media'].play(data['track'].duration * 50 / 100, play = None),
-			'seek_60p': lambda x: data['media'].play(data['track'].duration * 60 / 100, play = None),
-			'seek_70p': lambda x: data['media'].play(data['track'].duration * 70 / 100, play = None),
-			'seek_80p': lambda x: data['media'].play(data['track'].duration * 80 / 100, play = None),
-			'seek_90p': lambda x: data['media'].play(data['track'].duration * 90 / 100, play = None),
+			#"""'seek_10p': lambda x: data['media'].play(data['track'].duration * 10 / 100, play = None),
+			#'seek_20p': lambda x: data['media'].play(data['track'].duration * 20 / 100, play = None),
+			#'seek_30p': lambda x: data['media'].play(data['track'].duration * 30 / 100, play = None),
+			#'seek_40p': lambda x: data['media'].play(data['track'].duration * 40 / 100, play = None),
+			#'seek_50p': lambda x: data['media'].play(data['track'].duration * 50 / 100, play = None),
+			#'seek_60p': lambda x: data['media'].play(data['track'].duration * 60 / 100, play = None),
+			#'seek_70p': lambda x: data['media'].play(data['track'].duration * 70 / 100, play = None),
+			#'seek_80p': lambda x: data['media'].play(data['track'].duration * 80 / 100, play = None),
+			#'seek_90p': lambda x: data['media'].play(data['track'].duration * 90 / 100, play = None),"""
 			'seek_start': lambda x: data['media'].play(g.marker_current.start, play = None),
 			'seek_end': lambda x: data['media'].play(g.marker_current.end, play = None),
 			'set_endtarget_start': lambda x: data['media'].play(None, (lambda m: m.start if m else 0) (g.marker_current), play = None),
