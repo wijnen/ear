@@ -2,19 +2,25 @@
 # vim: set foldmethod=marker :
 
 # Imports. {{{
-import os
-import gui
+
 import fhs
 config = fhs.init({"webUI":True,"gtkUI":False })
 
-import fileselector
-import markers
+from collections import OrderedDict
+if config['gtkUI']:
+    import markers
+    import fileselector
+    import gui
+else:
+    import gi
+    gi.require_version('GLib', '2.0')
+    from gi.repository import GLib
+
+import os
 import media
-import script
+
+
 # }}}
-
-config = fhs.init({})
-
 # Classes. {{{
 class Track:
     def __init__(self, name, dbname):
@@ -37,53 +43,55 @@ class Marker:
 # }}}
 
 # Read database. {{{
-db = []
-for dirname in fhs.read_data('db', dir = True, opened = False, multiple = True):
-    for dbfilename in os.listdir(dirname):
-        if os.path.splitext(dbfilename)[1] != os.extsep + 'db':
-            #print('skipping %s' % dbfilename)
-            continue
-        dbname = os.path.join(dirname, dbfilename)
-        with open(dbname) as f:
-            line = f.readline()
-            if not line:
+def read_db():
+    """Reads a single DB file handed by the FHS module. Should be changed to handle a tree structure. Should also allow annotation files"""
+    db = []
+    for dirname in fhs.read_data('db', dir = True, opened = False, multiple = True):
+        for dbfilename in os.listdir(dirname):
+            if os.path.splitext(dbfilename)[1] != os.extsep + 'db':
+                #print('skipping %s' % dbfilename)
                 continue
-            assert line.startswith('=')
-            db.append(Track(line[1:].strip(), dbname))
-            for i in range(12):
-                db[-1].scripts[i + 1] = None
-            line = f.readline()
-            while True:
-                if line.startswith('#'):
-                    db[-1].tags.append(line[1:].strip())
-                    line = f.readline()
+            dbname = os.path.join(dirname, dbfilename)
+            with open(dbname) as f:
+                line = f.readline()
+                if not line:
                     continue
-                elif line.startswith('+'):
-                    offset, filename = line[1:].strip().split(None, 1)
-                    line = f.readline()
-                    duration = media.Media.get_duration(os.path.join(dirname, filename))
-                    if not duration:
-                        continue
-                    #print('new track %s' % line.strip())
-                    db[-1].files.append([filename, float(offset), duration])
-                    if db[-1].duration < duration:
-                        db[-1].duration = duration
-                    continue
-                elif line.startswith('!'): #Old scripting code
-                    continue
-                # Done with tags, scripts and filenames; fill up scripts, then read markers.
-                while True:
-                    if not line.startswith('\t'):
-                        break
-                    start, end, name = line.strip().split(None, 2)
-                    line = f.readline()
-                    db[-1].markers.append(Marker(name, media.parsemoment(start), media.parsemoment(end)))
-                if line == '':
-                    break
                 assert line.startswith('=')
                 db.append(Track(line[1:].strip(), dbname))
                 line = f.readline()
-# }}}
+                while True:
+                    if line.startswith('#'):
+                        db[-1].tags.append(line[1:].strip())
+                        line = f.readline()
+                        continue
+                    elif line.startswith('+'):
+                        offset, filename = line[1:].strip().split(None, 1)
+                        line = f.readline()
+                        duration = media.Media.get_duration(os.path.join(dirname, filename))
+                        if not duration:
+                            continue
+                        #print('new track %s' % line.strip())
+                        db[-1].files.append([filename, float(offset), duration])
+                        if db[-1].duration < duration:
+                            db[-1].duration = duration
+                        continue
+                    elif line.startswith('!'): #Old scripting code
+                        continue
+                    # Done with tags, scripts and filenames; fill up scripts, then read markers.
+                    while True:
+                        if not line.startswith('\t'):
+                            break
+                        start, end, name = line.strip().split(None, 2)
+                        line = f.readline()
+                        db[-1].markers.append(Marker(name, media.parsemoment(start), media.parsemoment(end)))
+                    if line == '':
+                        break
+                    assert line.startswith('=')
+                    db.append(Track(line[1:].strip(), dbname))
+                    line = f.readline()
+    return db
+db = read_db()
+    # }}}
 
 # Event responses. {{{
 def file_new(dummy = None):
@@ -203,6 +211,8 @@ def marker_set_end(arg = None):
     g.markers_update = True
 
 def save(dbname):
+    print("DO NOT CLICK SAVE WHILE TESTING")
+    return
     with open(dbname, 'w') as f:
         for track in db:
             if track.dbname != dbname:
