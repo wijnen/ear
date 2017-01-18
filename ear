@@ -428,6 +428,25 @@ g = gui.Gui(widgets = {'Markers': markers.Markers, 'Fileselector': fileselector.
 		)
 # }}}
 
+class State():
+    def __init__(self,*args,**kwargs):
+        self._add(**kwargs)
+    def _add(self,**kwargs):
+     for k,v in kwargs:
+        if type(v) == dict:
+            self._add(self,v)
+        else:
+            setattr(self,k,v)
+
+if config['gtkUI']:
+    g = gui.Gui(**kwargs)
+else:
+    g = State(kwargs) 
+    """Set defaults"""
+    g.speed = 100
+    g.volume = 100
+    g.before = 3
+#
 
 if config['webUI']:
     import zmq
