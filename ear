@@ -375,7 +375,7 @@ kwargs = {"widgets" : widgets, 'data' :data ,
             'offset_range',
             'update_files',
             )
-        )
+        }
 # }}}
 
 class State():
@@ -523,4 +523,13 @@ if config['webUI']:
 
 
 set_pos(0)
-g()
+if config['gtkUI']:
+    g()
+else:
+    data['track']=db[-1]    
+    new_file()
+    print(data['track'])
+    print(data['media'])
+    GLib.MainLoop().run()
+    
+#
