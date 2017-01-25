@@ -479,6 +479,8 @@ if config['webUI']:
                         continue
                     print("Setting {} to {}".format(inp,val))
                     setattr(g,inp,val)
+                    if inp == "speed":
+                        data['media'].set_speed(val / 100.)
                     print("Set {} to {}".format(inp,val))
                     zmq_socket.send_json({"dummy":"dummy"})
                 elif msg =="track?":
