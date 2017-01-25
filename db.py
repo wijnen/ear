@@ -49,11 +49,11 @@ def parse_fragments(root, tracks, used):
                     # Fragments are done, read next track.
                     state = "TRACK"
                 else:
-                    if line[-1] == ':':
-                        # New group.
+                    if line[-1] == ':': 
+                        # New group. If we're in a group, this is a group in a group, so a child group.
                         need_indent = True
                         stack[-1].append(['group', line[:-1].strip(), []])
-                        stack.append(stack[-1][-1][2])
+                        stack.append(stack[-1][-1][2]) #Stack[-1] is the current group we're in. Stack[-1][-1] is the youngest child (last node we've added to this group). This node is having children (so grandchildren, I guess). The list of children is in [2]. So that needs to be filled. So that's why we're putting it on the stack
                     else:
                         name, start = line.rsplit(None, 1)
                         name = name.strip()
