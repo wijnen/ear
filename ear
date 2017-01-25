@@ -295,8 +295,8 @@ if config['gtkUI']:
     widgets =  {'Markers': markers.Markers, 'Fileselector': fileselector.Fileselector}
 else:
     widgets = None
-kwargs = {"widgets" : widgets, 'data' :data ,
-        "events" : {
+kwargs = {"widgets" : widgets, 'data' : data ,
+        'events' : {
             'help_about': lambda x: setattr(g, 'show_about', True),
             'file_new': file_new,
             'save': lambda x: save(data['track'].dbname),
@@ -447,7 +447,8 @@ if config['webUI']:
                     print ("Event:{}".format(event))
                     if event == "pause":
                         data['media'].pause()
-                        zmq_socket.send_json({"state":g.playing}) 
+                        #zmq_socket.send_json({"state":g.playing}) 
+                        zmq_socket.send_json({"dummy":"dummy"}) 
                     elif event in kwargs['events'].keys():
                         try:
                             ret=kwargs['events'][event]("foo")
