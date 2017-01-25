@@ -116,42 +116,44 @@ def read():
 
     return tracks
 
+
+def write_group(group, indent):
+    '''Recursively write a group of fragments'''
+    ret = ''
+    for fragment in group:
+        if fragment[0] == 'group':
+            ret += '{}{}:{}'.format(indent, fragment[1], EOL)
+            ret += write_group(fragment[2], indent + INDENT)
+        elif fragment[0] == 'fragment':
+            ret += '{}{}\t{}{}'.format(indent, fragment[1], fragment[2], EOL)
+        else:
+            assert(fragment[0] == 'end')
+            # Ignore.
+    return ret
+
+def write_track(track):
+    # Every track starts with an empty line and the track name.
+    # There are two reasons for the empty line: it separates the tracks,
+    # and it lets the BOM be on a line of its own, so grep can find lines
+    # that start with 'Track:' without missing the first.
+    ret = ""
+    ret += '{}Track:{}{}'.format(EOL, track['name'], EOL)
+    ret += 'Root:{}{}'.format(track['root'], EOL)
+    for file in track['files']:
+        if file[1] != 0:
+            ret += 'File:{};Offset={}{}'.format(file[0], file[1], EOL)
+        else:
+            ret += 'File:{}{}'.format(file[0], EOL)
+    ret += 'Fragments:{}'.format(EOL)
+    ret += write_group(track['fragments'], INDENT)
+    return ret
+
+
+ 
 def write(tracks):
     '''Write the internal track data to a file that can be read back with db.read()'''
 
-    def write_group(group, indent):
-        '''Recursively write a group of fragments'''
-        ret = ''
-        for fragment in group:
-            if fragment[0] == 'group':
-                ret += '{}{}:{}'.format(indent, fragment[1], EOL)
-                ret += write_group(fragment[2], indent + INDENT)
-            elif fragment[0] == 'fragment':
-                ret += '{}{}\t{}{}'.format(indent, fragment[1], fragment[2], EOL)
-            else:
-                assert(fragment[0] == 'end')
-                # Ignore.
-        return ret
-
-    def write_track(track):
-        # Every track starts with an empty line and the track name.
-        # There are two reasons for the empty line: it separates the tracks,
-        # and it lets the BOM be on a line of its own, so grep can find lines
-        # that start with 'Track:' without missing the first.
-        ret = ""
-        ret += '{}Track:{}{}'.format(EOL, track['name'], EOL)
-        ret += 'Root:{}{}'.format(track['root'], EOL)
-        for file in track['files']:
-            if file[1] != 0:
-                ret += 'File:{};Offset={}{}'.format(file[0], file[1], EOL)
-            else:
-                ret += 'File:{}{}'.format(file[0], EOL)
-        ret += 'Fragments:{}'.format(EOL)
-        ret += write_group(track['fragments'], INDENT)
-        return ret
-
-
-    output = {}
+   output = {}
     for track in tracks:
         # Don't define tracks without fragments.
         if len(track['fragments']) == 0:
