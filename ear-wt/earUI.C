@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2008 Emweb bvba, Heverlee, Belgium.
+ * Example used: Copyright (C) 2008 Emweb bvba, Heverlee, Belgium.
  *
- * See the LICENSE file for terms of use.
+ * Code copyright Kasper Loopstra, 2017  
  */
 
 #include <Wt/WApplication>
@@ -28,10 +28,7 @@
 #include <string>
 #include <iostream>
 
-//#define MAXSIZE 1048576
-#define MAXSIZE 1048576
-// c++0x only, for std::bind
-// #include <functional>
+#define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here. 
 
 
 
@@ -61,12 +58,6 @@ private:
 
 };
 
-/*
- * The env argument contains information about the new session, and
- * the initial request. It must be passed to the WApplication
- * constructor so it is typically also an argument for your custom
- * application constructor.
-*/
 EarUI::EarUI(const WEnvironment& env)
   : WApplication(env)
 {
@@ -105,7 +96,7 @@ std::cout<<"Parsed names"<<std::endl;
     for (auto name : names) 
     {
         WPushButton *button = new WPushButton(name ,root());     
-        button->setMargin(5, Left);                            // add 5 pixels margin
+        button->setMargin(5, Left);                          
 	ButtonMap->mapConnect(button->clicked(),button);
 	currentTrackContainer->addWidget(button);
     }
@@ -120,7 +111,7 @@ std::cout<<"Parsed names"<<std::endl;
     Wt::WComboBox *trackcombo = new Wt::WComboBox(trackListContainer);
     trackcombo->setMargin(10, Wt::Right);
     Wt::WStringListModel *trackmodel = new Wt::WStringListModel(trackcombo);
-    Json::Array json_tracknames;  //From HERE //@Bas
+    Json::Array json_tracknames;  
     json_tracknames = tracks.get("tracks");
     std::vector<Wt::WString> tracknames;
     WString foo;
@@ -128,7 +119,7 @@ std::cout<<"Parsed names"<<std::endl;
 	{	
 		foo = trackname;
 		tracknames.push_back(foo);
-	} //To HERE is basically a cast between an Array of Json::Values (being strings, castable to WString) to a vector of WStrings. Can we do this in one line?
+	} 
     trackmodel->setStringList(tracknames);
     trackcombo->setNoSelectionEnabled(true);
     trackcombo->setModel(trackmodel);
@@ -155,7 +146,7 @@ std::cout<<"Parsed names"<<std::endl;
 	inputSettings = inputs.get(input_name);
  	inputSlider = new Wt::WSlider(thisInputContainer);
 	inputSlider->setObjectName("inputSlider:"+input_name);
-        inputSlider->resize(500,50); //UI values
+        inputSlider->resize(500,50);
         inputSlider->setMinimum(inputSettings[0]); 
         inputSlider->setMaximum(inputSettings[1]); 
         inputSlider->setValue(inputSettings[2]); 
@@ -182,7 +173,7 @@ std::cout<<"Parsed names"<<std::endl;
 
     Wt::WTreeTable *markerTree = new Wt::WTreeTable();
     markerContainer->addWidget(markerTree);
-    markerTree->resize(600,600); 
+    markerTree->resize(1000,1000); 
     markerTree->setObjectName("markertree");
     markerTree->tree()->setSelectionMode(Wt::ExtendedSelection);
     markerTree->addColumn("Start",200);
@@ -203,9 +194,8 @@ std::cout<<"Parsed names"<<std::endl;
 
 void EarUI::loadMarkers(zmq::socket_t &socket,WString trackname)
 {
-	Wt::WTreeTable *treeTable; //This should become a WAbstractItemModel to make an MVC TreeTable. I'll need some help with that.
+	Wt::WTreeTable *treeTable; 
 	treeTable = dynamic_cast<WTreeTable*> (findWidget("markertree"));
-	//Wt::WTreeTableNode *root = new Wt::WTreeTableNode(trackname);
 	Wt::WTreeTableNode *root = new Wt::WTreeTableNode("stuff");
 	treeTable->setTreeRoot(root, "Markers for this track");
 	Wt::WTreeTableNode *current_root = root;
@@ -259,7 +249,7 @@ void EarUI::updateInputs()
 		sliderWidget = dynamic_cast<WSlider*> (findWidget("inputSlider:"+name));
 		sliderWidget->setValue(inputSettings[2]);
 		textWidget = dynamic_cast<WText*> (findWidget("inputText:"+name));
-		textWidget->setText(name + ":" + sliderWidget->valueText()); //The slider does the casting!
+		textWidget->setText(name + ":" + sliderWidget->valueText()); //The slider does the casting from double to string!
 
 	}
 	WComboBox *comboBox;
@@ -307,49 +297,19 @@ Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, const char *name,
 				const double duration) {
 
 	Wt::WTreeTableNode *node = new Wt::WTreeTableNode(name, 0, parent);
-	Wt::WPushButton *startButton = new Wt::WPushButton("&darr;");	
-	Wt::WPushButton *endButton = new Wt::WPushButton("&uarr;");
-	node->setColumnWidget(1,startButton);
-	node->setColumnWidget(2,endButton);
-	//node->doubleClicked().connect(std::bind([=]() { //There is no doubleClicked signal, unfortunately.
-/*	node->selected().connect(std::bind([=]() {
+	node->selected().connect(std::bind([=]() {
 std::cout<<"Handlign a startbutton click from the markertree"<<std::endl;
-	//Json::Object send; This should be a dict with a name at some point, so we can send the actual start time as a double. However, the earUI always expects a string at this point
-//	EarUI::interact_zmq("play:"+std::to_string(start));
-	WString command="play:"+std::to_string(start);
-	EarUI::interact_zmq(command);
-		
-
-	}));*/
-	startButton->clicked().connect(std::bind([=]() { //@Bas: If we uncomment this, it'll compile, but segfault on page load (not ever outputting the line belwo). This function should not even be called before a button is clicked. How?
-std::cout<<"Handlign a startbutton click from the markertree"<<std::endl;
-
-		Wt::WTreeTableNode *otherNode;
-		for (auto nodeObj:parent->tree()->treeRoot()->childNodes())
-		{
-			otherNode = dynamic_cast<Wt::WTreeTableNode*> (nodeObj);
-			Wt::WText *otherStartWidget = dynamic_cast<Wt::WText*>( otherNode->columnWidget(3)); //See *
-//			Wt::WText *otherEndWidget = dynamic_cast<Wt::WText*>(otherNode->columnWidget(4)); //See *
-			std::string foo = otherStartWidget->text().narrow();
-			if (std::atof( foo.c_str()) < start) //Start time of this widget
-			{
-				otherNode->tree()->select(otherNode);
-			}
-			else
-			{
-				otherNode->tree()->select(otherNode,false);
-			}
-		}
-	}));	
-	Wt::WText *startWidget = new Wt::WText(std::to_string(start)); //Let's store our private variables in hidden widgets instead of subclassing this mess. Actually, we probably want to show it at some point anyway. Subclassing might be needed/better
+		WString command="play:"+std::to_string(start); //In the future, this should send a list of start times to start from, in case multiple markers are selected. The last marker also automatically indicates an end time (the end time of that fragment). For now, send a single string
+		EarUI::interact_zmq(command);
+	}));
+	Wt::WText *startWidget = new Wt::WText(std::to_string(start));  //For now, use a hidden widget to store the start time
 	
 	Wt::WText *endWidget = new Wt::WText(std::to_string(end));
 	startWidget->setHidden(true);
 	endWidget->setHidden(true);
-	node->setColumnWidget(3, startWidget); //See *
+	node->setColumnWidget(3, startWidget); //The start time should always be the third widget, see above.
 	node->setColumnWidget(4, endWidget);
 	
-//i//	node->setColumnWidget(4, new Wt::WText(std::to_string(duration)));*/
 	return node;
     }
 
@@ -366,13 +326,24 @@ std::cout <<"Clicked: " << source->text() <<std::endl;
 updateInputs();
 }
 
+
+/*
+
+ZeroMQ handling below.
+An interact function can take a socket or not. If provided with a socket, it will be used. If not, one will be opened and closed for this interaction. 
+Send and recieve always need a socket.
+When sending more than one interaction, preferably create a socket and use that.
+WStrings, strings are both handled
+*/
+
+
 Json::Object EarUI::interact_zmq(Wt::WString value)
 {
 	return interact_zmq(value.narrow());
 }
 
 
-Json::Object EarUI::interact_zmq(Json::Object value) //Implementation is exact same as below, because of same names. Can this be any better in C? //@Bas
+Json::Object EarUI::interact_zmq(Json::Object value)//Should use a function template 
 {
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
@@ -438,10 +409,6 @@ std::cout<<"Recieved stuff"<<buffer<<std::endl;
 
 WApplication *createApplication(const WEnvironment& env)
 {
-  /*
-   * You could read information from the environment to decide whether
-   * the user has permission to start a new application
-   */
   return new EarUI(env);
 }
 
@@ -453,17 +420,6 @@ WApplication *createApplication(const WEnvironment& env)
 
 int main(int argc, char **argv)
 {
-  /*
-   * Your main method may set up some shared resources, but should then
-   * start the server application (FastCGI or httpd) that starts listening
-   * for requests, and handles all of the application life cycles.
-   *
-   * The last argument to WRun specifies the function that will instantiate
-   * new application objects. That function is executed when a new user surfs
-   * to the Wt application, and after the library has negotiated browser
-   * support. The function should return a newly instantiated application
-   * object.
-   */
   return WRun(argc, argv, &createApplication);
 }
 
