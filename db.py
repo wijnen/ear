@@ -15,7 +15,7 @@ def parse_fragments(root, tracks, used):
     '''Read tracks from a FRAGMENTS file and insert them into tracks parameter.
     Note: this does not add the 'end' marker to the tracks.'''
     with open(os.path.join(root, FRAGMENTS), 'r') as f:
-        state = "TRACK" #What are we looking for? A TRACK, VALUES, or FRAGMENTS?
+        state = 'TRACK' #What are we looking for? A TRACK, VALUES, or FRAGMENTS?
         for line in f:
             # Remove ending whitespace and starting BOM.
             line = line.lstrip('\ufeff').rstrip()
@@ -31,7 +31,7 @@ def parse_fragments(root, tracks, used):
                 value = value.strip()
             else:
                 key, value = None, None
-            if state == "FRAGMENTS":
+            if state == 'FRAGMENTS':
                 # Read fragments.
                 indent = len(line) - len(line.lstrip())
                 while indent < istack[-1]:
@@ -47,23 +47,24 @@ def parse_fragments(root, tracks, used):
                 need_indent = False
                 if indent == 0:
                     # Fragments are done, read next track.
-                    state = "TRACK"
+                    state = 'TRACK'
                 else:
                     if line[-1] == ':': 
                         # New group. If we're in a group, this is a group in a group, so a child group.
                         need_indent = True
-                        stack[-1].append(['group', line[:-1].strip(), []])
-                        stack.append(stack[-1][-1][2]) #Stack[-1] is the current group we're in. Stack[-1][-1] is the youngest child (last node we've added to this group). This node is having children (so grandchildren, I guess). The list of children is in [2]. So that needs to be filled. So that's why we're putting it on the stack
+                        new_group = ['group', line[:-1].strip(), []]
+                        stack[-1].append(new_group)
+                        stack.append(new_group[2])  # Add the children of the new group to the stack, because that is now the active group.
                     else:
                         name, start = line.rsplit(None, 1)
                         name = name.strip()
                         start = int(start)
                         stack[-1].append(['fragment', name, start])
-            if state == "TRACK":
+            if state == 'TRACK':
                 if key != 'Track':
                     raise ValueError('New track expected; got: ' + line)
-                state = "VALUES"
-            if state in ("VALUES","TRACK"):
+                state = 'VALUES'
+            if state in ('VALUES', 'TRACK'):
                 if key == 'Track':
                     current = { 'root': root, 'name': value, 'files': [], 'fragments': [] }
                     tracks.append(current)
@@ -71,7 +72,7 @@ def parse_fragments(root, tracks, used):
                     parts = value.split(';')
                     filename = parts[0].strip()
                     fileargs = [x.split('=') for x in parts[1:]]
-                    offsets = [x for x in fileargs if x[0] == 'Offset']
+                    offsets = [x[1] for x in fileargs if x[0] == 'offset']
                     if len(offsets) == 1:
                         offset = int(offsets[0])
                     else:
@@ -82,7 +83,7 @@ def parse_fragments(root, tracks, used):
                     need_indent = True
                     stack = [current['fragments']]
                     istack = [0]
-                    state = "FRAGMENTS"
+                    state = 'FRAGMENTS'
 
 def read():
     '''Read all db files from all fhs data directories (and pwd)
@@ -136,24 +137,21 @@ def write_track(track):
     # There are two reasons for the empty line: it separates the tracks,
     # and it lets the BOM be on a line of its own, so grep can find lines
     # that start with 'Track:' without missing the first.
-    ret = ""
+    ret = ''
     ret += '{}Track:{}{}'.format(EOL, track['name'], EOL)
-    ret += 'Root:{}{}'.format(track['root'], EOL)
     for file in track['files']:
         if file[1] != 0:
-            ret += 'File:{};Offset={}{}'.format(file[0], file[1], EOL)
+            ret += 'File:{};offset={}{}'.format(file[0], file[1], EOL)
         else:
             ret += 'File:{}{}'.format(file[0], EOL)
     ret += 'Fragments:{}'.format(EOL)
     ret += write_group(track['fragments'], INDENT)
     return ret
 
-
- 
 def write(tracks):
     '''Write the internal track data to a file that can be read back with db.read()'''
 
-   output = {}
+    output = {}
     for track in tracks:
         # Don't define tracks without fragments.
         if len(track['fragments']) == 0:

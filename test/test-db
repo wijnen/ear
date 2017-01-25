@@ -1,0 +1,12 @@
+#!/usr/bin/python3
+
+import sys
+sys.path = ['..'] + sys.path
+import db
+import fhs
+
+config = fhs.init({})
+
+tracks = db.read()
+print(tracks)
+db.write(tracks)
