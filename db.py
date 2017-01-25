@@ -15,7 +15,7 @@ def parse_fragments(root, tracks, used):
     '''Read tracks from a FRAGMENTS file and insert them into tracks parameter.
     Note: this does not add the 'end' marker to the tracks.'''
     with open(os.path.join(root, FRAGMENTS), 'r') as f:
-        state = 0
+        state = "TRACK" #What are we looking for? A TRACK, VALUES, or FRAGMENTS?
         for line in f:
             # Remove ending whitespace and starting BOM.
             line = line.lstrip('\ufeff').rstrip()
@@ -31,7 +31,7 @@ def parse_fragments(root, tracks, used):
                 value = value.strip()
             else:
                 key, value = None, None
-            if state == 2:
+            if state == "FRAGMENTS":
                 # Read fragments.
                 indent = len(line) - len(line.lstrip())
                 while indent < istack[-1]:
@@ -47,7 +47,7 @@ def parse_fragments(root, tracks, used):
                 need_indent = False
                 if indent == 0:
                     # Fragments are done, read next track.
-                    state = 0
+                    state = "TRACK"
                 else:
                     if line[-1] == ':':
                         # New group.
@@ -59,11 +59,11 @@ def parse_fragments(root, tracks, used):
                         name = name.strip()
                         start = int(start)
                         stack[-1].append(['fragment', name, start])
-            if state == 0:
+            if state == "TRACK":
                 if key != 'Track':
                     raise ValueError('New track expected; got: ' + line)
-                state = 1
-            if state < 2:
+                state = "VALUES"
+            if state in "VALUES","TRACK":
                 if key == 'Track':
                     current = { 'root': root, 'name': value, 'files': [], 'fragments': [] }
                     tracks.append(current)
@@ -82,7 +82,7 @@ def parse_fragments(root, tracks, used):
                     need_indent = True
                     stack = [current['fragments']]
                     istack = [0]
-                    state = 2
+                    state = "FRAGMENTS"
 
 def read():
     '''Read all db files from all fhs data directories (and pwd)
