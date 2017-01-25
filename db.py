@@ -63,7 +63,7 @@ def parse_fragments(root, tracks, used):
                 if key != 'Track':
                     raise ValueError('New track expected; got: ' + line)
                 state = "VALUES"
-            if state in "VALUES","TRACK":
+            if state in ("VALUES","TRACK"):
                 if key == 'Track':
                     current = { 'root': root, 'name': value, 'files': [], 'fragments': [] }
                     tracks.append(current)
@@ -133,27 +133,33 @@ def write(tracks):
                 # Ignore.
         return ret
 
+    def write_track(track):
+        # Every track starts with an empty line and the track name.
+        # There are two reasons for the empty line: it separates the tracks,
+        # and it lets the BOM be on a line of its own, so grep can find lines
+        # that start with 'Track:' without missing the first.
+        ret = ""
+        ret += '{}Track:{}{}'.format(EOL, track['name'], EOL)
+        ret += 'Root:{}{}'.format(track['root'], EOL)
+        for file in track['files']:
+            if file[1] != 0:
+                ret += 'File:{};Offset={}{}'.format(file[0], file[1], EOL)
+            else:
+                ret += 'File:{}{}'.format(file[0], EOL)
+        ret += 'Fragments:{}'.format(EOL)
+        ret += write_group(track['fragments'], INDENT)
+        return ret
+
+
     output = {}
     for track in tracks:
         # Don't define tracks without fragments.
         if len(track['fragments']) == 0:
             continue
-        # Every track starts with an empty line and the track name.
-        # There are two reasons for the empty line: it separates the tracks,
-        # and it lets the BOM be on a line of its own, so grep can find lines
-        # that start with 'Track:' without missing the first.
         target = makepath(track['root'], FRAGMENTS)
         if target not in output:
             output[target] = ''
-        output[target] += '{}Track:{}{}'.format(EOL, track['name'], EOL)
-        output[target] += 'Root:{}{}'.format(track['root'], EOL)
-        for file in track['files']:
-            if file[1] != 0:
-                output[target] += 'File:{};Offset={}{}'.format(file[0], file[1], EOL)
-            else:
-                output[target] += 'File:{}{}'.format(file[0], EOL)
-        output[target] += 'Fragments:{}'.format(EOL)
-        output[target] += write_group(track['fragments'], INDENT)
+        output[target] += write_track(track)
 
     for target in output:
         # Write as binary and manually encode as utf-8, so line endings are not mangled.
