@@ -457,13 +457,14 @@ if config['webUI']:
                         sendMarkers.append({"name":marker.name, "start":marker.start})
                     zmq_socket.send_json({"markers":sendMarkers})
                 elif msg.startswith("play:"): #This at least works...
-                    print("Lets play")
                     try:
                         startTime=float(msg[len("play:"):])
                     except Exception as e:
                         zmq_socket.send_json({"dummy":"dummy"})
                         print(e)
                         continue
+                    startTime-=g.before*1000
+                    print (g.before)
                     data['media'].play(startTime, play = True)
                     zmq_socket.send_json({"dummy":"dummy"})
                 else:
