@@ -108,12 +108,12 @@ def read():
     # Add all other files.
     for dirname in basedirs:
         for root, dirs, files in os.walk(dirname):
-            for f in files:
-                if makepath(root, f) in used:
+            for filename in files:
+                if makepath(root, filename) in used:
                     continue
-                if os.path.splitext(f)[1] not in exts:
+                if os.path.splitext(filename)[1] not in exts:
                     continue
-                tracks.append({ 'root': root, 'name': f, 'files': [(filename, 0)], 'fragments': [] })
+                tracks.append({ 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] })
 
     return tracks
 
