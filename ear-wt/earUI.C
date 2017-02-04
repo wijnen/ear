@@ -34,7 +34,7 @@
 
 using namespace Wt;
 
-  Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, const char *name, const double start, const double end,          const double duration);
+  Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const double start);
 class EarUI : public WApplication
 {
 public:
@@ -52,9 +52,10 @@ static  Json::Object interact_zmq(zmq::socket_t &socket,Json::Object value);
 
 private:
   void clicked(WPushButton* source );
-  void loadMarkers(zmq::socket_t &socket,WString trackname);
+//  void loadMarkers(zmq::socket_t &socket,WString trackname);
+  void loadFragments(zmq::socket_t &socket);
   void updateInputs();
-  
+  void loadGroup(Wt::WTreeTableNode *current_root, Json::Array fragments);
 
 };
 
@@ -177,9 +178,9 @@ std::cout<<"Parsed names"<<std::endl;
     markerTree->setObjectName("markertree");
     markerTree->tree()->setSelectionMode(Wt::ExtendedSelection);
     markerTree->addColumn("Start",200);
-    markerTree->addColumn("End",200);
-    markerTree->addColumn("Duration",200);
-    markerTree->addColumn("Foo",200);
+    markerTree->addColumn("",50); //StartButton
+    markerTree->addColumn("",200);
+    markerTree->addColumn("",200);
    
 
 
@@ -192,6 +193,51 @@ std::cout<<"Parsed names"<<std::endl;
 
 }
 
+void EarUI::loadGroup(Wt::WTreeTableNode *current_root, Json::Array fragments)
+{ //Recursively add the fragments to the treetable
+std::cout<<"\n\nLoading fragments"<<std::endl;
+	for(auto fragmentValue:fragments)
+	{
+		const Json::Array& fragment = fragmentValue;
+		std::string type = fragment[0];
+		WString name = fragment[1];
+std::cout<<"Loading fragment "<<name<<" of type "<<type<<std::endl;
+		if (type == "group")
+		{
+std::cout<<"Making a new group"<<std::endl;
+			
+			loadGroup( addNode(current_root,name,0) ,fragment[2]);	
+		}
+		else if (type == "fragment")
+		{
+			int start_time = fragment[2];
+			addNode(current_root,name,start_time);
+		}
+		else
+		{
+std::cout<<"Type not understood"<<std::endl;
+		}
+	}
+		
+}
+
+void EarUI::loadFragments(zmq::socket_t &socket)
+{
+
+	Wt::WTreeTable *treeTable; 
+	treeTable = dynamic_cast<WTreeTable*> (findWidget("markertree"));
+	Wt::WTreeTableNode *root = new Wt::WTreeTableNode("stuff");
+	treeTable->setTreeRoot(root, "Markers for this track");
+	Wt::WTreeTableNode *current_root = root;
+	Json::Array fragments;
+	Json::Object response;
+	response = interact_zmq(socket,"fragments?");
+	fragments = response.get("fragments");
+
+	loadGroup(current_root,fragments);
+	root->expand();
+}
+/*
 void EarUI::loadMarkers(zmq::socket_t &socket,WString trackname)
 {
 	Wt::WTreeTable *treeTable; 
@@ -211,7 +257,7 @@ void EarUI::loadMarkers(zmq::socket_t &socket,WString trackname)
 	{	
 		marker=vmarker;
 		start=marker.get("start");
-		end=marker.get("end");
+		//end=marker.get("end");
 		name=marker.get("name");
 		duration = end-start;
 		std::string sname= name.narrow();
@@ -231,8 +277,7 @@ std::cout<<"Rooting the marker"<<std::endl;
 			
 	}	
 root->expand();
-}
-
+}*/
 void EarUI::updateInputs()
 {	
     zmq::context_t context (1);
@@ -263,7 +308,7 @@ std::cout<<"Current track in ear is "<<track<<std::endl;
 	if (track !=comboBox->currentIndex())
 	{
 std::cout<<"Loading markers"<<std::endl;
-		loadMarkers(socket,comboBox->currentText() );
+		loadFragments(socket);
 	}	
 	else
 	{
@@ -292,24 +337,23 @@ std::cout<<"Set track to "<<comboBox->currentIndex()<<std::endl;
 
 
 
-Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, const char *name,
-				const double start, const double end,
-				const double duration) {
-
+Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const double start ) {
 	Wt::WTreeTableNode *node = new Wt::WTreeTableNode(name, 0, parent);
-	node->selected().connect(std::bind([=]() {
+Wt::WText *startWidget = new Wt::WText(std::to_string(start));  //For now, use a hidden widget to store the start time
+/*	node->selected.connect(std::bind([=]() {
+std::cout<<"Selected a node, please select the children"<<std::endl;
+	}));*/
+	startWidget->setHidden(true);
+	node->setColumnWidget(2, startWidget); //The start time should always be the third widget, see above.
+	Wt::WPushButton *startButton = new WPushButton("|>");
+	startButton->clicked().connect(std::bind([=]() {
 std::cout<<"Handlign a startbutton click from the markertree"<<std::endl;
 		WString command="play:"+std::to_string(start); //In the future, this should send a list of start times to start from, in case multiple markers are selected. The last marker also automatically indicates an end time (the end time of that fragment). For now, send a single string
 		EarUI::interact_zmq(command);
 	}));
-	Wt::WText *startWidget = new Wt::WText(std::to_string(start));  //For now, use a hidden widget to store the start time
 	
-	Wt::WText *endWidget = new Wt::WText(std::to_string(end));
-	startWidget->setHidden(true);
-	endWidget->setHidden(true);
-	node->setColumnWidget(3, startWidget); //The start time should always be the third widget, see above.
-	node->setColumnWidget(4, endWidget);
 	
+	node->setColumnWidget(3, startButton);
 	return node;
     }
 

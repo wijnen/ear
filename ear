@@ -18,7 +18,7 @@ else:
 
 import os
 import media
-
+import dbread
 
 # }}}
 # Classes. {{{
@@ -42,56 +42,7 @@ class Marker:
         return 'Marker(%s, %d, %d)' % (repr(self.name), self.start, self.end)
 # }}}
 
-# Read database. {{{
-def read_db():
-    """Reads a single DB file handed by the FHS module. Should be changed to handle a tree structure. Should also allow annotation files"""
-    db = []
-    for dirname in fhs.read_data('db', dir = True, opened = False, multiple = True):
-        for dbfilename in os.listdir(dirname):
-            if os.path.splitext(dbfilename)[1] != os.extsep + 'db':
-                #print('skipping %s' % dbfilename)
-                continue
-            dbname = os.path.join(dirname, dbfilename)
-            with open(dbname) as f:
-                line = f.readline()
-                if not line:
-                    continue
-                assert line.startswith('=')
-                db.append(Track(line[1:].strip(), dbname))
-                line = f.readline()
-                while True:
-                    if line.startswith('#'):
-                        db[-1].tags.append(line[1:].strip())
-                        line = f.readline()
-                        continue
-                    elif line.startswith('+'):
-                        offset, filename = line[1:].strip().split(None, 1)
-                        line = f.readline()
-                        duration = media.Media.get_duration(os.path.join(dirname, filename))
-                        if not duration:
-                            continue
-                        #print('new track %s' % line.strip())
-                        db[-1].files.append([filename, float(offset), duration])
-                        if db[-1].duration < duration:
-                            db[-1].duration = duration
-                        continue
-                    elif line.startswith('!'): #Old scripting code
-                        continue
-                    # Done with tags, scripts and filenames; fill up scripts, then read markers.
-                    while True:
-                        if not line.startswith('\t'):
-                            break
-                        start, end, name = line.strip().split(None, 2)
-                        line = f.readline()
-                        db[-1].markers.append(Marker(name, media.parsemoment(start), media.parsemoment(end)))
-                    if line == '':
-                        break
-                    assert line.startswith('=')
-                    db.append(Track(line[1:].strip(), dbname))
-                    line = f.readline()
-    return db
-db = read_db()
-    # }}}
+db = dbread.read()
 
 # Event responses. {{{
 def file_new(dummy = None):
@@ -101,18 +52,22 @@ def file_new(dummy = None):
     new_file()
 
 def new_file():
-    if len(data['track'].files) > 0:
+    if len(data['track']['files']) > 0:
         data['media'].load(data['track'], 0)
-        g.length = (max(0, data['track'].files[0][1]), data['track'].files[0][1] + data['track'].files[0][2])
+        g.length = data['track']['duration'] #Only valid after loading the track. This takes the first file, not the longest of all possible files. 
+        data['track']['fragments'].append(("fragment","END",g.length))
+        print("Loading track")
+        
     else:
+        print("Empty track")
         data['media'].load(data['track'], None)
         g.length = (0, 1)
     g.position = 0
     g.load_markers = True
     g.set_player = True
-    if data['track'].media is not None:
-        set_pos(data['track'].files[data['track'].media][1])
-    g.media_list = [x[0] for x in data['track'].files]
+    if data['track']['media'] is not None:
+        set_pos(data['track']['files'][data['track']['media']][1])
+    g.media_list = [x[0] for x in data['track']['files']]
     g.media = 0
 
 def get_before():
@@ -213,17 +168,6 @@ def marker_set_end(arg = None):
 def save(dbname):
     print("DO NOT CLICK SAVE WHILE TESTING")
     return
-    with open(dbname, 'w') as f:
-        for track in db:
-            if track.dbname != dbname:
-                continue
-            f.write('=%s\n' % track.name)
-            for filename, offset, duration in track.files:
-                f.write('+%f %s\n' % (offset, filename))
-            for tag in track.tags:
-                f.write('#%s\n' % tag)
-            for m in track.markers:
-                f.write('\t%s %s %s\n' % (media.unparsemoment(m.start), media.unparsemoment(m.end), m.name))
 
 def stop(stopped):
     g.playing = not stopped
@@ -267,12 +211,7 @@ def new_offset():
 
 
 def save_all():
-    dbs = set()
-    for track in db:
-        if track.dbname not in dbs:
-            dbs.add(track.dbname)
-    for d in dbs:
-        save(d)
+    readdb.write(db)
 
 # }}}
 
@@ -299,7 +238,7 @@ kwargs = {"widgets" : widgets, 'data' : data ,
         'events' : {
             'help_about': lambda x: setattr(g, 'show_about', True),
             'file_new': file_new,
-            'save': lambda x: save(data['track'].dbname),
+            #'save': lambda x: save(data['track'].dbname),
             'file_quit': lambda x: g(False),
             'new_file': new_file,
             'pause': lambda: data['media'].pause(not g.playing),
@@ -489,7 +428,7 @@ if config['webUI']:
                     else:
                         zmq_socket.send_json({"current":db.index(data['track'])})
                 elif msg =="tracks?":
-                    zmq_socket.send_json({"tracks":[t.name for t in db]})
+                    zmq_socket.send_json({"tracks":[t['name'] for t in db]})
                 elif msg.startswith('track:'):
                     select=msg[len('track:'):]
                     try:
@@ -500,19 +439,29 @@ if config['webUI']:
                     data['track']=db[sel]    
                     new_file()
                     zmq_socket.send_json({"dummy":"dummy"})
+                elif msg == "fragments?":
+                    if not data['track']:
+                        zmq_socket.send_json({"fragments":[]})
+                        continue
+                    #print(data['track']['fragments'])
+                    #import pprint
+                    #pprint.pprint(data['track']['fragments'])
+                    zmq_socket.send_json({"fragments":data['track']['fragments']})
                 elif msg =="markers?":
                     if not data['track']:
                         zmq_socket.send_json({"markers":[]})
                         continue
                     sendMarkers=[]
-                    for marker in data["track"].markers:
-                        sendMarkers.append({"name":marker.name, "start":marker.start,"end":marker.end})
+                    for marker in data["track"]['fragments']:
+                        sendMarkers.append({"name":marker.name, "start":marker.start})
                     zmq_socket.send_json({"markers":sendMarkers})
                 elif msg.startswith("play:"): #This at least works...
+                    print("Lets play")
                     try:
                         startTime=float(msg[len("play:"):])
-                    except:
+                    except Exception as e:
                         zmq_socket.send_json({"dummy":"dummy"})
+                        print(e)
                         continue
                     data['media'].play(startTime, play = True)
                     zmq_socket.send_json({"dummy":"dummy"})
