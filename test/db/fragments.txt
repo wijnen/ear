@@ -1,6 +1,5 @@
 ﻿
 Track:This name has spaces in it
-Root:/home/shevek/src/ear/test/db
 File:filename with spaces.avi
 Fragments:
 	Part 1:
@@ -12,7 +11,6 @@ Fragments:
 	Ending	5000
 
 Track:Other track
-Root:/home/shevek/src/ear/test/db
 File:filename with offset.avi;offset=1000
 File:other filename with offset.avi;offset=-1000
 File:yet another filename.ogg
@@ -24,3 +22,13 @@ Fragments:
 		First	3000
 		Second	4000
 	Ending	5000
+
+Track:Other track2
+File:filename with offset.avi;offset=1000
+File:other filename with offset.avi;offset=-1000
+File:yet another filename.ogg
+Fragments:
+	First	1000
+	Second	2000
+	First	3000
+	Second	4000
