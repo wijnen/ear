@@ -113,7 +113,7 @@ def read():
                     continue
                 if os.path.splitext(f)[1] not in exts:
                     continue
-                tracks.push({ 'root': root, 'name': f, 'files': [(filename, 0)], 'fragments': [] })
+                tracks.append({ 'root': root, 'name': f, 'files': [(filename, 0)], 'fragments': [] })
 
     return tracks
 
