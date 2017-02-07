@@ -115,6 +115,44 @@ def read():
                     continue
                 tracks.append({ 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] })
 
+    return load_test_tracks(tracks)
+
+def get_times(fragments, times = []):
+    """Returns a flattened list of all times in the fragments"""
+    for fragment in fragments:
+        if fragment[0]!='fragment' and type(fragment) == list:
+            times.append(get_times(fragment[2]))
+        else:
+            if type(fragment[2]) == int:
+                times.append(fragment[2])
+    ret =[]
+    for time in times:
+        if type(time) == int:
+            ret.append(time) #To remove emtpy lists
+    return ret
+
+def add_end_times(group,times):
+    ret = []
+    for fragment in group:
+        
+        if fragment[0] == 'group':
+            ret.append([fragment[0],fragment[1],add_end_times(fragment[2],times)])
+        else:
+            ret.append((fragment[0],fragment[1],fragment[2],times[times.index(fragment[2])+1]))
+    return ret
+
+def load_test_tracks(tracks):
+    """Opens all media files to insert end markers. Does not just do a single end marker, but also handles all fragments to give start and end times. This duplicates info, but makes it all a lot easier to handle"""
+    import media
+    for track in tracks:
+        durations = []
+        for filename,offset in track['files']:
+            fullpath = os.path.join(track['root'], filename)
+            durations.append( media.Media.get_duration(fullpath) + offset)
+        end = int(max(durations))
+        times = get_times(track['fragments'])
+        times.append(end)
+        track['fragments'] = add_end_times(track['fragments'],times)
     return tracks
 
 

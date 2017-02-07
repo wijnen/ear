@@ -54,11 +54,7 @@ def file_new(dummy = None):
 def new_file():
     if len(data['track']['files']) > 0:
         data['media'].load(data['track'], 0)
-        g.length = data['track']['duration'] #Only valid after loading the track. This takes the first file, not the longest of all possible files. 
-        if len(data['track']['fragments']) < 1 or data['track']['fragments'][-1][1]!="END": #Last fragment, name
-            data['track']['fragments'].append(("fragment","END",g.length)) #Note, maybe this can be neater in the UI?
         print("Loading track")
-        
     else:
         print("Empty track")
         data['media'].load(data['track'], None)
@@ -463,10 +459,9 @@ if config['webUI']:
                         zmq_socket.send_json({"dummy":"dummy"})
                         print(e)
                         continue
-                    startTime-=g.before*1000
-                    print (g.before)
-                    data['media'].play(startTime, play = True)
+                    startTime-=g.before*1000 #Currently does not work if we should wait before playing, a delay at the start of a tune. 
                     zmq_socket.send_json({"dummy":"dummy"})
+                    data['media'].play(startTime, play = True)
                 else:
                     print ("Event not handled:{}".format(msg))
         return True

@@ -69,14 +69,13 @@ bool TimeWidget::setTime(long time)
 	//this->setText(std::to_string(time)); //Needs to do minutes/seconds later
 //QString my_formatted_string = QString("%1/%2-%3.txt").arg("~", "Tom", "Jane");
 	this->setText(Wt::WString("{1}:{2}:{3}").arg(minutes).arg(seconds).arg(milliseconds)); //Todo: zero-pad this string
-
 	return true;
 }
 
 
 using namespace Wt;
 
-  Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const long start);
+  Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const long start, const long stop);
 class EarUI : public WApplication
 {
 public:
@@ -252,12 +251,13 @@ std::cout<<"Loading fragment "<<name<<" of type "<<type<<std::endl;
 		{
 std::cout<<"Making a new group"<<std::endl;
 			
-			loadGroup( addNode(current_root,name,0) ,fragment[2]);	
+			loadGroup( addNode(current_root,name,-1,-1) ,fragment[2]);	
 		}
 		else if (type == "fragment")
 		{
 			int start_time = fragment[2]; //Might be a long, which would be good on systems that use less than 32 bits for an int. However, Wt doesn't want ints. So the rest of the code uses longs, but might be ints as well I guess
-			addNode(current_root,name,start_time);
+			int stop_time = fragment[3];
+			addNode(current_root,name,start_time,stop_time);
 		}
 		else
 		{
@@ -353,27 +353,25 @@ std::cout<<"Set track to "<<comboBox->currentIndex()<<std::endl;
 
 
 
-Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const long start ) {
+Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const long start, const long stop ) {
 	Wt::WTreeTableNode *node = new Wt::WTreeTableNode(name, 0, parent);
-TimeWidget *startWidget = new TimeWidget();  
-startWidget->setTime(start);
-/*	node->selected.connect(std::bind([=]() {
-std::cout<<"Selected a node, please select the children"<<std::endl;
-	}));*/
-//	startWidget->setHidden(true);
-	node->setColumnWidget(1, startWidget); 
 
+	TimeWidget *startWidget = new TimeWidget();  
+	startWidget->setTime(start);
+	node->setColumnWidget(1, startWidget); 
 
 	Wt::WPushButton *startButton = new WPushButton("|>");
 	startButton->clicked().connect(std::bind([=]() {
 std::cout<<"Handlign a startbutton click from the markertree"<<std::endl;
-
-		WString command="play:"+std::to_string(start); //In the future, this should send a list of start times to start from, in case multiple markers are selected. The last marker also automatically indicates an end time (the end time of that fragment). For now, send a single string
+		WString command="play:"+std::to_string(start); 
 		EarUI::interact_zmq(command);
 	}));
-	
-	
 	node->setColumnWidget(3, startButton);
+
+	TimeWidget *stopWidget = new TimeWidget();
+	stopWidget->setTime(stop);
+//	stopWidget->setHidden(true);
+	node->setColumnWidget(2, stopWidget);
 	return node;
     }
 

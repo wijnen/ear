@@ -77,8 +77,7 @@ class Media:
         self.audiobin.add_pad(pad)
         self.player.set_property('audio-sink', self.audiobin)
     @classmethod
-    def get_duration(cls, filename): #Why is this a class method? --KRL
-        print("Getting duration of file {}".format(filename))
+    def get_duration(cls, filename): #Class method so we can check a files duration without instantiating everything
         cls.prober.set_property('uri', 'file://' + os.path.realpath(filename))
         cls.probe_pipeline.set_state(Gst.State.PAUSED)
         cls.probe_pipeline.get_state(Gst.CLOCK_TIME_NONE)
@@ -90,7 +89,6 @@ class Media:
             print('Not using file "%s"' % os.path.realpath(filename))
             ret = None
         cls.probe_pipeline.set_state(Gst.State.NULL)
-        print ("Duration {}".format(ret))
         return ret
     def new_pixbuf(self, bus, message, arg):
         if message.type != Gst.MessageType.ELEMENT:
@@ -145,6 +143,7 @@ class Media:
         elif self.set_endtarget:
             self.set_endtarget(end)
         if start is not None and start < self.offset:
+            wait = start - self.offset
             start = self.offset
         print("Playing from {} to {}".format(start,end))
         print("Offset {}, media_duration {}".format(self.offset, self.media_duration))
