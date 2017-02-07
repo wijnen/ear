@@ -117,19 +117,16 @@ def read():
 
     return load_test_tracks(tracks)
 
-def get_times(fragments, times = []):
+def get_times(fragments):
     """Returns a flattened list of all times in the fragments"""
+    times = set()
     for fragment in fragments:
         if fragment[0]!='fragment' and type(fragment) == list:
-            times.append(get_times(fragment[2]))
+            times.update( get_times(fragment[2]))
         else:
             if type(fragment[2]) == int:
-                times.append(fragment[2])
-    ret =[]
-    for time in times:
-        if type(time) == int:
-            ret.append(time) #To remove emtpy lists
-    return ret
+                times.add(fragment[2])
+    return times
 
 def add_end_times(group,times):
     ret = []
@@ -149,8 +146,9 @@ def load_test_tracks(tracks):
         for filename,offset in track['files']:
             fullpath = os.path.join(track['root'], filename)
             durations.append( media.Media.get_duration(fullpath) + offset)
+        times = []
         end = int(max(durations))
-        times = get_times(track['fragments'])
+        times = sorted(list(get_times(track['fragments'])))
         times.append(end)
         track['fragments'] = add_end_times(track['fragments'],times)
     return tracks
