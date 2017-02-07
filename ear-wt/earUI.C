@@ -60,15 +60,17 @@ long TimeWidget::time()
 }
 bool TimeWidget::setTime(long time)
 {
-
-	this->_time = time;
-	long minutes, seconds, milliseconds;
-	seconds = (long) ((time / 1000) % 60) ;
-	minutes = (long) ((time / (1000*60)) % 60);
-	milliseconds = time - seconds*1000 - minutes*60*1000; 
-	//this->setText(std::to_string(time)); //Needs to do minutes/seconds later
-//QString my_formatted_string = QString("%1/%2-%3.txt").arg("~", "Tom", "Jane");
-	this->setText(Wt::WString("{1}:{2}:{3}").arg(minutes).arg(seconds).arg(milliseconds)); //Todo: zero-pad this string
+	if(time != -1)
+	{
+		this->_time = time;
+		long minutes, seconds, milliseconds;
+		seconds = (long) ((time / 1000) % 60) ;
+		minutes = (long) ((time / (1000*60)) % 60);
+		milliseconds = time - seconds*1000 - minutes*60*1000; 
+		//this->setText(std::to_string(time)); //Needs to do minutes/seconds later
+	//QString my_formatted_string = QString("%1/%2-%3.txt").arg("~", "Tom", "Jane");
+		this->setText(Wt::WString("{1}:{2}:{3}").arg(minutes).arg(seconds).arg(milliseconds)); //Todo: zero-pad this string
+	}
 	return true;
 }
 
