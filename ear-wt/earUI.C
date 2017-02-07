@@ -10,6 +10,7 @@
 #include <Wt/WLineEdit>
 #include <Wt/WPushButton>
 #include <Wt/WText>
+#include <Wt/WString>
 #include <Wt/WGroupBox>
 #include <Wt/WAnimation>
 #include <Wt/WStringListModel>
@@ -35,16 +36,16 @@
 
 
 
-class TimeWidget : public Wt::WText
+class TimeWidget : public Wt::WText //This explicitly does not use the Wt::WTime class, has we want to use milliseconds as our base unit, especially when communicating with the Python side of this project. The Wt::Wtime supports only already quite correctly formatted times, and we don't need that.
 {
 public:
   TimeWidget(Wt::WContainerWidget *parent = 0);
 //  TimeWidget(double time, WContainerWidget *parent = 0);
-  double time();
-  bool setTime(double time);
+  long time();
+  bool setTime(long time);
 
 private:
-  double _time;
+  long _time;
 
 };
 
@@ -53,22 +54,29 @@ TimeWidget::TimeWidget(Wt::WContainerWidget *parent )
  : Wt::WText(parent)
 {  }  
 
-double TimeWidget::time()
+long TimeWidget::time()
 {
 	return this->_time;
 }
-bool TimeWidget::setTime(double time)
+bool TimeWidget::setTime(long time)
 {
 
 	this->_time = time;
-	this->setText(std::to_string(time)); //Needs to do minutes/seconds later
+	long minutes, seconds, milliseconds;
+	seconds = (long) ((time / 1000) % 60) ;
+	minutes = (long) ((time / (1000*60)) % 60);
+	milliseconds = time - seconds*1000 - minutes*60*1000; 
+	//this->setText(std::to_string(time)); //Needs to do minutes/seconds later
+//QString my_formatted_string = QString("%1/%2-%3.txt").arg("~", "Tom", "Jane");
+	this->setText(Wt::WString("{1}:{2}:{3}").arg(minutes).arg(seconds).arg(milliseconds)); //Todo: zero-pad this string
+
 	return true;
 }
 
 
 using namespace Wt;
 
-  Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const double start);
+  Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const long start);
 class EarUI : public WApplication
 {
 public:
@@ -248,7 +256,7 @@ std::cout<<"Making a new group"<<std::endl;
 		}
 		else if (type == "fragment")
 		{
-			int start_time = fragment[2];
+			int start_time = fragment[2]; //Might be a long, which would be good on systems that use less than 32 bits for an int. However, Wt doesn't want ints. So the rest of the code uses longs, but might be ints as well I guess
 			addNode(current_root,name,start_time);
 		}
 		else
@@ -345,7 +353,7 @@ std::cout<<"Set track to "<<comboBox->currentIndex()<<std::endl;
 
 
 
-Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const double start ) {
+Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const long start ) {
 	Wt::WTreeTableNode *node = new Wt::WTreeTableNode(name, 0, parent);
 TimeWidget *startWidget = new TimeWidget();  
 startWidget->setTime(start);
