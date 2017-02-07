@@ -27,9 +27,43 @@
 #include <zmq.hpp>
 #include <string>
 #include <iostream>
-
+#include <boost/range/adaptor/reversed.hpp>
 #define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here. 
 
+
+
+
+
+
+class TimeWidget : public Wt::WText
+{
+public:
+  TimeWidget(Wt::WContainerWidget *parent = 0);
+//  TimeWidget(double time, WContainerWidget *parent = 0);
+  double time();
+  bool setTime(double time);
+
+private:
+  double _time;
+
+};
+
+
+TimeWidget::TimeWidget(Wt::WContainerWidget *parent )
+ : Wt::WText(parent)
+{  }  
+
+double TimeWidget::time()
+{
+	return this->_time;
+}
+bool TimeWidget::setTime(double time)
+{
+
+	this->_time = time;
+	this->setText(std::to_string(time)); //Needs to do minutes/seconds later
+	return true;
+}
 
 
 using namespace Wt;
@@ -103,6 +137,8 @@ std::cout<<"Parsed names"<<std::endl;
 	currentTrackContainer->addWidget(button);
     }
     
+    
+
     Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget();
     root()->addWidget(trackListContainer);
 
@@ -168,8 +204,6 @@ std::cout<<"Parsed names"<<std::endl;
         }));
     }
     
-//    beforeSlider =  new Wt::WSlider(thisInputContainer);
- 
     socket.disconnect("tcp://localhost:5555");
 
     Wt::WContainerWidget *markerContainer = new Wt::WContainerWidget;
@@ -178,13 +212,13 @@ std::cout<<"Parsed names"<<std::endl;
 
     Wt::WTreeTable *markerTree = new Wt::WTreeTable();
     markerContainer->addWidget(markerTree);
-    markerTree->resize(1000,1000); 
+    //markerTree->resize(800,10); 
     markerTree->setObjectName("markertree");
     markerTree->tree()->setSelectionMode(Wt::ExtendedSelection);
-    markerTree->addColumn("Start",200);
-    markerTree->addColumn("",50); //StartButton
-    markerTree->addColumn("",200);
-    markerTree->addColumn("",200);
+    markerTree->addColumn("Start time",300);
+    markerTree->addColumn("End time",300); //StartButton
+    markerTree->addColumn("Play from here",20); //StartButton
+//    markerTree->addColumn("",200);
    
 
 
@@ -247,6 +281,7 @@ void EarUI::loadFragments(zmq::socket_t &socket)
 	fragments = response.get("fragments");
 
 	loadGroup(current_root,fragments);
+	
 	root->expand();
 }
 
@@ -312,17 +347,19 @@ std::cout<<"Set track to "<<comboBox->currentIndex()<<std::endl;
 
 Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const double start ) {
 	Wt::WTreeTableNode *node = new Wt::WTreeTableNode(name, 0, parent);
-Wt::WText *startWidget = new Wt::WText(std::to_string(start));  
+TimeWidget *startWidget = new TimeWidget();  
+startWidget->setTime(start);
 /*	node->selected.connect(std::bind([=]() {
 std::cout<<"Selected a node, please select the children"<<std::endl;
 	}));*/
 //	startWidget->setHidden(true);
-	node->setColumnWidget(2, startWidget); 
+	node->setColumnWidget(1, startWidget); 
 
 
 	Wt::WPushButton *startButton = new WPushButton("|>");
 	startButton->clicked().connect(std::bind([=]() {
 std::cout<<"Handlign a startbutton click from the markertree"<<std::endl;
+
 		WString command="play:"+std::to_string(start); //In the future, this should send a list of start times to start from, in case multiple markers are selected. The last marker also automatically indicates an end time (the end time of that fragment). For now, send a single string
 		EarUI::interact_zmq(command);
 	}));
