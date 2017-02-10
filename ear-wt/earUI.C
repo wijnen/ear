@@ -17,6 +17,7 @@
 #include <Wt/WComboBox>
 #include <Wt/WPanel>
 #include <Wt/WSlider>
+#include <Wt/WTimer>
 #include <Wt/Json/Array>
 #include <Wt/Json/Parser>
 #include <Wt/Json/Object>
@@ -91,8 +92,8 @@ static  Json::Object interact_zmq(Wt::WString value);
 static  Json::Object interact_zmq(Json::Object);
 static  Json::Object interact_zmq(zmq::socket_t &socket,std::string value);
 static  Json::Object interact_zmq(zmq::socket_t &socket,Json::Object value);
+static  long current_position;
 //Public static so I can use them from the node callback, that's in a Wt object, not an EarUI one.
-
 private:
   void clicked(WPushButton* source );
 //  void loadMarkers(zmq::socket_t &socket,WString trackname);
@@ -103,11 +104,15 @@ private:
 
 };
 
+long EarUI::current_position = 0;
+
+
+
+
 EarUI::EarUI(const WEnvironment& env)
   : WApplication(env)
 {
     setTitle("Ear test interface"); 
-
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
     socket.connect ("tcp://localhost:5555"); //TODO: make host and port configurable
@@ -228,11 +233,22 @@ std::cout<<"Parsed names"<<std::endl;
     markerTree->addColumn("End time",300); //StartButton
     markerTree->addColumn("Play from here",20); //StartButton
 //    markerTree->addColumn("",200);
-   
 
 
+//Code below to add a  current_position widget, but still needs to stop and start on playing. For now in here for performance testing, as it does 100/s AJAX itneractions   
+   TimeWidget *currentTime = new TimeWidget();
+   currentTime->setTime(current_position);
 
+   Wt::WTimer *timer = new Wt::WTimer();  
+   timer->setInterval(10);
+   timer->timeout().connect(std::bind([=] ()
+   {
+  	currentTime->setTime(EarUI::current_position);
+        EarUI::current_position += 10;	
+   }));
 
+	timer->start();
+	//root()->addWidget(currentTime);
 
 
     updateInputs();
