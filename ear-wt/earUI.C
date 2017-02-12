@@ -93,6 +93,7 @@ static  Json::Object interact_zmq(Json::Object);
 static  Json::Object interact_zmq(zmq::socket_t &socket,std::string value);
 static  Json::Object interact_zmq(zmq::socket_t &socket,Json::Object value);
 static  long current_position;
+static WTimer *timer;
 //Public static so I can use them from the node callback, that's in a Wt object, not an EarUI one.
 private:
   void clicked(WPushButton* source );
@@ -105,7 +106,6 @@ private:
 };
 
 long EarUI::current_position = 0;
-
 
 
 
@@ -244,7 +244,7 @@ std::cout<<"Parsed names"<<std::endl;
    timer->timeout().connect(std::bind([=] ()
    {
   	currentTime->setTime(EarUI::current_position);
-        EarUI::current_position += 10;	
+        EarUI::current_position += 10;	//Please note, time goes twice as fast when two clients are accessing the page. And time seems to be off still. TODO
    }));
 
 	timer->start();
@@ -273,7 +273,7 @@ std::cout<<"Making a new group"<<std::endl;
 		}
 		else if (type == "fragment")
 		{
-			int start_time = fragment[2]; //Might be a long, which would be good on systems that use less than 32 bits for an int. However, Wt doesn't want ints. So the rest of the code uses longs, but might be ints as well I guess
+			int start_time = fragment[2]; //Might be a long, which would be good on systems that use less than 32 bits for an int. However, Wt doesn't want longs. So the rest of the code uses longs, but might be ints as well I guess
 			int stop_time = fragment[3];
 			addNode(current_root,name,start_time,stop_time);
 		}
