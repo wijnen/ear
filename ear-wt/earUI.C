@@ -144,14 +144,18 @@ std::cout<<"Parsed names"<<std::endl;
     root()->addWidget(panel);
     panel->setHidden(true);
 
-    Wt::WSignalMapper<WPushButton *> *ButtonMap = new Wt::WSignalMapper<Wt::WPushButton *>(this);
-    ButtonMap->mapped().connect(this,&EarUI::clicked);
     for (auto name : names) 
     {
         WPushButton *button = new WPushButton(name ,root());     
         button->setMargin(5, Left);                          
-	ButtonMap->mapConnect(button->clicked(),button);
+ 	button->clicked().connect(std::bind([=] ()
+	{
+   		interact_zmq("event:"+name);
+		updateInputs();
+	}));
 	currentTrackContainer->addWidget(button);
+
+
     }
    
 
@@ -449,14 +453,6 @@ std::cout<<"Handlign a startbutton click from the markertree"<<std::endl;
 
 
 
-
-
-void EarUI::clicked(WPushButton* source )
-{
-std::cout <<"Clicked: " << source->text() <<std::endl;
-   interact_zmq("event:"+source->text().narrow());
-updateInputs();
-}
 
 
 /*
