@@ -106,6 +106,10 @@ private:
   void loadGroup(Wt::WTreeTableNode *current_root, Json::Array fragments);
 
   Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const long start, const long stop );
+  Wt::WStringListModel *get_trackmodel( zmq::socket_t &socket );
+  Wt::WStringListModel *get_trackmodel( );
+  Wt::WStringListModel *filter_trackmodel( WStringListModel *trackmodel, WContainerWidget *filterwidget );
+  int max_tags = 0;
 };
 
 long EarUI::current_position = 0;
@@ -165,33 +169,63 @@ std::cout<<"Parsed names"<<std::endl;
     Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget();
     root()->addWidget(trackListContainer);
 
-    Json::Object tracks;
 
-    tracks = interact_zmq(socket,"tracks?");
 
     Wt::WComboBox *trackcombo = new Wt::WComboBox(trackListContainer);
     trackcombo->setMargin(10, Wt::Right);
-    Wt::WStringListModel *trackmodel = new Wt::WStringListModel(trackcombo);
-    Json::Array json_tracknames;  
-    json_tracknames = tracks.get("tracks");
-    std::vector<Wt::WString> tracknames;
-    WString foo;
-    for (auto trackname:json_tracknames)
-	{	
-		foo = trackname;
-		tracknames.push_back(foo);
-	} 
-    trackmodel->setStringList(tracknames);
+
+    
     trackcombo->setNoSelectionEnabled(true);
+
+     WStringListModel *trackmodel = get_trackmodel(socket);
     trackcombo->setModel(trackmodel);
+
+
+
     trackcombo->setObjectName("trackComboBox"); 
     trackcombo->changed().connect(std::bind([=] () 
     {
     	int row = trackcombo->currentIndex();
-	interact_zmq("track:"+std::to_string(row));
+std::cout<<"Acting on track"<<std::endl;
+	int tracknumber = boost::any_cast<int>
+                       (trackmodel->data(trackmodel->index(row,0), Wt::UserRole)); 
+std::cout<<"Sending track number "<<std::to_string(tracknumber)<<" from row number" << std::to_string(row)<<std::endl;
+	interact_zmq("track:"+std::to_string(tracknumber));
 	updateInputs();
 	loadFragments();
     }));
+    Wt::WContainerWidget *filterContainer = new WContainerWidget(trackListContainer);
+    Wt::WContainerWidget *searchContainer = new WContainerWidget(filterContainer);
+    Wt::WContainerWidget *filtersContainer = new WContainerWidget(filterContainer);
+    Wt::WLineEdit *filterbox = new Wt::WLineEdit(searchContainer);
+    filterbox->setPlaceholderText("Search");
+    Wt::WPushButton *addFilter = new Wt::WPushButton("Add",searchContainer);
+    addFilter->clicked().connect(std::bind([=] ()
+    {
+	Wt::WContainerWidget *thisFilter = new Wt::WContainerWidget(filtersContainer); 
+	//Wt::WText *filter = new WText(filterbox->text(),thisFilter);
+	WText *filter = new WText(filterbox->text(),thisFilter);
+	Wt::WPushButton *removeButton = new WPushButton("X",thisFilter);
+		removeButton->clicked().connect(std::bind([=] ()
+		{
+			filtersContainer->removeWidget(thisFilter);
+			thisFilter->clear();
+			if(filtersContainer->count()>0)
+			{
+			 	trackcombo->setModel(filter_trackmodel(get_trackmodel(),filtersContainer));
+			}
+			else
+			{
+			 	trackcombo->setModel(get_trackmodel());
+			}
+		}));
+	trackcombo->setModel(filter_trackmodel(trackmodel,filtersContainer));
+	filterbox->setText("");
+	filterbox->setPlaceholderText("Search");
+     }));
+    
+
+ 
 
     Wt::WContainerWidget *inputContainer = new Wt::WContainerWidget();
     root()->addWidget(inputContainer);
@@ -244,8 +278,8 @@ std::cout<<"Found "<<input_name<<std::endl;
     //markerTree->resize(800,10); 
     markerTree->setObjectName("markertree");
     markerTree->tree()->setSelectionMode(Wt::ExtendedSelection);
-    markerTree->addColumn("Start time",300);
-    markerTree->addColumn("End time",300); //StartButton
+    markerTree->addColumn("Start time",100);
+    markerTree->addColumn("End time",100); //StartButton
     markerTree->addColumn("Play from here",20); //StartButton
 //    markerTree->addColumn("",200);
 
@@ -262,6 +296,11 @@ std::cout<<"Found "<<input_name<<std::endl;
 		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
 		long start = startW->time();
+		long stop = stopW->time();
+		if (start ==-1 or stop ==-1) //Check for group markers //TODO FIXME// Somehow still broken, dunno why
+		{
+			continue;
+		}
 		if (not first)
 		{	
 			ret += " , ";
@@ -270,9 +309,7 @@ std::cout<<"Found "<<input_name<<std::endl;
 		{
 			start -= beforeSlider->value()*1000;
 		}
-			
 		first = false;
-		long stop = stopW->time();
 		ret += "["+std::to_string(start)+" , "+	std::to_string(stop)+"]\n";
 		//Manual socket as we need to send our own little "JSON" string plaintext.
 	}
@@ -311,6 +348,101 @@ std::cout<<"Found "<<input_name<<std::endl;
 
 
 }
+
+Wt::WStringListModel *EarUI::filter_trackmodel( WStringListModel *trackmodel, WContainerWidget *filterWidget )
+{
+std::cout<<"Handling filter"<<std::endl;
+	std::set<WString> filters;
+	std::set<WString> tags;
+	Wt::WStringListModel *newtrackmodel = new Wt::WStringListModel();
+	int track_idx;
+	for(auto thisFilterContainerW:filterWidget->children())
+	{
+		WContainerWidget *thisFilterContainer = dynamic_cast<WContainerWidget*>(thisFilterContainerW);
+		WWidget *foo = thisFilterContainer->widget(0);
+		WText *filtertext = dynamic_cast<WText*>(foo);
+		filters.insert(filtertext->text());		
+	}
+std::cout<<"Made filter set"<<std::endl;
+	int i = 0; //Needed to look up the data as well as the set
+	int x = 0; //Needed to set new data
+	for (auto track:trackmodel->stringList())
+	{
+		tags = boost::any_cast<std::set<WString>> (trackmodel->data(trackmodel->index(i,1), Wt::UserRole+1)); 
+		track_idx = boost::any_cast<int> (trackmodel->data(trackmodel->index(i,0), Wt::UserRole)); 
+		std::set<WString> res_set;
+	 	set_intersection(filters.begin(), filters.end(), tags.begin(), tags.end(), std::inserter(res_set, res_set.end())); //TODO: This may be really slow, and there must be a better way?
+		if( res_set.size() > 0) // if tag in filters  
+//Currently we are ORring our filters, we probably want to AND our filters. This should also be made optional I guess
+		{
+				newtrackmodel->addString(track);
+				newtrackmodel->setData(x,0,track_idx,Wt::UserRole);
+				newtrackmodel->setData(x,1,tags,Wt::UserRole+1);
+				x++; //RowIndex in new track model
+		}
+		i++;
+	 }
+	 
+ return newtrackmodel;
+}
+
+Wt::WStringListModel *EarUI::get_trackmodel( )
+{
+    zmq::context_t context (1);
+    zmq::socket_t socket (context, ZMQ_REQ);
+    socket.connect ("tcp://localhost:5555");
+	
+	WStringListModel *retval = get_trackmodel(socket);
+
+   socket.disconnect("tcp://localhost:5555");
+std::cout<<"Disonnected from ZMQ"<<std::endl;
+    return retval;
+}
+
+
+Wt::WStringListModel *EarUI::get_trackmodel(zmq::socket_t &socket )
+{
+    Wt::WStringListModel *trackmodel = new Wt::WStringListModel();
+    Json::Object json_tracks;
+    Json::Object response;
+    response = interact_zmq(socket,"tracks?");
+    json_tracks = response.get("tracks");
+    Json::Object track;
+    Json::Array json_tags;
+    Json::Value json_tag;
+    WString trackname;
+    WString tag;
+    int x=0;
+    for(auto trackname:json_tracks.names())
+    {
+	trackmodel->addString(trackname);
+	json_tags = json_tracks.get(trackname);
+	std::set<WString> tags;
+	bool first =true;
+	for (auto json_tag:json_tags)
+	{
+		if (first)
+		{
+			int track_idx = json_tag;
+			trackmodel->setData(x,0,track_idx, Wt::UserRole); //First one is special, it's the track index
+			first = false;
+		}
+		else
+		{	
+			tag = json_tag;
+			tags.insert(tag);
+		}
+	}
+	trackmodel->setData(x,1,tags, Wt::UserRole+1); //Note, these need to be fetched in the same way. I have no idea what the second argument here actually does, UserRole+1 is the actual index
+ 	x++;
+    }
+    max_tags = x;
+    trackmodel->setFlags(x-1,0);
+    trackmodel->sort(0);
+	return trackmodel;
+
+}
+
 
 void EarUI::loadGroup(Wt::WTreeTableNode *current_root, Json::Array fragments)
 { //Recursively add the fragments to the treetable
@@ -395,7 +527,13 @@ void EarUI::updateInputs()
 	track = response.get("current");
 std::cout<<"Current track in ui is "<<comboBox->currentIndex()<<std::endl;
 std::cout<<"Current track in ear is "<<track<<std::endl;
-	if (track !=comboBox->currentIndex())
+int row = comboBox->currentIndex();
+if (row!=-1) //Wait till everything is inited..
+{
+WStringListModel *trackmodel = dynamic_cast<WStringListModel*>(comboBox->model());
+int tracknumber = boost::any_cast<int>(trackmodel->data(trackmodel->index(row,0), Wt::UserRole)); 
+
+	if (track !=tracknumber) 
 	{
 std::cout<<"Loading markers"<<std::endl;
 		loadFragments(socket);
@@ -404,7 +542,22 @@ std::cout<<"Loading markers"<<std::endl;
 	{
 std::cout<<"Not loading markers"<<std::endl;
 	}
-	comboBox->setCurrentIndex(track) ;
+	int newtrack = 0;
+	int atrack = 0;
+	int i = 0;
+	for (auto dummy:trackmodel->stringList()) //Loop through the model to find the track. Somehow, we can't get the indeces to be used as index, or something
+	{
+		atrack =  boost::any_cast<int>(trackmodel->data(trackmodel->index(i,0), Wt::UserRole)); 
+		if(atrack == tracknumber)
+		{
+			newtrack = i;
+			break;
+		}
+    		i++;
+	}
+
+	comboBox->setCurrentIndex(newtrack) ;
+}
 	WPanel *panel;
 	panel = dynamic_cast<WPanel*>(findWidget("trackpanel"));
 std::cout<<"Set track to "<<comboBox->currentIndex()<<std::endl;
@@ -548,6 +701,8 @@ WApplication *createApplication(const WEnvironment& env)
 
 int main(int argc, char **argv)
 {
+
+    WString::setDefaultEncoding(UTF8);
   return WRun(argc, argv, &createApplication);
 }
 

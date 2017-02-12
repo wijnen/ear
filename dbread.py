@@ -66,8 +66,8 @@ def parse_fragments(root, tracks, used):
                 state = 'VALUES'
             if state in ('VALUES', 'TRACK'):
                 if key == 'Track':
-                    current = { 'root': root, 'name': value, 'files': [], 'fragments': [] }
-                    tracks.append(current)
+                    current = { 'root': root, 'name': value, 'files': [], 'fragments': [], 'tags' : [""] }
+                    tracks.append(current) #Should this become a return or something?
                 elif key == 'File':
                     parts = value.split(';')
                     filename = parts[0].strip()
@@ -113,7 +113,7 @@ def read():
                     continue
                 if os.path.splitext(filename)[1] not in exts:
                     continue
-                tracks.append({ 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] })
+                tracks.append({ 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] , 'tags' : [ "" ]})
 
     return load_test_tracks(tracks)
 

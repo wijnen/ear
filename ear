@@ -438,7 +438,15 @@ if config['webUI']:
                     else:
                         zmq_socket.send_json({"current":db.index(data['track'])})
                 elif msg =="tracks?":
-                    zmq_socket.send_json({"tracks":[t['name'] for t in db]})
+                    #zmq_socket.send_json({"tracks":[t['name'] for t in db]})
+                    
+                    out = OrderedDict()
+                    for x,track in enumerate(db):
+                        #out['tracks'].append({track['name'] : track['tags']})
+                        out[track['name']] = [x,"blabl","blubl"]
+                    import pprint
+                    pprint.pprint(out)
+                    zmq_socket.send_json({'tracks': out})
                 elif msg.startswith('track:'):
                     select=msg[len('track:'):]
                     try:
