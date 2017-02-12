@@ -78,7 +78,8 @@ bool TimeWidget::setTime(long time)
 
 using namespace Wt;
 
-  Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const long start, const long stop);
+
+
 class EarUI : public WApplication
 {
 public:
@@ -94,6 +95,7 @@ static  Json::Object interact_zmq(zmq::socket_t &socket,std::string value);
 static  Json::Object interact_zmq(zmq::socket_t &socket,Json::Object value);
 static  long current_position;
 static WTimer *timer;
+  Wt::WSlider *beforeSlider;
 //Public static so I can use them from the node callback, that's in a Wt object, not an EarUI one.
 private:
   void clicked(WPushButton* source );
@@ -103,6 +105,7 @@ private:
   void updateInputs();
   void loadGroup(Wt::WTreeTableNode *current_root, Json::Array fragments);
 
+  Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const long start, const long stop );
 };
 
 long EarUI::current_position = 0;
@@ -206,6 +209,12 @@ std::cout<<"Parsed names"<<std::endl;
         inputSlider->setMaximum(inputSettings[1]); 
         inputSlider->setValue(inputSettings[2]); 
 	inputSlider->setTickPosition(Wt::WSlider::TicksAbove);
+std::cout<<"Handling name "<<input_name<<std::endl;
+	if (input_name == "before")
+	{
+std::cout<<"Found "<<input_name<<std::endl;
+	 	beforeSlider = inputSlider; //We need to reference this further on
+	}
         inputText = new Wt::WText(thisInputContainer);
 	inputText->setObjectName("inputText:"+input_name);
 	inputContainer->addWidget(inputSlider);
@@ -244,16 +253,21 @@ std::cout<<"Parsed names"<<std::endl;
 	bool first = true;
 	for (auto fragmentTN:markerTree->tree()->selectedNodes())
 	{
-		if (not first)
-		{	
-			ret += " , ";
-		}
-		first = false;
-		//tree returns a tree with tree nodes. We need treetable nodes!
+	//tree returns a tree with tree nodes. We need treetable nodes!
 		WTreeTableNode *fragmentTTN =  dynamic_cast<WTreeTableNode*>(fragmentTN);
 		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
 		long start = startW->time();
+		if (not first)
+		{	
+			ret += " , ";
+		}
+		else
+		{
+			start -= beforeSlider->value()*1000;
+		}
+			
+		first = false;
 		long stop = stopW->time();
 		ret += "["+std::to_string(start)+" , "+	std::to_string(stop)+"]\n";
 		//Manual socket as we need to send our own little "JSON" string plaintext.
@@ -409,18 +423,18 @@ std::cout<<"Set track to "<<comboBox->currentIndex()<<std::endl;
 
 
 
-Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const long start, const long stop ) {
+Wt::WTreeTableNode *EarUI::addNode(Wt::WTreeTableNode *parent, WString name, const long start, const long stop ) {
 	Wt::WTreeTableNode *node = new Wt::WTreeTableNode(name, 0, parent);
 
 	TimeWidget *startWidget = new TimeWidget();  
 	startWidget->setTime(start);
 	node->setColumnWidget(1, startWidget); 
-
 	Wt::WPushButton *startButton = new WPushButton("|>");
 	startButton->clicked().connect(std::bind([=]() {
 std::cout<<"Handlign a startbutton click from the markertree"<<std::endl;
-		WString command="play:"+std::to_string(start); 
-		EarUI::interact_zmq(command);
+		long startBefore = start - beforeSlider->value()*1000;
+		WString command="play:"+std::to_string(startBefore); 
+		interact_zmq(command);
 	}));
 	node->setColumnWidget(3, startButton);
 

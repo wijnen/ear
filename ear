@@ -472,7 +472,6 @@ if config['webUI']:
                         zmq_socket.send_json({"dummy":"dummy"})
                         print(e)
                         continue
-                    startTime-=(g.before*1000) #Currently does not work if we should wait before playing, a delay at the start of a tune. 
                     zmq_socket.send_json({"dummy":"dummy"})
                     data['media'].play(startTime, play = True)
                 else:
