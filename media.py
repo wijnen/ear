@@ -91,12 +91,17 @@ class Media:
         cls.probe_pipeline.set_state(Gst.State.NULL)
         return ret
     def new_pixbuf(self, bus, message, arg):
+        #print(message.type)
+        if message.type == Gst.MessageType.EOS:#This will be called at the end of a stream, but also at the end of a played fragment
+            self.done()
+            return True
         if message.type != Gst.MessageType.ELEMENT:
             return True
         if self.send_pixbuf:
             self.send_pixbuf(self.sink.get_property('last-pixbuf'))
         return True
     def load(self, track, index):
+        #Maybe used GstAudio.audio_format_fill_silence or something to add 10s of silence to do the before stuff easily?
         assert index is None or index == -1 or len(track['files']) > index
         # Discard old cb.
         self.cb = None
@@ -145,8 +150,6 @@ class Media:
         if start is not None and start < self.offset:
             wait = start - self.offset
             start = self.offset
-        print("Playing from {} to {}".format(start,end))
-        print("Offset {}, media_duration {}".format(self.offset, self.media_duration))
         if start is not None and start < self.offset + self.media_duration:
             start -= self.offset
             start /= self.speed
@@ -158,10 +161,16 @@ class Media:
                 self.pipeline.seek(1.0, Gst.Format(Gst.Format.TIME), Gst.SeekFlags.ACCURATE | Gst.SeekFlags.FLUSH, Gst.SeekType.SET, start * Gst.MSECOND, Gst.SeekType.SET, end * Gst.MSECOND)
             else:
                 self.pipeline.seek(1.0, Gst.Format(Gst.Format.TIME), Gst.SeekFlags.ACCURATE | Gst.SeekFlags.FLUSH, Gst.SeekType.SET, start * Gst.MSECOND, Gst.SeekType.END, 0)
-        else:
-            print("Not playinf, because of reasons")
         if play:
             self.pause(False)
+    def done(self):
+        self.updater = None
+        if self.cb:
+                cb = self.cb
+                self.cb = None
+                cb()
+        return False
+
     def seek(self, delta):
         self.play(self.get_pos() + delta, play = None)
     def pause(self, pausing = True):
@@ -175,15 +184,11 @@ class Media:
             self.updater = GLib.timeout_add(100, self.update)
     def update(self):
         self.pipeline.get_state(Gst.CLOCK_TIME_NONE)
+        do_callback = False
         try:
             pos = self.pipeline.query_position(Gst.Format(Gst.Format.TIME))[1] / Gst.MSECOND * self.speed + self.offset
         except:
-            self.updater = None
-            if self.cb:
-                cb = self.cb
-                self.cb = None
-                cb()
-            return False
+            self.end()
         self.set_pos(pos) # if self.speed <= 1 else pos / self.speed)
         return True
     def playing(self):

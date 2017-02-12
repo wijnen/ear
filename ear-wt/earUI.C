@@ -150,6 +150,8 @@ std::cout<<"Parsed names"<<std::endl;
 	ButtonMap->mapConnect(button->clicked(),button);
 	currentTrackContainer->addWidget(button);
     }
+   
+
     
     
 
@@ -234,7 +236,43 @@ std::cout<<"Parsed names"<<std::endl;
     markerTree->addColumn("Play from here",20); //StartButton
 //    markerTree->addColumn("",200);
 
+    WPushButton *button = new WPushButton("Play selection" ,root());     
+    button->setMargin(5, Left);
+    button->clicked().connect(std::bind([=] ()
+    {	
+	std::string ret = "{\"play\": [";	
+	bool first = true;
+	for (auto fragmentTN:markerTree->tree()->selectedNodes())
+	{
+		if (not first)
+		{	
+			ret += " , ";
+		}
+		first = false;
+		//tree returns a tree with tree nodes. We need treetable nodes!
+		WTreeTableNode *fragmentTTN =  dynamic_cast<WTreeTableNode*>(fragmentTN);
+		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
+		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
+		long start = startW->time();
+		long stop = stopW->time();
+		ret += "["+std::to_string(start)+" , "+	std::to_string(stop)+"]\n";
+		//Manual socket as we need to send our own little "JSON" string plaintext.
+	}
+	ret += "]}";
+		   zmq::context_t context (1);
+		   zmq::socket_t socket (context, ZMQ_REQ);
+		   socket.connect ("tcp://localhost:5555");
+		std::cout<<"Connected to ZMQ"<<std::endl;
+		   socket.send(ret.c_str(),ret.size());
+		   recv_zmq(socket); //Just dummy anyway
+		   socket.disconnect("tcp://localhost:5555");
+		std::cout<<"Disonnected from ZMQ"<<std::endl;
+		
 
+	
+    }));
+    currentTrackContainer->addWidget(button);
+ 
 //Code below to add a  current_position widget, but still needs to stop and start on playing. For now in here for performance testing, as it does 100/s AJAX itneractions   
    TimeWidget *currentTime = new TimeWidget();
    currentTime->setTime(current_position);
@@ -247,7 +285,7 @@ std::cout<<"Parsed names"<<std::endl;
         EarUI::current_position += 10;	//Please note, time goes twice as fast when two clients are accessing the page. And time seems to be off still. TODO
    }));
 
-	timer->start();
+//	timer->start();
 	//root()->addWidget(currentTime);
 
 

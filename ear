@@ -334,6 +334,13 @@ else:
     g.before = 3
 #
 
+def play_list(track, play_tuple):
+    if len(play_tuple) < 1:
+        return
+    start, end = play_tuple[0][0], play_tuple[0][1]
+    
+    track.play(start, end, play = True, cb = lambda : play_list(track, play_tuple[1:]))
+
 if config['webUI']:
     import zmq
     import simplejson.scanner
@@ -352,9 +359,15 @@ if config['webUI']:
                 print(e)
                 zmq_socket.send_string("something recieved, please send json")
                 continue
+            
             except Exception as e:
+                print(msg)
                 print(e)
                 continue
+            if type(msg) == dict:
+                if type(msg['play'])==list:
+                    play_list(data['media'], msg['play'])
+                    zmq_socket.send_json({"dummy":"dummy"})
             if type(msg) == list:
                 if len(msg) ==1:
                     msg=msg[0]
@@ -459,7 +472,7 @@ if config['webUI']:
                         zmq_socket.send_json({"dummy":"dummy"})
                         print(e)
                         continue
-                    startTime-=g.before*1000 #Currently does not work if we should wait before playing, a delay at the start of a tune. 
+                    startTime-=(g.before*1000) #Currently does not work if we should wait before playing, a delay at the start of a tune. 
                     zmq_socket.send_json({"dummy":"dummy"})
                     data['media'].play(startTime, play = True)
                 else:
