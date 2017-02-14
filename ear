@@ -443,7 +443,9 @@ if config['webUI']:
                     out = OrderedDict()
                     for x,track in enumerate(db):
                         #out['tracks'].append({track['name'] : track['tags']})
-                        out[track['name']] = [x,"blabl","blubl"]
+                        if len(track['tags']) == 0:
+                            track['tags'].append("")
+                        out[track['name']] = [x]+track['tags'] #track index is very much needed in the Wt UI!
                     import pprint
                     pprint.pprint(out)
                     zmq_socket.send_json({'tracks': out})

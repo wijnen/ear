@@ -66,13 +66,18 @@ def parse_fragments(root, tracks, used):
                 state = 'VALUES'
             if state in ('VALUES', 'TRACK'):
                 if key == 'Track':
-                    current = { 'root': root, 'name': value, 'files': [], 'fragments': [], 'tags' : [""] }
-                    tracks.append(current) #Should this become a return or something?
+                    current = { 'root': root, 'name': value, 'files': [], 'fragments': [], 'tags' : [] }
+                    tracks.append(current) #We're appending here, but because it's a dict, and dicts are mutable, we can still write to it and get the changes through. No return needed
+                    tags = autotag(value, root)
+                    if len(tags)>0:
+                        current['tags'].extend(tags)
+                elif key == 'Tags':
+                    current['tags'].append(value.split(';'))
                 elif key == 'File':
                     parts = value.split(';')
                     filename = parts[0].strip()
                     fileargs = [x.split('=') for x in parts[1:]]
-                    offsets = [x[1] for x in fileargs if x[0] == 'offset']
+                    offsets = [x[1] for x in fileargs if x[0] == 'offset'] 
                     if len(offsets) == 1:
                         offset = int(offsets[0])
                     else:
@@ -84,6 +89,18 @@ def parse_fragments(root, tracks, used):
                     stack = [current['fragments']]
                     istack = [0]
                     state = 'FRAGMENTS'
+                    current['tags'].append("has fragments")
+def autotag(trackname, root):
+    """Function to automagically add some tags based on filenames. Contents are up for discussion"""
+    print(root)
+    names = {"wals": ["wals","waltz","valse"], "polka":["polka"]}
+    tags = set()
+    for tag, options in names.items():
+        for option in options:
+            if option in trackname.lower():
+                tags.add(tag)
+    return list(tags)
+
 
 def read():
     '''Read all db files from all fhs data directories (and pwd)
