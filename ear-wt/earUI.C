@@ -185,10 +185,11 @@ std::cout<<"Parsed names"<<std::endl;
     trackcombo->setObjectName("trackComboBox"); 
     trackcombo->changed().connect(std::bind([=] () 
     {
+	WStringListModel *this_trackmodel = dynamic_cast<WStringListModel*>( trackcombo->model());
     	int row = trackcombo->currentIndex();
 std::cout<<"Acting on track"<<std::endl;
 	int tracknumber = boost::any_cast<int>
-                       (trackmodel->data(trackmodel->index(row,0), Wt::UserRole)); 
+                       (this_trackmodel->data(this_trackmodel->index(row,0), Wt::UserRole)); 
 std::cout<<"Sending track number "<<std::to_string(tracknumber)<<" from row number" << std::to_string(row)<<std::endl;
 	interact_zmq("track:"+std::to_string(tracknumber));
 	updateInputs();
@@ -382,6 +383,8 @@ std::cout<<"Made filter set"<<std::endl;
 		}
 		i++;
 	 }
+    trackmodel->setFlags(x-1,0);
+    trackmodel->sort(0);
 	 
  return newtrackmodel;
 }
@@ -412,7 +415,7 @@ Wt::WStringListModel *EarUI::get_trackmodel(zmq::socket_t &socket )
     Json::Value json_tag;
     WString trackname;
     WString tag;
-    int x=0;
+    int x = 0;
     for(auto trackname:json_tracks.names())
     {
 	trackmodel->addString(trackname);
