@@ -128,7 +128,7 @@ class Media:
         pos = self.get_pos()
         self.speed = speed
         self.play(pos, play = None)
-    def play(self, start = None, end = None, cb = (), play = True): # For cb, None means no cb, so use something else for "no change".
+    def play(self, start = None, end = None, cb = (), play = True, timed = False): # For cb, None means no cb, so use something else for "no change".
         print("Lets play in media",self)
         self.pitch.set_property('tempo', self.speed)
         self.offset = self.track['files'][self.track['media']][1] * 1000.
@@ -148,8 +148,11 @@ class Media:
         elif self.set_endtarget:
             self.set_endtarget(end)
         if start is not None and start < self.offset:
-            wait = start - self.offset
+            wait = -1 *(start - self.offset)
+            loop = GLib.MainLoop()
             start = self.offset
+            GLib.timeout_add(wait, lambda _: self.play(start = start, end=end, cb=cb,play=play, timed = True), None)
+            return True
         if start is not None and start < self.offset + self.media_duration:
             start -= self.offset
             start /= self.speed
@@ -163,6 +166,8 @@ class Media:
                 self.pipeline.seek(1.0, Gst.Format(Gst.Format.TIME), Gst.SeekFlags.ACCURATE | Gst.SeekFlags.FLUSH, Gst.SeekType.SET, start * Gst.MSECOND, Gst.SeekType.END, 0)
         if play:
             self.pause(False)
+        if timed:
+            return False #Bit wierd, but makes this function possible to be used as a oneshot timer.
     def done(self):
         self.updater = None
         if self.cb:
