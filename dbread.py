@@ -92,13 +92,13 @@ def parse_fragments(root, tracks, used):
                     current['tags'].append("has fragments")
 def autotag(trackname, root):
     """Function to automagically add some tags based on filenames. Contents are up for discussion"""
-    print(root)
     names = {"wals": ["wals","waltz","valse"], "polka":["polka"]}
     tags = set()
     for tag, options in names.items():
         for option in options:
             if option in trackname.lower():
                 tags.add(tag)
+                break
     return list(tags)
 
 
@@ -130,7 +130,7 @@ def read():
                     continue
                 if os.path.splitext(filename)[1] not in exts:
                     continue
-                tracks.append({ 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] , 'tags' : [ "" ]})
+                tracks.append({ 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] , 'tags' : autotag(filename,root)})
 
     return load_test_tracks(tracks)
 
