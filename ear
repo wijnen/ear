@@ -389,7 +389,6 @@ if config['webUI']:
                     events = [event for event in events if "edit" not in event] #We probably want to make this a curated list somewhere in the source or something. I'm open for ideas"""
                     #The Wt JSON parser needs to know if stuff is a dict or a list before parsing (otherwise you can't assign to an Array or Object. That's why _EVERYTHING_ is a dict. We might use the second argument to describe the text on the widget instead of using the command name for that.
                     events = OrderedDict ( [(k,None) for k in events ])
-                    print(events)
                     zmq_socket.send_json(events)
                 elif msg.startswith('event:'):
                     event=msg[len('event:'):]
@@ -415,7 +414,6 @@ if config['webUI']:
                         print("No such event")
                 elif msg =="inputs?":
                     inputs = {"speed":[50,200],"before":[0,10]} #Needs volume as well at some point (min,max,cur)
-                    print(g)
                     for inp in inputs.keys():
                         inputs[inp].append(getattr(g,inp))
                     zmq_socket.send_json(inputs)
@@ -430,7 +428,6 @@ if config['webUI']:
                     setattr(g,inp,val)
                     if inp == "speed":
                         data['media'].set_speed(val / 100.)
-                    print("Set {} to {}".format(inp,val))
                     zmq_socket.send_json({"dummy":"dummy"})
                 elif msg =="track?":
                     if not data['track']:
@@ -463,9 +460,6 @@ if config['webUI']:
                     if not data['track']:
                         zmq_socket.send_json({"fragments":[]})
                         continue
-                    #print(data['track']['fragments'])
-                    #import pprint
-                    #pprint.pprint(data['track']['fragments'])
                     zmq_socket.send_json({"fragments":data['track']['fragments']})
                 elif msg =="markers?":
                     if not data['track']:
@@ -484,6 +478,9 @@ if config['webUI']:
                         continue
                     zmq_socket.send_json({"dummy":"dummy"})
                     data['media'].play(startTime, play = True)
+                elif msg.startswith("pos?"):
+                    print("pos:{}".format(g.position))
+                    zmq_socket.send_json({"pos":g.position})
                 else:
                     print ("Event not handled:{}".format(msg))
         return True

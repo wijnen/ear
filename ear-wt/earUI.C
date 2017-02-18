@@ -29,9 +29,11 @@
 #include <zmq.hpp>
 #include <string>
 #include <iostream>
+#include <chrono>
 #include <boost/range/adaptor/reversed.hpp>
-#define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here. 
 
+typedef std::chrono::high_resolution_clock Clock;
+#define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here. 
 
 
 
@@ -93,9 +95,12 @@ static  Json::Object interact_zmq(Wt::WString value);
 static  Json::Object interact_zmq(Json::Object);
 static  Json::Object interact_zmq(zmq::socket_t &socket,std::string value);
 static  Json::Object interact_zmq(zmq::socket_t &socket,Json::Object value);
-static  long current_position;
-static WTimer *timer;
   Wt::WSlider *beforeSlider;
+static Clock::time_point start_wall_time;
+static Clock::time_point stop_wall_time;
+static long start_track_time;
+static long stop_track_time;
+static long time_speed;
 //Public static so I can use them from the node callback, that's in a Wt object, not an EarUI one.
 private:
   void clicked(WPushButton* source );
@@ -104,7 +109,8 @@ private:
   void loadFragments();
   void updateInputs();
   void loadGroup(Wt::WTreeTableNode *current_root, Json::Array fragments);
-
+  long current_track_time();
+static long _current_track_time;
   Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const long start, const long stop );
   Wt::WStringListModel *get_trackmodel( zmq::socket_t &socket );
   Wt::WStringListModel *get_trackmodel( );
@@ -112,7 +118,6 @@ private:
   int max_tags = 0;
 };
 
-long EarUI::current_position = 0;
 
 
 
@@ -205,7 +210,8 @@ std::cout<<"Sending track number "<<std::to_string(tracknumber)<<" from row numb
     {
 	Wt::WContainerWidget *thisFilter = new Wt::WContainerWidget(filtersContainer); 
 	//Wt::WText *filter = new WText(filterbox->text(),thisFilter);
-	WText *filter = new WText(filterbox->text(),thisFilter);
+//	WText *filter = 
+	new WText(filterbox->text(),thisFilter);
 	Wt::WPushButton *removeButton = new WPushButton("X",thisFilter);
 		removeButton->clicked().connect(std::bind([=] ()
 		{
@@ -309,6 +315,7 @@ std::cout<<"Found "<<input_name<<std::endl;
 		else
 		{
 			start -= beforeSlider->value()*1000;
+			//start_track_time = start;
 		}
 		first = false;
 		ret += "["+std::to_string(start)+" , "+	std::to_string(stop)+"]\n";
@@ -321,6 +328,7 @@ std::cout<<"Found "<<input_name<<std::endl;
 		std::cout<<"Connected to ZMQ"<<std::endl;
 		   socket.send(ret.c_str(),ret.size());
 		   recv_zmq(socket); //Just dummy anyway
+			//start_wall_time = Clock::now();
 		   socket.disconnect("tcp://localhost:5555");
 		std::cout<<"Disonnected from ZMQ"<<std::endl;
 		
@@ -331,23 +339,42 @@ std::cout<<"Found "<<input_name<<std::endl;
  
 //Code below to add a  current_position widget, but still needs to stop and start on playing. For now in here for performance testing, as it does 100/s AJAX itneractions   
    TimeWidget *currentTime = new TimeWidget();
-   currentTime->setTime(current_position);
+   currentTime->setTime(0);
 
    Wt::WTimer *timer = new Wt::WTimer();  
-   timer->setInterval(10);
+   timer->setInterval(50);
    timer->timeout().connect(std::bind([=] ()
    {
-  	currentTime->setTime(EarUI::current_position);
-        EarUI::current_position += 10;	//Please note, time goes twice as fast when two clients are accessing the page. And time seems to be off still. TODO
+	
+  	currentTime->setTime(EarUI::current_track_time());
    }));
 
-//	timer->start();
-	//root()->addWidget(currentTime);
+	timer->start();
+root()->addWidget(currentTime);
 
 
     updateInputs();
 
 
+}
+long EarUI::current_track_time()
+{
+//	Json::Object playingj = interact_zmq("playing?");
+//	bool playing = playingj->get("playing");
+/*	if (playing)
+	{
+long elapsed_wall_time = std::chrono::duration_cast<std::chrono_milliseconds>(Clock::now() - start_wall_time);
+	std::chrono::duration_cast<std::chrono_milliseconds>long current_track_time = start_track_time + elapsed_wall_time * (speed / 100) ;
+	}
+	else
+	{*/
+//For now, this turns out to be fast enough on my machine. That might not be true for other machines, or on other architectures or over the network, but on localhost zmq it doesn't seem worth it to go through the hassle of making a whole second state-keeping thing in this interface just to get a slightly better timer
+		Json::Object posj = interact_zmq(std::string("pos?"));
+	Json::Value posjv = posj.get("pos");	
+	const long long pos = posjv;
+//	}
+	return pos;
+	
 }
 
 Wt::WStringListModel *EarUI::filter_trackmodel( WStringListModel *trackmodel, WContainerWidget *filterWidget )
@@ -595,6 +622,8 @@ std::cout<<"Handlign a startbutton click from the markertree"<<std::endl;
 		long startBefore = start - beforeSlider->value()*1000;
 		WString command="play:"+std::to_string(startBefore); 
 		interact_zmq(command);
+		//start_wall_time = Clock::now();
+		//start_track_time = startBefore;
 	}));
 	node->setColumnWidget(3, startButton);
 
