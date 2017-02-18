@@ -44,7 +44,7 @@ class TimeWidget : public Wt::WText //This explicitly does not use the Wt::WTime
 public:
   TimeWidget(Wt::WContainerWidget *parent = 0);
 //  TimeWidget(double time, WContainerWidget *parent = 0);
-  long time();
+long long time();
   bool setTime(long time);
 
 private:
@@ -57,7 +57,7 @@ TimeWidget::TimeWidget(Wt::WContainerWidget *parent )
  : Wt::WText(parent)
 {  }  
 
-long TimeWidget::time()
+long long TimeWidget::time()
 {
 	return this->_time;
 }
@@ -103,6 +103,7 @@ static long stop_track_time;
 static long time_speed;
 //Public static so I can use them from the node callback, that's in a Wt object, not an EarUI one.
 private:
+ std::vector<WTreeTableNode*> fragment_set;
   void clicked(WPushButton* source );
 //  void loadMarkers(zmq::socket_t &socket,WString trackname);
   void loadFragments(zmq::socket_t &socket);
@@ -115,6 +116,7 @@ static long _current_track_time;
   Wt::WStringListModel *get_trackmodel( zmq::socket_t &socket );
   Wt::WStringListModel *get_trackmodel( );
   Wt::WStringListModel *filter_trackmodel( WStringListModel *trackmodel, WContainerWidget *filterwidget );
+Json::Value saveFragments(Wt::WTreeTableNode *root);
   int max_tags = 0;
 };
 
@@ -325,19 +327,82 @@ std::cout<<"Found "<<input_name<<std::endl;
 		   zmq::context_t context (1);
 		   zmq::socket_t socket (context, ZMQ_REQ);
 		   socket.connect ("tcp://localhost:5555");
-		std::cout<<"Connected to ZMQ"<<std::endl;
 		   socket.send(ret.c_str(),ret.size());
 		   recv_zmq(socket); //Just dummy anyway
-			//start_wall_time = Clock::now();
 		   socket.disconnect("tcp://localhost:5555");
-		std::cout<<"Disonnected from ZMQ"<<std::endl;
 		
 
 	
     }));
+
     currentTrackContainer->addWidget(button);
- 
+
+	
+    WPushButton *button1 = new WPushButton("Split fragment here", root());
+    button1->setMargin(5, Left);
+    button1->clicked().connect(std::bind([=] ()
+    {	
+	long pos = current_track_time();	
+	for (auto fragmentTTN:this->fragment_set)
+	{
+		//tree returns a tree with tree nodes. We need treetable nodes!
+//		WTreeTableNode *fragmentTTN =  dynamic_cast<WTreeTableNode*>(fragmentTN);
+		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
+		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
+		long start = startW->time();
+		long stop = stopW->time();
+		if(pos > start and pos < stop)
+		{
+			//Fragment to split
+			stopW->setTime(pos);
+			WTreeNode *my_parent = fragmentTTN->parentNode();
+			const std::vector< WTreeNode * > siblings = my_parent->childNodes();
+			int index = -1;
+			for(unsigned int i=0;i<siblings.size()+1;i++) //There is insert, and insertBefore, but no insertAfter. So frist, determine the index of the widget we're splitting, and then insert at that index.
+			{
+				if(fragmentTTN == siblings[i])
+				{
+					index = i;
+				}
+			}
+			if (index ==-1)
+			{
+				std::cout<<"Can't find myself when splitting a fragment"<<std::endl;
+				return;
+			}
+			WTreeTableNode *newFragmentTTN = addNode(0,"New node", pos, stop);
+			my_parent->insertChildNode(index+1, newFragmentTTN);
+		}
+		
+	}	
+    }	));
+    currentTrackContainer->addWidget(button1);
+
+
+    WPushButton *savebutton = new WPushButton("Save fragments", root());
+    currentTrackContainer->addWidget(savebutton);
+    savebutton->setMargin(5, Left);
+    savebutton->clicked().connect(std::bind([=] ()
+    {	
+std::cout<<"clickeD"<<std::endl;
+	Json::Value fragmentsval = saveFragments(dynamic_cast<WTreeTableNode*>(markerTree->tree()->treeRoot() ));
+	Json::Array& fragments = fragmentsval; 
+std::cout<<"gotten"<<std::endl;
+	std::string fragstring = Json::serialize(fragments);
+	fragstring = "{ \"fragments\" : "+fragstring + "}";
+std::cout<<"fragged"<<std::endl;
+std::cout<<"Fragments:"<<fragstring<<std::endl;
+			   zmq::context_t context (1);
+		   zmq::socket_t socket (context, ZMQ_REQ);
+		   socket.connect ("tcp://localhost:5555");
+		   socket.send(fragstring.c_str(),fragstring.size());
+		   recv_zmq(socket); //Just dummy anyway
+		   socket.disconnect("tcp://localhost:5555");
+    }));	
+
 //Code below to add a  current_position widget, but still needs to stop and start on playing. For now in here for performance testing, as it does 100/s AJAX itneractions   
+
+
    TimeWidget *currentTime = new TimeWidget();
    currentTime->setTime(0);
 
@@ -349,7 +414,7 @@ std::cout<<"Found "<<input_name<<std::endl;
   	currentTime->setTime(EarUI::current_track_time());
    }));
 
-	timer->start();
+//	timer->start();
 root()->addWidget(currentTime);
 
 
@@ -473,7 +538,41 @@ Wt::WStringListModel *EarUI::get_trackmodel(zmq::socket_t &socket )
 
 }
 
+Json::Value EarUI::saveFragments(Wt::WTreeTableNode *root)
+{
 
+	Json::Value retVal = Json::Value(Json::ArrayType);
+	Json::Array& ret = retVal; 
+	WString name;
+	WText *nameWidget = root->label();
+	name = nameWidget->text();
+	if(root->childNodes().size()>0)
+	{
+		ret.push_back(Json::Value(WString("group")));
+		ret.push_back(Json::Value(name));
+		Json::Value out_children_value = Json::Value(Json::ArrayType);	
+		Json::Array& out_children = out_children_value;
+		for(auto mynode:root->childNodes())
+		{
+			out_children.push_back(saveFragments(dynamic_cast<WTreeTableNode*>(mynode)));
+		}
+
+		ret.push_back(out_children_value);
+
+	}
+	else //TODO add room for annotations
+	{
+		ret.push_back(Json::Value(WString("fragment")));
+		ret.push_back(Json::Value(name));
+		TimeWidget *startW = dynamic_cast<TimeWidget*>(root->columnWidget(1));
+		TimeWidget *stopW = dynamic_cast<TimeWidget*>(root->columnWidget(2));
+		long long start = startW->time();
+		long long stop = stopW->time();
+		ret.push_back(Json::Value(start));
+		ret.push_back(Json::Value(stop));
+	}
+return retVal;
+}
 void EarUI::loadGroup(Wt::WTreeTableNode *current_root, Json::Array fragments)
 { //Recursively add the fragments to the treetable
 std::cout<<"\n\nLoading fragments"<<std::endl;
@@ -491,8 +590,8 @@ std::cout<<"Making a new group"<<std::endl;
 		}
 		else if (type == "fragment")
 		{
-			int start_time = fragment[2]; //Might be a long, which would be good on systems that use less than 32 bits for an int. However, Wt doesn't want longs. So the rest of the code uses longs, but might be ints as well I guess
-			int stop_time = fragment[3];
+			long long start_time = fragment[2]; 
+			long long stop_time = fragment[3];
 			addNode(current_root,name,start_time,stop_time);
 		}
 		else
@@ -500,6 +599,7 @@ std::cout<<"Making a new group"<<std::endl;
 std::cout<<"Type not understood"<<std::endl;
 		}
 	}
+
 		
 }
 
@@ -519,9 +619,10 @@ void EarUI::loadFragments(zmq::socket_t &socket)
 	Wt::WTreeTableNode *root = new Wt::WTreeTableNode("Fragments");
 	treeTable->setTreeRoot(root, "Fragments for this track");
 	Wt::WTreeTableNode *current_root = root;
-	Json::Array fragments;
+	this->fragment_set.clear();
 	Json::Object response;
 	response = interact_zmq(socket,"fragments?");
+	Json::Array fragments;
 	fragments = response.get("fragments");
 
 	loadGroup(current_root,fragments);
@@ -612,7 +713,6 @@ std::cout<<"Set track to "<<comboBox->currentIndex()<<std::endl;
 
 Wt::WTreeTableNode *EarUI::addNode(Wt::WTreeTableNode *parent, WString name, const long start, const long stop ) {
 	Wt::WTreeTableNode *node = new Wt::WTreeTableNode(name, 0, parent);
-
 	TimeWidget *startWidget = new TimeWidget();  
 	startWidget->setTime(start);
 	node->setColumnWidget(1, startWidget); 
@@ -622,15 +722,13 @@ std::cout<<"Handlign a startbutton click from the markertree"<<std::endl;
 		long startBefore = start - beforeSlider->value()*1000;
 		WString command="play:"+std::to_string(startBefore); 
 		interact_zmq(command);
-		//start_wall_time = Clock::now();
-		//start_track_time = startBefore;
 	}));
 	node->setColumnWidget(3, startButton);
 
 	TimeWidget *stopWidget = new TimeWidget();
 	stopWidget->setTime(stop);
-//	stopWidget->setHidden(true);
 	node->setColumnWidget(2, stopWidget);
+	this->fragment_set.push_back(node);
 	return node;
     }
 
@@ -661,11 +759,11 @@ Json::Object EarUI::interact_zmq(Json::Object value)//Should use a function temp
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
     socket.connect ("tcp://localhost:5555");
-std::cout<<"Connected to ZMQ"<<std::endl;
+//std::cout<<"Connected to ZMQ"<<std::endl;
     Json::Object retval;
     retval = interact_zmq(socket,value);	
     socket.disconnect("tcp://localhost:5555");
-std::cout<<"Disonnected from ZMQ"<<std::endl;
+//std::cout<<"Disonnected from ZMQ"<<std::endl;
     return retval;
 }
 
@@ -675,11 +773,11 @@ Json::Object EarUI::interact_zmq(std::string value)
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
     socket.connect ("tcp://localhost:5555");
-std::cout<<"Connected to ZMQ"<<std::endl;
+//std::cout<<"Connected to ZMQ"<<std::endl;
     Json::Object retval;
     retval = interact_zmq(socket,value);	
     socket.disconnect("tcp://localhost:5555");
-std::cout<<"Disonnected from ZMQ"<<std::endl;
+//std::cout<<"Disonnected from ZMQ"<<std::endl;
     return retval;
 }
 
@@ -693,14 +791,14 @@ Json::Object EarUI::interact_zmq(zmq::socket_t &socket,std::string value)
 {
     send_zmq(socket,value);
     Json::Object retval;
-std::cout<<"Recieving and parsing"<<std::endl;	
+//std::cout<<"Recieving and parsing"<<std::endl;	
     Json::parse(recv_zmq(socket),retval);
-std::cout<<"Parsed"<<std::endl;
+//std::cout<<"Parsed"<<std::endl;
     return retval;
 }
 void EarUI::send_zmq(zmq::socket_t &socket, std::string value) 
 {
-std::cout<<"Sending stuff: "<<value<<std::endl;
+//std::cout<<"Sending stuff: "<<value<<std::endl;
     Json::Value msg_str;
     msg_str = WString( value);
     Json::Array msg_arr;
@@ -712,10 +810,10 @@ std::cout<<"Sending stuff: "<<value<<std::endl;
 
 std::string EarUI::recv_zmq(zmq::socket_t &socket) 
 {
-std::cout<<"Recieving stuff"<<std::endl;
+//std::cout<<"Recieving stuff"<<std::endl;
     char buffer[MAXSIZE];
     int nbytes = socket.recv(buffer, MAXSIZE);
-std::cout<<"Recieved stuff"<<buffer<<std::endl;
+//std::cout<<"Recieved stuff"<<buffer<<std::endl;
     return std::string(buffer, nbytes);
 }
 

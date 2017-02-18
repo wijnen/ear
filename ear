@@ -364,14 +364,18 @@ if config['webUI']:
                 print(msg)
                 print(e)
                 continue
+            #if type(msg)!=str or not msg.startswith("pos"):
+            #    print(msg)
             if type(msg) == dict:
-                if type(msg['play'])==list:
+                if 'play' in msg.keys() and type(msg['play'])==list:
                     play_list(data['media'], msg['play'])
                     zmq_socket.send_json({"dummy":"dummy"})
+                if 'fragments' in msg.keys() and type(msg['fragments'])==list:
+                    data['track']['fragments'] = msg['fragments'][2] #In Wt, we need a single root. This is called 'fragments' and only has children. Children are stored in idx 2
+                    zmq_socket.send_json({'_':'_'})
             if type(msg) == list:
                 if len(msg) ==1:
                     msg=msg[0]
-                    print("Message recieved:"+msg)
             if type(msg)==str:
                 if msg =="events?":
                     print("dirring")
@@ -479,10 +483,14 @@ if config['webUI']:
                     zmq_socket.send_json({"dummy":"dummy"})
                     data['media'].play(startTime, play = True)
                 elif msg.startswith("pos?"):
-                    print("pos:{}".format(g.position))
+                    #print("pos:{}".format(g.position))
                     zmq_socket.send_json({"pos":g.position})
+                elif msg.startswith("fragments"):
+                    print(msg)
+                    zmq_socket.send_json({"dummy":g.position})
                 else:
                     print ("Event not handled:{}".format(msg))
+                    zmq_socket.send_json({"dummy":g.position})
         return True
 
     from gi.repository import GObject
