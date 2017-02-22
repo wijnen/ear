@@ -66,13 +66,15 @@ def parse_fragments(root, tracks, used):
                 state = 'VALUES'
             if state in ('VALUES', 'TRACK'):
                 if key == 'Track':
-                    current = { 'root': root, 'name': value, 'files': [], 'fragments': [], 'tags' : [] }
+                    current = { 'root': root, 'name': value, 'files': [], 'fragments': [], 'tags' : [], 'dirty' : False }
                     tracks.append(current) #We're appending here, but because it's a dict, and dicts are mutable, we can still write to it and get the changes through. No return needed
-                    tags = autotag(value, root)
+                    tags = autotag(value, root) 
                     if len(tags)>0:
                         current['tags'].extend(tags)
                 elif key == 'Tags':
                     current['tags'].append(value.split(';'))
+                    if "no-auto" in value:
+                        current['tags'] = value.split(';')
                 elif key == 'File':
                     parts = value.split(';')
                     filename = parts[0].strip()
@@ -92,6 +94,7 @@ def parse_fragments(root, tracks, used):
                     current['tags'].append("has fragments")
 def autotag(trackname, root):
     """Function to automagically add some tags based on filenames. Contents are up for discussion"""
+    #TODO Mark these tags as autotags so we don't write them and end up with repeat tags
     names = {"wals": ["wals","waltz","valse"], "polka":["polka"]}
     tags = set()
     for tag, options in names.items():
@@ -189,7 +192,8 @@ def write_track(track):
     # Every track starts with an empty line and the track name.
     # There are two reasons for the empty line: it separates the tracks,
     # and it lets the BOM be on a line of its own, so grep can find lines
-    # that start with 'Track:' without missing the first.
+    # that start with 'Track:' without missing the first.  
+    #TODO: Add writing of tags
     ret = ''
     ret += '{}Track:{}{}'.format(EOL, track['name'], EOL)
     for file in track['files']:
@@ -205,19 +209,22 @@ def write(tracks):
     '''Write the internal track data to a file that can be read back with db.read()'''
 
     output = {}
+    
     for track in tracks:
         # Don't define tracks without fragments.
         if len(track['fragments']) == 0:
             continue
         target = makepath(track['root'], FRAGMENTS)
         if target not in output:
-            output[target] = ''
-        output[target] += write_track(track)
+            output[target] = {'contents':'','dirty':False}
+        output[target]['contents'] += write_track(track)
+        output[target]['dirty'] += track['dirty']
 
     for target in output:
         # Write as binary and manually encode as utf-8, so line endings are not mangled.
-        with open(target, 'wb') as f:
-            # To allow Microsoft to write these files as utf-8, start with a BOM.
-            f.write(('\ufeff' + output[target]).encode('utf-8'))
+        if target['dirty']:
+            with open(target, 'wb') as f:
+                # To allow Microsoft to write these files as utf-8, start with a BOM.
+                f.write(('\ufeff' + output[target]).encode('utf-8'))
 
 # vim: set expandtab tabstop=4 shiftwidth=4 :

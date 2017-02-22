@@ -372,6 +372,7 @@ if config['webUI']:
                     zmq_socket.send_json({"dummy":"dummy"})
                 if 'fragments' in msg.keys() and type(msg['fragments'])==list:
                     data['track']['fragments'] = msg['fragments'][2] #In Wt, we need a single root. This is called 'fragments' and only has children. Children are stored in idx 2
+                    data['tracl']['dirty'] = True
                     zmq_socket.send_json({'_':'_'})
             if type(msg) == list:
                 if len(msg) ==1:
