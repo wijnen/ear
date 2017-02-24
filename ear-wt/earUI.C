@@ -18,6 +18,7 @@
 #include <Wt/WPanel>
 #include <Wt/WSlider>
 #include <Wt/WTimer>
+#include <Wt/WInPlaceEdit>
 #include <Wt/Json/Array>
 #include <Wt/Json/Parser>
 #include <Wt/Json/Object>
@@ -31,11 +32,26 @@
 #include <iostream>
 #include <chrono>
 #include <boost/range/adaptor/reversed.hpp>
+#include <Wt/WCompositeWidget>
+#include <Wt/WTreeTableNode>
 
 typedef std::chrono::high_resolution_clock Clock;
 #define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here. 
 
+class MyTreeTableNode : public Wt::WTreeTableNode
+{
+	public:
+		MyTreeTableNode(const Wt::WString& labelText, Wt::WIconPair *labelIcon = 0,  Wt::WTreeTableNode *parentNode = 0) :  //note :, not ;
+		Wt::WTreeTableNode( labelText,  labelIcon , parentNode )
+		{
+			
+		}
+	using Wt::WTreeTableNode::labelArea;
+	Wt::WString text;		
 
+
+
+};
 
 
 
@@ -103,20 +119,20 @@ static long stop_track_time;
 static long time_speed;
 //Public static so I can use them from the node callback, that's in a Wt object, not an EarUI one.
 private:
- std::vector<WTreeTableNode*> fragment_set;
+ std::vector<MyTreeTableNode*> fragment_set;
   void clicked(WPushButton* source );
 //  void loadMarkers(zmq::socket_t &socket,WString trackname);
   void loadFragments(zmq::socket_t &socket);
   void loadFragments();
   void updateInputs();
-  void loadGroup(Wt::WTreeTableNode *current_root, Json::Array fragments);
+  void loadGroup(MyTreeTableNode *current_root, Json::Array fragments);
   long current_track_time();
 static long _current_track_time;
-  Wt::WTreeTableNode *addNode(Wt::WTreeTableNode *parent, WString name, const long start, const long stop );
+  MyTreeTableNode *addNode(MyTreeTableNode *parent, WString name, const long start, const long stop );
   Wt::WStringListModel *get_trackmodel( zmq::socket_t &socket );
   Wt::WStringListModel *get_trackmodel( );
   Wt::WStringListModel *filter_trackmodel( WStringListModel *trackmodel, WContainerWidget *filterwidget );
-Json::Value saveFragments(Wt::WTreeTableNode *root);
+Json::Value saveFragments(MyTreeTableNode *root);
   int max_tags = 0;
 };
 
@@ -282,7 +298,7 @@ std::cout<<"Found "<<input_name<<std::endl;
     root()->addWidget(markerContainer);
    // markerContainer->setHidden(true);
 
-    Wt::WTreeTable *markerTree = new Wt::WTreeTable();
+    WTreeTable *markerTree = new WTreeTable();
     markerContainer->addWidget(markerTree);
     //markerTree->resize(800,10); 
     markerTree->setObjectName("markertree");
@@ -301,7 +317,7 @@ std::cout<<"Found "<<input_name<<std::endl;
 	for (auto fragmentTN:markerTree->tree()->selectedNodes())
 	{
 	//tree returns a tree with tree nodes. We need treetable nodes!
-		WTreeTableNode *fragmentTTN =  dynamic_cast<WTreeTableNode*>(fragmentTN);
+		MyTreeTableNode *fragmentTTN =  dynamic_cast<MyTreeTableNode*>(fragmentTN);
 		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
 		long start = startW->time();
@@ -346,7 +362,7 @@ std::cout<<"Found "<<input_name<<std::endl;
 	for (auto fragmentTTN:this->fragment_set)
 	{
 		//tree returns a tree with tree nodes. We need treetable nodes!
-//		WTreeTableNode *fragmentTTN =  dynamic_cast<WTreeTableNode*>(fragmentTN);
+//		MyTreeTableNode *fragmentTTN =  dynamic_cast<MyTreeTableNode*>(fragmentTN);
 		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
 		long start = startW->time();
@@ -370,7 +386,7 @@ std::cout<<"Found "<<input_name<<std::endl;
 				std::cout<<"Can't find myself when splitting a fragment"<<std::endl;
 				return;
 			}
-			WTreeTableNode *newFragmentTTN = addNode(0,"New node", pos, stop);
+			MyTreeTableNode *newFragmentTTN = addNode(0,"New node", pos, stop);
 			my_parent->insertChildNode(index+1, newFragmentTTN);
 		}
 		
@@ -385,7 +401,7 @@ std::cout<<"Found "<<input_name<<std::endl;
     savebutton->clicked().connect(std::bind([=] ()
     {	
 std::cout<<"clickeD"<<std::endl;
-	Json::Value fragmentsval = saveFragments(dynamic_cast<WTreeTableNode*>(markerTree->tree()->treeRoot() ));
+	Json::Value fragmentsval = saveFragments(dynamic_cast<MyTreeTableNode*>(markerTree->tree()->treeRoot() ));
 	Json::Array& fragments = fragmentsval; 
 std::cout<<"gotten"<<std::endl;
 	std::string fragstring = Json::serialize(fragments);
@@ -538,14 +554,17 @@ Wt::WStringListModel *EarUI::get_trackmodel(zmq::socket_t &socket )
 
 }
 
-Json::Value EarUI::saveFragments(Wt::WTreeTableNode *root)
+Json::Value EarUI::saveFragments(MyTreeTableNode *root)
 {
 
 	Json::Value retVal = Json::Value(Json::ArrayType);
+std::cout<<__LINE__<<std::endl;
 	Json::Array& ret = retVal; 
 	WString name;
-	WText *nameWidget = root->label();
-	name = nameWidget->text();
+//	WText *nameWidget = root->label();
+std::cout<<__LINE__<<std::endl;
+	name = root->text;	
+std::cout<<__LINE__<<std::endl;
 	if(root->childNodes().size()>0)
 	{
 		ret.push_back(Json::Value(WString("group")));
@@ -554,7 +573,7 @@ Json::Value EarUI::saveFragments(Wt::WTreeTableNode *root)
 		Json::Array& out_children = out_children_value;
 		for(auto mynode:root->childNodes())
 		{
-			out_children.push_back(saveFragments(dynamic_cast<WTreeTableNode*>(mynode)));
+			out_children.push_back(saveFragments(dynamic_cast<MyTreeTableNode*>(mynode)));
 		}
 
 		ret.push_back(out_children_value);
@@ -573,7 +592,7 @@ Json::Value EarUI::saveFragments(Wt::WTreeTableNode *root)
 	}
 return retVal;
 }
-void EarUI::loadGroup(Wt::WTreeTableNode *current_root, Json::Array fragments)
+void EarUI::loadGroup(MyTreeTableNode *current_root, Json::Array fragments)
 { //Recursively add the fragments to the treetable
 std::cout<<"\n\nLoading fragments"<<std::endl;
 	for(auto fragmentValue:fragments)
@@ -616,9 +635,9 @@ void EarUI::loadFragments(zmq::socket_t &socket)
 
 	Wt::WTreeTable *treeTable; 
 	treeTable = dynamic_cast<WTreeTable*> (findWidget("markertree"));
-	Wt::WTreeTableNode *root = new Wt::WTreeTableNode("Fragments");
+	MyTreeTableNode *root = new MyTreeTableNode("Fragments");
 	treeTable->setTreeRoot(root, "Fragments for this track");
-	Wt::WTreeTableNode *current_root = root;
+	MyTreeTableNode *current_root = root;
 	this->fragment_set.clear();
 	Json::Object response;
 	response = interact_zmq(socket,"fragments?");
@@ -711,9 +730,18 @@ std::cout<<"Set track to "<<comboBox->currentIndex()<<std::endl;
 
 
 
-Wt::WTreeTableNode *EarUI::addNode(Wt::WTreeTableNode *parent, WString name, const long start, const long stop ) {
-	Wt::WTreeTableNode *node = new Wt::WTreeTableNode(name, 0, parent);
-	TimeWidget *startWidget = new TimeWidget();  
+MyTreeTableNode *EarUI::addNode(MyTreeTableNode *parent, WString name, const long start, const long stop ) {
+	MyTreeTableNode *node = new MyTreeTableNode(name, 0, parent);
+	WContainerWidget *labelArea = node->labelArea();
+	WWidget *labelWidget = labelArea->widget(0); //See source of WTreeNode.
+	labelArea->removeWidget(labelWidget);
+	WInPlaceEdit  *editWidget = new WInPlaceEdit(name);
+	editWidget->valueChanged().connect(std::bind([=]() {
+		node->text = editWidget->text();
+	}));
+	labelArea->addWidget(editWidget );
+std::cout<<"ASDF "<<labelArea->indexOf(editWidget)<<std::endl;
+	TimeWidget *startWidget = new TimeWidget();
 	startWidget->setTime(start);
 	node->setColumnWidget(1, startWidget); 
 	Wt::WPushButton *startButton = new WPushButton("|>");
