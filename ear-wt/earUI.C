@@ -269,8 +269,12 @@ std::cout<<"Sending track number "<<std::to_string(tracknumber)<<" from row numb
  	inputSlider = new Wt::WSlider(thisInputContainer);
 	inputSlider->setObjectName("inputSlider:"+input_name);
         inputSlider->resize(500,50);
-        inputSlider->setMinimum(inputSettings[0]); 
-        inputSlider->setMaximum(inputSettings[1]); 
+	int min, max;
+	min = inputSettings[0];
+	max = inputSettings[1]; 
+        inputSlider->setMinimum(min ); 
+        inputSlider->setMaximum(max); 
+	inputSlider->setTickInterval( (max-min)/6);
         inputSlider->setValue(inputSettings[2]); 
 	inputSlider->setTickPosition(Wt::WSlider::TicksAbove);
 std::cout<<"Handling name "<<input_name<<std::endl;
@@ -487,9 +491,6 @@ std::cout<<"Fragments:"<<fragstring<<std::endl;
 		   socket.disconnect("tcp://localhost:5555");
     }));	
 
-//Code below to add a  current_position widget, but still needs to stop and start on playing. For now in here for performance testing, as it does 100/s AJAX itneractions   
-
-
    TimeWidget *currentTime = new TimeWidget();
    currentTime->setTime(0);
 
@@ -501,8 +502,8 @@ std::cout<<"Fragments:"<<fragstring<<std::endl;
   	currentTime->setTime(EarUI::current_track_time());
    }));
 
-//	timer->start();
-root()->addWidget(currentTime);
+	timer->start();
+	root()->addWidget(currentTime);
 
 
     updateInputs();
@@ -521,7 +522,8 @@ long elapsed_wall_time = std::chrono::duration_cast<std::chrono_milliseconds>(Cl
 	else
 	{*/
 //For now, this turns out to be fast enough on my machine. That might not be true for other machines, or on other architectures or over the network, but on localhost zmq it doesn't seem worth it to go through the hassle of making a whole second state-keeping thing in this interface just to get a slightly better timer
-		Json::Object posj = interact_zmq(std::string("pos?"));
+std::cout<<"Updating time"<<std::endl;
+	Json::Object posj = interact_zmq(std::string("pos?"));
 	Json::Value posjv = posj.get("pos");	
 	const long long pos = posjv;
 //	}
