@@ -26,6 +26,7 @@
 #include <Wt/WSignalMapper>
 #include <Wt/WTreeTable>
 #include <Wt/WTree>
+#include <Wt/WTreeNode>
 #include <Wt/WTreeTableNode>
 #include <zmq.hpp>
 #include <string>
@@ -350,10 +351,80 @@ std::cout<<"Found "<<input_name<<std::endl;
 
 	
     }));
-
+//TODO: Split out the tab and untab functions so we can call them with the keyboard
     currentTrackContainer->addWidget(button);
+    WPushButton *tabButton = new WPushButton(">>>>" ,root());     
+    tabButton->setMargin(5, Left);
+   tabButton->clicked().connect(std::bind([=] ()
+    {
+    WTreeNode *parent;
+    WTreeNode *newNode;
+	std::set<WTreeNode*> selectedNodes =markerTree->tree()->selectedNodes();
+			std::vector< WTreeNode*> siblings;
+ 	
+	WTreeNode *firstNode = *selectedNodes.begin();
+	if(firstNode == markerTree->tree()->treeRoot())
+	{
+		return;
+	}
+	parent = firstNode->parentNode();
+	newNode = addNode(0 ,"Group" ,-1,-1);
+	siblings = parent->childNodes();
+	int index = std::find(siblings.begin(), siblings.end(), firstNode) - siblings.begin();
+	parent->insertChildNode(index, newNode);
+		
+	for (auto node:selectedNodes)
+	{	
+		parent->removeChildNode(node);
+		newNode->addChildNode(node);
+	}
+    }));	
+    currentTrackContainer->addWidget(tabButton);
+//std::cout<<"	Parent "<<dynamic_cast<MyTreeTableNode*>(parent)->text <<std::endl;
+    WPushButton *untabButton = new WPushButton("<<<<<" ,root());     
+    untabButton->setMargin(5, Left);
+    untabButton->clicked().connect(std::bind([=] ()
+    {
+	std::vector< WTreeNode*> siblings;
+	WTreeNode *parent;
+	WTreeNode *grandparent;
+	std::vector< WTreeNode*> uncles; //My parents siblings
+	int index = 0;
 
-	
+	std::set<WTreeNode*> selectedNodes =markerTree->tree()->selectedNodes();
+	WTreeNode *firstNode = *selectedNodes.begin();
+	WTreeNode *lastNode = *selectedNodes.rbegin(); //Note, the reverse of the beginning is not the end
+	parent = firstNode->parentNode();
+	if(parent == markerTree->tree()->treeRoot())
+	{
+		return;
+	}
+	siblings = parent->childNodes();
+
+	if(firstNode != siblings.front() and lastNode != siblings.back())
+	{ 
+		return;
+	}
+	grandparent = parent->parentNode();
+	uncles = grandparent->childNodes();
+	index = std::find(uncles.begin(), uncles.end(), parent) - uncles.begin();
+	if (firstNode == siblings.front() and lastNode != siblings.back())
+	{
+		index--;
+	}
+	for (auto node:selectedNodes)
+	{
+		parent->removeChildNode(node);
+		index ++;
+		grandparent->insertChildNode(index,node);
+	}
+    }));	
+    currentTrackContainer->addWidget(untabButton);
+
+
+
+
+
     WPushButton *button1 = new WPushButton("Split fragment here", root());
     button1->setMargin(5, Left);
     button1->clicked().connect(std::bind([=] ()
@@ -736,11 +807,12 @@ MyTreeTableNode *EarUI::addNode(MyTreeTableNode *parent, WString name, const lon
 	WWidget *labelWidget = labelArea->widget(0); //See source of WTreeNode.
 	labelArea->removeWidget(labelWidget);
 	WInPlaceEdit  *editWidget = new WInPlaceEdit(name);
+	
 	editWidget->valueChanged().connect(std::bind([=]() {
 		node->text = editWidget->text();
 	}));
+	node->text = editWidget->text();
 	labelArea->addWidget(editWidget );
-std::cout<<"ASDF "<<labelArea->indexOf(editWidget)<<std::endl;
 	TimeWidget *startWidget = new TimeWidget();
 	startWidget->setTime(start);
 	node->setColumnWidget(1, startWidget); 
