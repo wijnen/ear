@@ -32,6 +32,7 @@
 #include <string>
 #include <iostream>
 #include <chrono>
+#include <Wt/WBootstrapTheme>
 #include <boost/range/adaptor/reversed.hpp>
 #include <Wt/WCompositeWidget>
 #include <Wt/WTreeTableNode>
@@ -50,8 +51,6 @@ class MyTreeTableNode : public Wt::WTreeTableNode
 	using Wt::WTreeTableNode::labelArea;
 	Wt::WString text;		
 
-
-
 };
 
 
@@ -63,7 +62,6 @@ public:
 //  TimeWidget(double time, WContainerWidget *parent = 0);
 long long time();
   bool setTime(long time);
-
 private:
   long _time;
 
@@ -78,6 +76,7 @@ long long TimeWidget::time()
 {
 	return this->_time;
 }
+
 bool TimeWidget::setTime(long time)
 {
 	if(time != -1)
@@ -127,8 +126,9 @@ private:
   void loadFragments();
   void updateInputs();
   void loadGroup(MyTreeTableNode *current_root, Json::Array fragments);
-  long current_track_time();
-static long _current_track_time;
+  void mark_current_fragment(long long track_time);
+  long current_track_time( zmq::socket_t *socket  =0  );
+  WSlider *posSlider;
   MyTreeTableNode *addNode(MyTreeTableNode *parent, WString name, const long start, const long stop );
   Wt::WStringListModel *get_trackmodel( zmq::socket_t &socket );
   Wt::WStringListModel *get_trackmodel( );
@@ -143,7 +143,18 @@ Json::Value saveFragments(MyTreeTableNode *root);
 EarUI::EarUI(const WEnvironment& env)
   : WApplication(env)
 {
+ // setTheme(new WBootstrapTheme()); Looks cool, matter of taste
     setTitle("Ear test interface"); 
+
+
+    WCssDecorationStyle currentFragment;// = new WCssDecorationStyle();
+    WFont font;
+    font.setSize(20);
+    currentFragment.setFont(font);
+    currentFragment.setBackgroundColor(WColor(255,0,0));
+    currentFragment.setForegroundColor(WColor(0,255,0));
+    Wt::WApplication::instance()->styleSheet().addRule(std::string("currentFragment"), currentFragment, std::string("currentFragment") );
+
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
     socket.connect ("tcp://localhost:5555"); //TODO: make host and port configurable
@@ -218,6 +229,13 @@ std::cout<<"Sending track number "<<std::to_string(tracknumber)<<" from row numb
 	interact_zmq("track:"+std::to_string(tracknumber));
 	updateInputs();
 	loadFragments();
+
+std::cout<<"Setting min and max for position slider"<<std::endl;
+                TimeWidget *firstW = dynamic_cast<TimeWidget*>((*fragment_set.begin())->columnWidget(1));
+                TimeWidget *lastW = dynamic_cast<TimeWidget*>((*fragment_set.rbegin())->columnWidget(2));
+                posSlider->setMinimum(firstW->time());
+                posSlider->setMaximum(lastW->time());
+	
     }));
     Wt::WContainerWidget *filterContainer = new WContainerWidget(trackListContainer);
     Wt::WContainerWidget *searchContainer = new WContainerWidget(filterContainer);
@@ -267,20 +285,18 @@ std::cout<<"Sending track number "<<std::to_string(tracknumber)<<" from row numb
         inputContainer->addWidget(thisInputContainer);
 	inputSettings = inputs.get(input_name);
  	inputSlider = new Wt::WSlider(thisInputContainer);
-	inputSlider->setObjectName("inputSlider:"+input_name);
+	inputSlider->setObjectName("inputSlider:"+input_name); //TODO: Change this, and updateInputs to using class members and not HTML names.
         inputSlider->resize(500,50);
 	int min, max;
 	min = inputSettings[0];
 	max = inputSettings[1]; 
-        inputSlider->setMinimum(min ); 
+        inputSlider->setMinimum(min); 
         inputSlider->setMaximum(max); 
 	inputSlider->setTickInterval( (max-min)/6);
         inputSlider->setValue(inputSettings[2]); 
 	inputSlider->setTickPosition(Wt::WSlider::TicksAbove);
-std::cout<<"Handling name "<<input_name<<std::endl;
 	if (input_name == "before")
 	{
-std::cout<<"Found "<<input_name<<std::endl;
 	 	beforeSlider = inputSlider; //We need to reference this further on
 	}
         inputText = new Wt::WText(thisInputContainer);
@@ -296,7 +312,28 @@ std::cout<<"Found "<<input_name<<std::endl;
 		updateInputs();
         }));
     }
+    WContainerWidget *posContainer = new WContainerWidget(inputContainer);
+    posSlider = new WSlider(posContainer);
+    posSlider->resize(500,50);
+    posSlider->setTickInterval(60000); //One minute in ms
+    posSlider->setTickPosition(Wt::WSlider::TicksAbove);
+    TimeWidget *posText = new TimeWidget(posContainer);
+    posText->setTime(0);
+    posSlider->valueChanged().connect(std::bind([=] ()
+    {
+	interact_zmq("pos:"+posSlider->valueText());
+        posText->setTime(posSlider->value());
+    }));
+/*    posSlider->sliderMoved().connect(std::bind([=] (int v) //TODO:Implement this. I'm not sure why it does not currently work, as it looks like Wt casts the value to a static int. 
+//Also TODO, use this to stop the slider from being moved by the udpating timer if someone is dragging it
+    { 
+	posText->setTime(v); //So we can move and see where we'll end up before releasing
+    }));*/
+
     
+
+
+  
     socket.disconnect("tcp://localhost:5555");
 
     Wt::WContainerWidget *markerContainer = new Wt::WContainerWidget;
@@ -436,6 +473,7 @@ std::cout<<"Found "<<input_name<<std::endl;
 	long pos = current_track_time();	
 	for (auto fragmentTTN:this->fragment_set)
 	{
+std::cout<<"Splitting fragment"<<std::endl;
 		//tree returns a tree with tree nodes. We need treetable nodes!
 //		MyTreeTableNode *fragmentTTN =  dynamic_cast<MyTreeTableNode*>(fragmentTN);
 		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
@@ -498,8 +536,18 @@ std::cout<<"Fragments:"<<fragstring<<std::endl;
    timer->setInterval(50);
    timer->timeout().connect(std::bind([=] ()
    {
+    zmq::context_t context (1);
+    zmq::socket_t socket (context, ZMQ_REQ);
+    socket.connect ("tcp://localhost:5555");
+long long track_time = 	EarUI::current_track_time(&socket);
+  	currentTime->setTime(track_time);
+	posSlider->setValue(track_time);
+	posText->setTime(track_time);
+	//TODO: Add a query for the playing state in here as well. This allows us to make play/pause a single button
+//Also, change the interval. When not playing, we can be slower updating and catch up within a second or something. This'll mainly help making the logs more readable, but also might help some performance
 	
-  	currentTime->setTime(EarUI::current_track_time());
+    socket.disconnect("tcp://localhost:5555");
+mark_current_fragment(track_time); 
    }));
 
 	timer->start();
@@ -510,8 +558,43 @@ std::cout<<"Fragments:"<<fragstring<<std::endl;
 
 
 }
-long EarUI::current_track_time()
+void EarUI::mark_current_fragment(long long pos)
 {
+	for (auto fragmentTTN:this->fragment_set)
+	{
+//std::cout<<"Style "<<fragmentTTN->styleClass()<<std::endl;
+		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
+		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
+		long start = startW->time();
+		long stop = stopW->time();
+		if(pos > start and pos < stop)
+		{ //Should also get all the parents
+//std::cout<<"Marking fragment"<<std::endl;
+//std::cout<<"Style "<<fragmentTTN->styleClass()<<std::endl;
+			//Fragment to mark
+			//WTreeNode *my_parent = fragmentTTN->parentNode();
+//fragmenTTN->addStyleClass("currentFragment"); //Thhis doesn't really work, and a lot of other options also don't seem to work. TODO
+			fragmentTTN->decorationStyle().setBackgroundColor(WColor(255,0,0)); //TODO: ?Make a proper style, and enlarge the font or something
+//TODO: Maybe get the parents too, if the current widget is not shown			
+//std::cout<<"Setting style class"<<std::endl;
+//std::cout<<"Style "<<fragmentTTN->styleClass()<<std::endl;
+
+		}
+		else
+		{
+//std::cout<<"Removing style cass"<<std::endl;
+//std::cout<<"Style "<<fragmentTTN->styleClass()<<std::endl;
+
+			//fragmentTTN->setStyleClass("");
+		fragmentTTN->decorationStyle().setBackgroundColor(WColor(255,255,255)); //TODO: Properly remove the previously added style
+//std::cout<<"Style "<<fragmentTTN->styleClass()<<std::endl;
+		}
+	
+	}
+}
+long EarUI::current_track_time( zmq::socket_t *socket )
+{
+
 //	Json::Object playingj = interact_zmq("playing?");
 //	bool playing = playingj->get("playing");
 /*	if (playing)
@@ -523,7 +606,16 @@ long elapsed_wall_time = std::chrono::duration_cast<std::chrono_milliseconds>(Cl
 	{*/
 //For now, this turns out to be fast enough on my machine. That might not be true for other machines, or on other architectures or over the network, but on localhost zmq it doesn't seem worth it to go through the hassle of making a whole second state-keeping thing in this interface just to get a slightly better timer
 std::cout<<"Updating time"<<std::endl;
-	Json::Object posj = interact_zmq(std::string("pos?"));
+	Json::Object posj ;
+if (socket ==0)
+{
+	posj = interact_zmq(std::string("pos?"));
+}
+else
+{
+	posj = interact_zmq(*socket,std::string("pos?"));
+
+}
 	Json::Value posjv = posj.get("pos");	
 	const long long pos = posjv;
 //	}
@@ -751,7 +843,7 @@ void EarUI::updateInputs()
 std::cout<<"Current track in ui is "<<comboBox->currentIndex()<<std::endl;
 std::cout<<"Current track in ear is "<<track<<std::endl;
 int row = comboBox->currentIndex();
-if (row!=-1) //Wait till everything is inited..
+if (row!=-1) //Wait till everything is inited.. //TODO
 {
 WStringListModel *trackmodel = dynamic_cast<WStringListModel*>(comboBox->model());
 int tracknumber = boost::any_cast<int>(trackmodel->data(trackmodel->index(row,0), Wt::UserRole)); 
@@ -848,7 +940,7 @@ Send and recieve always need a socket.
 When sending more than one interaction, preferably create a socket and use that.
 WStrings, strings are both handled
 */
-
+//TODO: Replace all the duplication below with some default values for socket pointers. See get_current_track_time as an example;
 
 Json::Object EarUI::interact_zmq(Wt::WString value)
 {

@@ -486,6 +486,14 @@ if config['webUI']:
                 elif msg.startswith("pos?"):
                     #print("pos:{}".format(g.position))
                     zmq_socket.send_json({"pos":g.position})
+                elif msg.startswith("pos:"):
+                    try:
+                        npos = int(msg[len("pos:"):])
+                    except ValueError:
+                        continue
+                    set_pos(npos)
+                    data['media'].play(g.position, play = None)
+                    zmq_socket.send_json({"pos":g.position})
                 elif msg.startswith("fragments"):
                     print(msg)
                     zmq_socket.send_json({"dummy":g.position})
