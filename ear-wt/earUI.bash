@@ -1,3 +1,3 @@
 #!/bin/bash
-./earUI --docroot . --http-address=0.0.0.0 --http-port=8080
+./earUI --docroot . --http-address=0.0.0.0 --http-port=8082 -c wt_config.xml
 
