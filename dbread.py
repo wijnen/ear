@@ -1,6 +1,7 @@
 # Database read and write support.
 import fhs
 import os
+import media
 
 FRAGMENTS = 'fragments.txt'
 INDENT = '\t'
@@ -104,8 +105,12 @@ def autotag(trackname, root):
                 break
     return list(tags)
 
-def add_unfragmented_file(filename):
-    return { 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] , 'tags' : autotag(filename,root)}
+def add_unfragmented_file(filename, root):
+    out = { 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] , 'tags' : autotag(filename,root)}
+    fullpath = os.path.join(root, filename)
+    duration = media.Media.get_duration(fullpath)
+    out['fragments'].append(["fragment",filename,0,duration])
+    return out
 
 def read():
     '''Read all db files from all fhs data directories (and pwd)
@@ -120,24 +125,24 @@ def read():
     # Parse all fragments files.
     used = set()
     for dirname in basedirs:
-        for root, dirs, files in os.walk(dirname):
+        for root, dirs, files in os.walk(dirname, followlinks=True):
             if FRAGMENTS in files:
                 if makepath(root, FRAGMENTS) in used:
                     continue
                 used.add(makepath(root, FRAGMENTS))
                 parse_fragments(root, tracks, used)
-
+    tracks = load_test_tracks(tracks)
     # Add all other files.
     for dirname in basedirs:
-        for root, dirs, files in os.walk(dirname):
+        for root, dirs, files in os.walk(dirname, followlinks=True):
             for filename in files:
                 if makepath(root, filename) in used:
                     continue
                 if os.path.splitext(filename)[1] not in exts:
                     continue
-                tracks.append(add_unfragmented_file(filename))
+                tracks.append(add_unfragmented_file(filename, root))
 
-    return load_test_tracks(tracks)
+    return tracks 
 
 def get_times(fragments):
     """Returns a flattened list of all times in the fragments"""
@@ -162,7 +167,6 @@ def add_end_times(group,times):
 
 def load_test_tracks(tracks):
     """Opens all media files to insert end markers. Does not just do a single end marker, but also handles all fragments to give start and end times. This duplicates info, but makes it all a lot easier to handle"""
-    import media
     for track in tracks:
         durations = []
         for filename,offset in track['files']:
