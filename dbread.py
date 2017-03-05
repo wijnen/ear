@@ -104,6 +104,8 @@ def autotag(trackname, root):
                 break
     return list(tags)
 
+def add_unfragmented_file(filename):
+    return { 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] , 'tags' : autotag(filename,root)}
 
 def read():
     '''Read all db files from all fhs data directories (and pwd)
@@ -133,7 +135,7 @@ def read():
                     continue
                 if os.path.splitext(filename)[1] not in exts:
                     continue
-                tracks.append({ 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] , 'tags' : autotag(filename,root)})
+                tracks.append(add_unfragmented_file(filename))
 
     return load_test_tracks(tracks)
 
@@ -226,5 +228,4 @@ def write(tracks):
             with open(target, 'wb') as f:
                 # To allow Microsoft to write these files as utf-8, start with a BOM.
                 f.write(('\ufeff' + output[target]).encode('utf-8'))
-
 # vim: set expandtab tabstop=4 shiftwidth=4 :
