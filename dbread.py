@@ -107,9 +107,7 @@ def autotag(trackname, root):
 
 def add_unfragmented_file(filename, root):
     out = { 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] , 'tags' : autotag(filename,root)}
-    fullpath = os.path.join(root, filename)
-    duration = media.Media.get_duration(fullpath)
-    out['fragments'].append(["fragment",filename,0,duration])
+    out['fragments'].append(["fragment",filename,0])
     return out
 
 def read():
@@ -131,7 +129,6 @@ def read():
                     continue
                 used.add(makepath(root, FRAGMENTS))
                 parse_fragments(root, tracks, used)
-    tracks = load_test_tracks(tracks)
     # Add all other files.
     for dirname in basedirs:
         for root, dirs, files in os.walk(dirname, followlinks=True):
@@ -142,7 +139,7 @@ def read():
                     continue
                 tracks.append(add_unfragmented_file(filename, root))
 
-    return tracks 
+    return load_test_tracks(tracks)
 
 def get_times(fragments):
     """Returns a flattened list of all times in the fragments"""

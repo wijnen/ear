@@ -31,13 +31,13 @@
 #include <zmq.hpp>
 #include <string>
 #include <iostream>
-#include <chrono>
-#include <Wt/WBootstrapTheme>
+//#include <chrono>
+//#include <Wt/WBootstrapTheme>
 #include <boost/range/adaptor/reversed.hpp>
 #include <Wt/WCompositeWidget>
 #include <Wt/WTreeTableNode>
 
-typedef std::chrono::high_resolution_clock Clock;
+//typedef std::chrono::high_resolution_clock Clock;
 #define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here. 
 
 class MyTreeTableNode : public Wt::WTreeTableNode
@@ -53,18 +53,15 @@ class MyTreeTableNode : public Wt::WTreeTableNode
 
 };
 
-
-
-class TimeWidget : public Wt::WText //This explicitly does not use the Wt::WTime class, has we want to use milliseconds as our base unit, especially when communicating with the Python side of this project. The Wt::Wtime supports only already quite correctly formatted times, and we don't need that.
+class TimeWidget : public Wt::WText //This explicitly does not use the Wt::WTime class, as we want to use milliseconds as our base unit, especially when communicating with the Python side of this project. The Wt::Wtime supports only already quite correctly formatted times, and we don't need that.
 {
-public:
-  TimeWidget(Wt::WContainerWidget *parent = 0);
+    public:
+	TimeWidget(Wt::WContainerWidget *parent = 0);
 //  TimeWidget(double time, WContainerWidget *parent = 0);
-long long time();
-  bool setTime(long time);
-private:
-  long _time;
-
+	long long time();
+	bool setTime(long time);
+    private:
+	long _time;
 };
 
 
@@ -88,7 +85,7 @@ bool TimeWidget::setTime(long time)
 		milliseconds = time - seconds*1000 - minutes*60*1000; 
 		//this->setText(std::to_string(time)); //Needs to do minutes/seconds later
 	//QString my_formatted_string = QString("%1/%2-%3.txt").arg("~", "Tom", "Jane");
-		this->setText(Wt::WString("{1}:{2}:{3}").arg(minutes).arg(seconds).arg(milliseconds)); //Todo: zero-pad this string
+		this->setText(Wt::WString("{1}:{2}:{3}").arg(minutes).arg(seconds).arg(milliseconds)); //TODO: zero-pad this string
 	}
 	return true;
 }
@@ -112,8 +109,8 @@ static  Json::Object interact_zmq(Json::Object);
 static  Json::Object interact_zmq(zmq::socket_t &socket,std::string value);
 static  Json::Object interact_zmq(zmq::socket_t &socket,Json::Object value);
   Wt::WSlider *beforeSlider;
-static Clock::time_point start_wall_time;
-static Clock::time_point stop_wall_time;
+//static Clock::time_point start_wall_time;
+//static Clock::time_point stop_wall_time;
 static long start_track_time;
 static long stop_track_time;
 static long time_speed;
@@ -146,7 +143,7 @@ EarUI::EarUI(const WEnvironment& env)
  // setTheme(new WBootstrapTheme()); Looks cool, matter of taste
     setTitle("Ear test interface"); 
 
-
+//Meant to highlight the current fragment in the current TreeTableView. Won't work, as treeviews still enforce their own CSS
     WCssDecorationStyle currentFragment;// = new WCssDecorationStyle();
     WFont font;
     font.setSize(20);
@@ -321,7 +318,9 @@ std::cout<<"Setting min and max for position slider"<<std::endl;
     posText->setTime(0);
     posSlider->valueChanged().connect(std::bind([=] ()
     {
+std::cout<<"interacting pos"<<std::endl;
 	interact_zmq("pos:"+posSlider->valueText());
+std::cout<<"interacted pos"<<std::endl;
         posText->setTime(posSlider->value());
     }));
 /*    posSlider->sliderMoved().connect(std::bind([=] (int v) //TODO:Implement this. I'm not sure why it does not currently work, as it looks like Wt casts the value to a static int. 
@@ -552,8 +551,6 @@ mark_current_fragment(track_time);
 
 	timer->start();
 	root()->addWidget(currentTime);
-
-
     updateInputs();
 
 
@@ -562,7 +559,7 @@ void EarUI::mark_current_fragment(long long pos)
 {
 	for (auto fragmentTTN:this->fragment_set)
 	{
-//std::cout<<"Style "<<fragmentTTN->styleClass()<<std::endl;
+std::cout<<"Style "<<fragmentTTN->styleClass()<<std::endl;
 		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
 		long start = startW->time();
@@ -587,6 +584,7 @@ void EarUI::mark_current_fragment(long long pos)
 
 			//fragmentTTN->setStyleClass("");
 		fragmentTTN->decorationStyle().setBackgroundColor(WColor(255,255,255)); //TODO: Properly remove the previously added style
+
 //std::cout<<"Style "<<fragmentTTN->styleClass()<<std::endl;
 		}
 	
@@ -607,18 +605,16 @@ long elapsed_wall_time = std::chrono::duration_cast<std::chrono_milliseconds>(Cl
 //For now, this turns out to be fast enough on my machine. That might not be true for other machines, or on other architectures or over the network, but on localhost zmq it doesn't seem worth it to go through the hassle of making a whole second state-keeping thing in this interface just to get a slightly better timer
 std::cout<<"Updating time"<<std::endl;
 	Json::Object posj ;
-if (socket ==0)
-{
-	posj = interact_zmq(std::string("pos?"));
-}
-else
-{
-	posj = interact_zmq(*socket,std::string("pos?"));
-
-}
+	if (socket == 0 )
+	{
+		posj = interact_zmq(std::string("pos?"));
+	}
+	else
+	{
+		posj = interact_zmq(*socket,std::string("pos?"));
+	}
 	Json::Value posjv = posj.get("pos");	
 	const long long pos = posjv;
-//	}
 	return pos;
 	
 }

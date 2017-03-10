@@ -129,7 +129,6 @@ class Media:
         self.speed = speed
         self.play(pos, play = None)
     def play(self, start = None, end = None, cb = (), play = True, timed = False): # For cb, None means no cb, so use something else for "no change".
-        print("Lets play in media",self)
         self.pitch.set_property('tempo', self.speed)
         self.offset = self.track['files'][self.track['media']][1] * 1000.
         if cb != ():
