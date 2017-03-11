@@ -79,9 +79,9 @@ bool TimeWidget::setTime(long time)
 	if(time != -1)
 	{
 		this->_time = time;
-		long minutes, seconds, milliseconds;
-		seconds = (long) ((time / 1000) % 60) ;
-		minutes = (long) ((time / (1000*60)) % 60);
+		int minutes, seconds, milliseconds;
+		seconds =  ((time / 1000) % 60) ;
+		minutes =  ((time / (1000*60)) % 60);
 		milliseconds = time - seconds*1000 - minutes*60*1000; 
 		//this->setText(std::to_string(time)); //Needs to do minutes/seconds later
 	//QString my_formatted_string = QString("%1/%2-%3.txt").arg("~", "Tom", "Jane");
