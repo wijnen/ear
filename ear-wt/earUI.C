@@ -207,7 +207,7 @@ std::cout<<"Parsed names"<<std::endl;
     trackcombo->setMargin(10, Wt::Right);
 
     
-    trackcombo->setNoSelectionEnabled(true);
+    //trackcombo->setNoSelectionEnabled(true);
 
      WStringListModel *trackmodel = get_trackmodel(socket);
     trackcombo->setModel(trackmodel);

@@ -448,8 +448,6 @@ if config['webUI']:
                         if len(track['tags']) == 0:
                             track['tags'].append("")
                         out[track['name']] = [x]+track['tags'] #track index is very much needed in the Wt UI!
-                    import pprint
-                    pprint.pprint(out)
                     zmq_socket.send_json({'tracks': out})
                 elif msg.startswith('track:'):
                     select=msg[len('track:'):]
