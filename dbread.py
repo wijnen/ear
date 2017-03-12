@@ -172,6 +172,9 @@ def load_test_tracks(tracks):
         times = []
         end = int(max(durations))
         times = sorted(list(get_times(track['fragments'])))
+        if times[0] > 0: #TODO test
+            track['fragments'].insert(0, ["fragment", "Intro", 0] )
+            times = sorted(list(get_times(track['fragments'])))
         times.append(end)
         track['fragments'] = add_end_times(track['fragments'],times)
     return tracks

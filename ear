@@ -168,6 +168,7 @@ def save(dbname):
 
 def stop(stopped):
     g.playing = not stopped
+    data['media'].play(cb = None) #Essential to clear the callback
     data['media'].pause(stopped)
 
 def speed_change(change):
@@ -335,6 +336,7 @@ else:
 #
 
 def play_list(track, play_tuple):
+    track.play(cb = None) #Essential to clear the callback
     if len(play_tuple) < 1:
         return
     start, end = play_tuple[0][0], play_tuple[0][1]
