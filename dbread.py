@@ -15,9 +15,9 @@ def makepath(root, filename):
 def parse_fragments(root, tracks, used):
     '''Read tracks from a FRAGMENTS file and insert them into tracks parameter.
     Note: this does not add the 'end' marker to the tracks.'''
-    with open(os.path.join(root, FRAGMENTS), 'r') as f:
+    with open(os.path.join(root, FRAGMENTS), 'r',encoding = 'utf-8') as f:
         state = 'TRACK' #What are we looking for? A TRACK, VALUES, or FRAGMENTS?
-        for line in f:
+        for line in f.readlines():
             # Remove ending whitespace and starting BOM.
             line = line.lstrip('\ufeff').rstrip()
             # Empty lines and lines with # as the first character are ignored.
