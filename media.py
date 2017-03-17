@@ -6,6 +6,7 @@ from gi.repository import GObject
 GObject.threads_init()
 from gi.repository import GLib
 import os
+import time
 
 Gst.init(())
 
@@ -76,6 +77,8 @@ class Media:
         pad.set_active(True)
         self.audiobin.add_pad(pad)
         self.player.set_property('audio-sink', self.audiobin)
+        self.timeout = None
+        self.countdown_end = None
     @classmethod
     def get_duration(cls, filename): #Class method so we can check a files duration without instantiating everything
         cls.prober.set_property('uri', 'file://' + os.path.realpath(filename))
@@ -150,7 +153,14 @@ class Media:
             wait = -1 *(start - self.offset)
             loop = GLib.MainLoop()
             start = self.offset
-            GLib.timeout_add(wait, lambda _: self.play(start = start, end=end, cb=cb,play=play, timed = True), None)
+            #TODO: Indicate that we're playing/coutnting down, and make sure that we otherwise stop playing!
+            if self.timeout != None: 
+                GLib.source_remove(self.timeout) #Only do one timeout at a time to prevent wierd re-starting issuesỳypỳyp
+                self.timeout = None 
+            if self.playing(): 
+                self.pause(True) 
+            self.timeout = GLib.timeout_add(wait, lambda _: self.play(start = start, end=end, cb=cb,play=play, timed = True), None)
+            self.countdown_end = time.time() + wait/1000.
             return True
         if start is not None and start < self.offset + self.media_duration:
             start -= self.offset
@@ -166,6 +176,7 @@ class Media:
         if play:
             self.pause(False)
         if timed:
+            self.timeout = None
             return False #Bit wierd, but makes this function possible to be used as a oneshot timer.
     def done(self):
         self.updater = None
@@ -198,6 +209,10 @@ class Media:
     def playing(self):
         return self.pipeline.get_state(Gst.CLOCK_TIME_NONE)[1] == Gst.State.PLAYING
     def get_pos(self):
+        if self.timeout != None:
+            if not self.playing():
+                print(self.countdown_end - time.time())
+                return -1000*(self.countdown_end - time.time())
         self.pipeline.get_state(Gst.CLOCK_TIME_NONE)
         try:
             pos = self.pipeline.query_position(Gst.Format(Gst.Format.TIME))[1] / Gst.MSECOND * self.speed + self.offset
