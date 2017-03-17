@@ -224,7 +224,7 @@ std::cout<<"Parsed names"<<std::endl;
     
     //trackcombo->setNoSelectionEnabled(true);
 
-     WStringListModel *trackmodel = get_trackmodel(socket);
+    WStringListModel *trackmodel = get_trackmodel(socket);
     trackcombo->setModel(trackmodel);
 
 
@@ -234,15 +234,12 @@ std::cout<<"Parsed names"<<std::endl;
     {
 	WStringListModel *this_trackmodel = dynamic_cast<WStringListModel*>( trackcombo->model());
     	int row = trackcombo->currentIndex();
-std::cout<<"Acting on track"<<std::endl;
 	int tracknumber = boost::any_cast<int>
                        (this_trackmodel->data(this_trackmodel->index(row,0), Wt::UserRole)); 
-std::cout<<"Sending track number "<<std::to_string(tracknumber)<<" from row number" << std::to_string(row)<<std::endl;
 	interact_zmq("track:"+std::to_string(tracknumber));
 	updateInputs();
 	loadFragments();
 
-std::cout<<"Setting min and max for position slider"<<std::endl;
                 TimeWidget *firstW = dynamic_cast<TimeWidget*>((*fragment_set.begin())->columnWidget(1));
                 TimeWidget *lastW = dynamic_cast<TimeWidget*>((*fragment_set.rbegin())->columnWidget(2));
                 posSlider->setMinimum(firstW->time());
@@ -253,7 +250,7 @@ std::cout<<"Setting min and max for position slider"<<std::endl;
     Wt::WContainerWidget *searchContainer = new WContainerWidget(filterContainer);
     Wt::WContainerWidget *filtersContainer = new WContainerWidget(filterContainer);
     Wt::WLineEdit *filterbox = new Wt::WLineEdit(searchContainer);
-    filterbox->setPlaceholderText("Search");
+    filterbox->setPlaceholderText("Filter"); //TODO fuzzy search
     Wt::WPushButton *addFilter = new Wt::WPushButton("Add",searchContainer);
     addFilter->clicked().connect(std::bind([=] ()
     {
@@ -277,7 +274,7 @@ std::cout<<"Setting min and max for position slider"<<std::endl;
 		}));
 	trackcombo->setModel(filter_trackmodel(trackmodel,filtersContainer));
 	filterbox->setText("");
-	filterbox->setPlaceholderText("Search");
+	filterbox->setPlaceholderText("Filter");
      }));
     
 
@@ -311,23 +308,40 @@ std::cout<<"Setting min and max for position slider"<<std::endl;
 	{
 	 	beforeSlider = inputSlider; //We need to reference this further on
 	}
+	if (input_name =="speed")
+	{
+		std::vector<int> speedButtons = {50,75,80,90,100,110,120,125,150,200};
+		WContainerWidget *speedButtonContainer = new WContainerWidget(thisInputContainer);
+	       for(auto speed:speedButtons)
+		{
+			std::string title = std::to_string(speed);
+			title += "%";
+			WPushButton *sbutton = new WPushButton(WString(title),speedButtonContainer );
+			sbutton->clicked().connect(std::bind([=] ()
+			{
+				interact_zmq("input:speed:"+std::to_string(speed));
+				updateInputs();
+			} ));
+			
+    	        }
+	  
+	}
         inputText = new Wt::WText(thisInputContainer);
 	inputText->setObjectName("inputText:"+input_name);
 	inputContainer->addWidget(inputSlider);
-	inputContainer->addWidget(inputText);
-	inputText->setText(input_name+":"+inputSlider->valueText());
+//	inputContainer->addWidget(inputText);
+	inputText->setText(input_name+": "+inputSlider->valueText());
 	
 	inputSlider->valueChanged().connect(std::bind([=] ()
         {
         	interact_zmq("input:"+input_name+":"+inputSlider->valueText());
-		inputText->setText(input_name+":"+inputSlider->valueText());
+		inputText->setText(input_name+": "+inputSlider->valueText());
 		updateInputs();
         }));
     }
     WContainerWidget *posContainer = new WContainerWidget(inputContainer);
     WContainerWidget *posButtonContainer = new WContainerWidget(posContainer);
 
-//TODO: Add seek buttons here
  std::vector<int> seekButtons = {-10,-5,-1,1,5,10};
     for(auto seek:seekButtons)
     {
@@ -427,6 +441,10 @@ std::cout<<"interacted pos"<<std::endl;
     }));
 //TODO: Split out the tab and untab functions so we can call them with the keyboard
     currentTrackContainer->addWidget(button);
+
+
+
+
     WPushButton *tabButton = new WPushButton(">>>>" ,root());     
     tabButton->setMargin(5, Left);
    tabButton->clicked().connect(std::bind([=] ()
@@ -593,7 +611,7 @@ void EarUI::mark_current_fragment(long long pos)
 {
 	for (auto fragmentTTN:this->fragment_set)
 	{
-std::cout<<"Style "<<fragmentTTN->styleClass()<<std::endl;
+//std::cout<<"Style "<<fragmentTTN->styleClass()<<std::endl;
 		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
 		long start = startW->time();
@@ -637,7 +655,7 @@ long elapsed_wall_time = std::chrono::duration_cast<std::chrono_milliseconds>(Cl
 	else
 	{*/
 //For now, this turns out to be fast enough on my machine. That might not be true for other machines, or on other architectures or over the network, but on localhost zmq it doesn't seem worth it to go through the hassle of making a whole second state-keeping thing in this interface just to get a slightly better timer
-std::cout<<"Updating time"<<std::endl;
+//std::cout<<"Updating time"<<std::endl;
 	Json::Object posj ;
 	if (socket == 0 )
 	{
@@ -861,7 +879,7 @@ void EarUI::updateInputs()
 		sliderWidget = dynamic_cast<WSlider*> (findWidget("inputSlider:"+name));
 		sliderWidget->setValue(inputSettings[2]);
 		textWidget = dynamic_cast<WText*> (findWidget("inputText:"+name));
-		textWidget->setText(name + ":" + sliderWidget->valueText()); //The slider does the casting from double to string!
+		textWidget->setText(name + ": " + sliderWidget->valueText()); //The slider does the casting from double to string!
 
 	}
 	WComboBox *comboBox;
@@ -873,8 +891,8 @@ void EarUI::updateInputs()
 std::cout<<"Current track in ui is "<<comboBox->currentIndex()<<std::endl;
 std::cout<<"Current track in ear is "<<track<<std::endl;
 int row = comboBox->currentIndex();
-if (row!=-1) //Wait till everything is inited.. //TODO
-{
+//if (row!=-1) //Wait till everything is inited.. //TODO
+//{
 WStringListModel *trackmodel = dynamic_cast<WStringListModel*>(comboBox->model());
 int tracknumber = boost::any_cast<int>(trackmodel->data(trackmodel->index(row,0), Wt::UserRole)); 
 
@@ -902,7 +920,7 @@ std::cout<<"Not loading markers"<<std::endl;
 	}
 
 	comboBox->setCurrentIndex(newtrack) ;
-}
+//}
 	WPanel *panel;
 	panel = dynamic_cast<WPanel*>(findWidget("trackpanel"));
 std::cout<<"Set track to "<<comboBox->currentIndex()<<std::endl;
