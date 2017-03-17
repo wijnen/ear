@@ -144,6 +144,7 @@ EarUI::EarUI(const WEnvironment& env)
     setTitle("Ear test interface"); 
 
 //Meant to highlight the current fragment in the current TreeTableView. Won't work, as treeviews still enforce their own CSS
+/*
     WCssDecorationStyle currentFragment;// = new WCssDecorationStyle();
     WFont font;
     font.setSize(20);
@@ -151,7 +152,7 @@ EarUI::EarUI(const WEnvironment& env)
     currentFragment.setBackgroundColor(WColor(255,0,0));
     currentFragment.setForegroundColor(WColor(0,255,0));
     Wt::WApplication::instance()->styleSheet().addRule(std::string("currentFragment"), currentFragment, std::string("currentFragment") );
-
+*/
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
     socket.connect ("tcp://localhost:5555"); //TODO: make host and port configurable
@@ -310,6 +311,25 @@ std::cout<<"Setting min and max for position slider"<<std::endl;
         }));
     }
     WContainerWidget *posContainer = new WContainerWidget(inputContainer);
+    WContainerWidget *posButtonContainer = new WContainerWidget(posContainer);
+
+//TODO: Add seek buttons here
+ std::vector<int> seekButtons = {-10,-5,-1,1,5,10};
+    for(auto seek:seekButtons)
+    {
+	std::string title = std::to_string(seek);
+	if (seek>0)
+	{
+		title = "+" + title;
+	}
+	title += "s";
+	WPushButton *sbutton = new WPushButton(WString(title),posButtonContainer);
+	sbutton->clicked().connect(std::bind([=] ()
+        {
+		interact_zmq("pos:"+std::to_string(current_track_time()+seek*1000));
+        } ));
+	
+    }
     posSlider = new WSlider(posContainer);
     posSlider->resize(500,50);
     posSlider->setTickInterval(60000); //One minute in ms

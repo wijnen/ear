@@ -486,16 +486,18 @@ if config['webUI']:
                 elif msg.startswith("pos?"):
                     #print("pos:{}".format(g.position))
                     zmq_socket.send_json({"pos":g.position})
-                elif msg.startswith("pos:"):
+                elif msg.startswith("pos:"): 
                     try:
                         npos = int(msg[len("pos:"):])
                     except ValueError as e:
                         print(e)
                         continue
-                    set_pos(npos)
-                    if (data['media'].playing()):
-                        data['media'].play(g.position, play = None)
+                    set_pos(npos) #Set pos does not do what it says on the tin!
+                    #if (data['media'].playing()):
+                    data['media'].play(g.position, play = None)
                     print("setting pos")
+#
+#            'seek_b_2s': lambda x: data['media'].seek(-2 * 1000),
                     zmq_socket.send_json({"pos":g.position})
                     print("sending pos")
                 elif msg.startswith("fragments"):
