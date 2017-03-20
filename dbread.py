@@ -106,7 +106,7 @@ def autotag(trackname, root):
     return list(tags)
 
 def add_unfragmented_file(filename, root):
-    out = { 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] , 'tags' : autotag(filename,root)}
+    out = { 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] , 'tags' : autotag(filename,root), "dirty" : False}
     out['fragments'].append(["fragment",filename,0])
     return out
 
@@ -225,12 +225,14 @@ def write(tracks):
         if target not in output:
             output[target] = {'contents':'','dirty':False}
         output[target]['contents'] += write_track(track)
+        if 'dirty' not in output[target].keys():
+             output[target]['dirty'] = False
         output[target]['dirty'] += track['dirty']
 
     for target in output:
         # Write as binary and manually encode as utf-8, so line endings are not mangled.
-        if target['dirty']:
+        if output[target]['dirty']:
             with open(target, 'wb') as f:
                 # To allow Microsoft to write these files as utf-8, start with a BOM.
-                f.write(('\ufeff' + output[target]).encode('utf-8'))
+                f.write(('\ufeff' + output[target]['contents']).encode('utf-8'))
 # vim: set expandtab tabstop=4 shiftwidth=4 :
