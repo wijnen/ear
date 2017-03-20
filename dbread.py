@@ -132,14 +132,15 @@ def read():
     # Add all other files.
     for dirname in basedirs:
         for root, dirs, files in os.walk(dirname, followlinks=True):
+            root = os.path.abspath(root)
             for filename in files:
                 if makepath(root, filename) in used:
                     continue
                 if os.path.splitext(filename)[1] not in exts:
                     continue
                 tracks.append(add_unfragmented_file(filename, root))
-
-    return load_test_tracks(tracks)
+    tracks = load_test_tracks(tracks)
+    return tracks
 
 def get_times(fragments):
     """Returns a flattened list of all times in the fragments"""
