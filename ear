@@ -347,8 +347,11 @@ def play_list(track, play_tuple):
     if len(play_tuple) < 1:
         return
     start, end = play_tuple[0][0], play_tuple[0][1]
-    
-    track.play(start, end, play = True, cb = lambda : play_list(track, play_tuple[1:]))
+    if len(play_tuple[1:])>0: 
+        track.play(start, end, play = True, cb = lambda : play_list(track, play_tuple[1:]))
+    else:
+        track.play(start, end, play = True, cb = None)
+        
 
 if config['webUI']:
     import zmq

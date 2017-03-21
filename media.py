@@ -104,7 +104,6 @@ class Media:
             self.send_pixbuf(self.sink.get_property('last-pixbuf'))
         return True
     def load(self, track, index):
-        #Maybe used GstAudio.audio_format_fill_silence or something to add 10s of silence to do the before stuff easily?
         assert index is None or index == -1 or len(track['files']) > index
         # Discard old cb.
         self.cb = None
@@ -117,7 +116,6 @@ class Media:
             filename, self.offset, self.media_duration = None, None, None
             self.set_range(0, 1)
             return
-        print(track['files'])
         filename, self.offset = track['files'][index]
         filename = os.path.join(track['root'],filename)
         self.media_duration = self.get_duration(filename)
@@ -169,7 +167,7 @@ class Media:
             if end is not None:
                 end /= self.speed
             self.pause()
-            #self.pipeline.get_state(Gst.CLOCK_TIME_NONE) #In a track with no set fragments, the execution hangs here #What does it do anyway? If removed, normal tracks work, but those without fragments hang at the end of this function
+            self.pipeline.get_state(Gst.CLOCK_TIME_NONE)
             if end is not None and (start is None or end > start):
                 self.pipeline.seek(1.0, Gst.Format(Gst.Format.TIME), Gst.SeekFlags.ACCURATE | Gst.SeekFlags.FLUSH, Gst.SeekType.SET, start * Gst.MSECOND, Gst.SeekType.SET, end * Gst.MSECOND)
             else:
@@ -186,6 +184,10 @@ class Media:
                 cb = self.cb
                 self.cb = None
                 cb()
+        else:
+            print("Ending without a callback")
+            self.play(start=self.get_pos(),end=self.media_duration,play=False)
+            #Do not change the position but make sure the playing state is off, and allow us to continue where we left off
         return False
 
     def seek(self, delta):
@@ -200,7 +202,7 @@ class Media:
             self.pipeline.set_state(Gst.State.PLAYING)
             self.updater = GLib.timeout_add(100, self.update)
     def update(self):
-        #self.pipeline.get_state(Gst.CLOCK_TIME_NONE) #SEe comments at 175
+        self.pipeline.get_state(Gst.CLOCK_TIME_NONE) 
         do_callback = False
         try:
             pos = self.pipeline.query_position(Gst.Format(Gst.Format.TIME))[1] / Gst.MSECOND * self.speed + self.offset
