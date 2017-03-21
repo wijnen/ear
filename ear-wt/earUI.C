@@ -31,19 +31,16 @@
 #include <zmq.hpp>
 #include <string>
 #include <iostream>
-//#include <chrono>
-//#include <Wt/WBootstrapTheme>
 #include <boost/range/adaptor/reversed.hpp>
 #include <Wt/WCompositeWidget>
 #include <Wt/WTreeTableNode>
 
-//typedef std::chrono::high_resolution_clock Clock;
 #define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here. 
 
 class MyTreeTableNode : public Wt::WTreeTableNode
 {
 	public:
-		MyTreeTableNode(const Wt::WString& labelText, Wt::WIconPair *labelIcon = 0,  Wt::WTreeTableNode *parentNode = 0) :  //note :, not ;
+		MyTreeTableNode(const Wt::WString& labelText, Wt::WIconPair *labelIcon = 0,  Wt::WTreeTableNode *parentNode = 0) :  
 		Wt::WTreeTableNode( labelText,  labelIcon , parentNode )
 		{
 			
@@ -53,7 +50,7 @@ class MyTreeTableNode : public Wt::WTreeTableNode
 
 };
 
-class TimeWidget : public Wt::WText //This explicitly does not use the Wt::WTime class, as we want to use milliseconds as our base unit, especially when communicating with the Python side of this project. The Wt::Wtime supports only already quite correctly formatted times, and we don't need that.
+class TimeWidget : public Wt::WText //This explicitly does not use the Wt::WTime class, as we want to use milliseconds as our base unit, especially when communicating with the Python side of this project. The Wt::Wtime supports only already quite correctly formatted times, and we don't need that. Additionally, it's meant for clock times, not intervals
 {
     public:
 	TimeWidget(Wt::WContainerWidget *parent = 0);
@@ -90,8 +87,6 @@ bool TimeWidget::setTime(long time)
 		seconds =  ((time / 1000) % 60) ;
 		minutes =  ((time / (1000*60)) % 60);
 		milliseconds = time - seconds*1000 - minutes*60*1000; 
-		//this->setText(std::to_string(time)); //Needs to do minutes/seconds later
-	//QString my_formatted_string = QString("%1/%2-%3.txt").arg("~", "Tom", "Jane");
 		if (negative)
 		{
 			this->setText(Wt::WString("- {1}:{2}:{3}").arg(minutes).arg(seconds).arg(milliseconds)); //TODO: zero-pad this string
@@ -123,16 +118,12 @@ static  Json::Object interact_zmq(Json::Object);
 static  Json::Object interact_zmq(zmq::socket_t &socket,std::string value);
 static  Json::Object interact_zmq(zmq::socket_t &socket,Json::Object value);
   Wt::WSlider *beforeSlider;
-//static Clock::time_point start_wall_time;
-//static Clock::time_point stop_wall_time;
 static long start_track_time;
 static long stop_track_time;
 static long time_speed;
-//Public static so I can use them from the node callback, that's in a Wt object, not an EarUI one.
 private:
  std::vector<MyTreeTableNode*> fragment_set;
   void clicked(WPushButton* source );
-//  void loadMarkers(zmq::socket_t &socket,WString trackname);
   void loadFragments(zmq::socket_t &socket);
   void loadFragments();
   void updateInputs();
@@ -154,19 +145,8 @@ Json::Value saveFragments(MyTreeTableNode *root);
 EarUI::EarUI(const WEnvironment& env)
   : WApplication(env)
 {
- // setTheme(new WBootstrapTheme()); Looks cool, matter of taste
     setTitle("Ear test interface"); 
 
-//Meant to highlight the current fragment in the current TreeTableView. Won't work, as treeviews still enforce their own CSS
-/*
-    WCssDecorationStyle currentFragment;// = new WCssDecorationStyle();
-    WFont font;
-    font.setSize(20);
-    currentFragment.setFont(font);
-    currentFragment.setBackgroundColor(WColor(255,0,0));
-    currentFragment.setForegroundColor(WColor(0,255,0));
-    Wt::WApplication::instance()->styleSheet().addRule(std::string("currentFragment"), currentFragment, std::string("currentFragment") );
-*/
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
     socket.connect ("tcp://localhost:5555"); //TODO: make host and port configurable
@@ -180,8 +160,7 @@ ZMQ should connect and disconnect after every set of actions to make room for an
 std::cout<<"Parsed names"<<std::endl;
 
     
-    Wt::WPanel *panel = new Wt::WPanel();
-
+    Wt::WPanel *panel = new Wt::WPanel(root());
     panel->setTitle("Control current track");
     panel->setObjectName("trackpanel");
     panel->addStyleClass("centered-example");
@@ -192,8 +171,7 @@ std::cout<<"Parsed names"<<std::endl;
     panel->setAnimation(animation);
     Wt::WContainerWidget *currentTrackContainer = new Wt::WContainerWidget();
     panel->setCentralWidget(currentTrackContainer);
-    root()->addWidget(panel);
-    panel->setHidden(true);
+    panel->setHidden(false);
 
     for (auto name : names) 
     {
@@ -218,11 +196,11 @@ std::cout<<"Parsed names"<<std::endl;
 
 
 
-    Wt::WComboBox *trackcombo = new Wt::WComboBox(trackListContainer);
+    Wt::WComboBox *trackcombo = new Wt::WComboBox(trackListContainer); //TODO: Change from track list container to something searchable
     trackcombo->setMargin(10, Wt::Right);
 
     
-    //trackcombo->setNoSelectionEnabled(true);
+    //trackcombo->setNoSelectionEnabled(true); //Depends on Wt version, disabled for now
 
     WStringListModel *trackmodel = get_trackmodel(socket);
     trackcombo->setModel(trackmodel);
@@ -255,8 +233,6 @@ std::cout<<"Parsed names"<<std::endl;
     addFilter->clicked().connect(std::bind([=] ()
     {
 	Wt::WContainerWidget *thisFilter = new Wt::WContainerWidget(filtersContainer); 
-	//Wt::WText *filter = new WText(filterbox->text(),thisFilter);
-//	WText *filter = 
 	new WText(filterbox->text(),thisFilter);
 	Wt::WPushButton *removeButton = new WPushButton("X",thisFilter);
 		removeButton->clicked().connect(std::bind([=] ()
@@ -277,8 +253,6 @@ std::cout<<"Parsed names"<<std::endl;
 	filterbox->setPlaceholderText("Filter");
      }));
     
-
- 
 
     Wt::WContainerWidget *inputContainer = new Wt::WContainerWidget();
     root()->addWidget(inputContainer);
@@ -306,6 +280,18 @@ std::cout<<"Parsed names"<<std::endl;
 	inputSlider->setTickPosition(Wt::WSlider::TicksAbove);
 	if (input_name == "before")
 	{
+		std::vector<int> beforeButtons = {0,3,6,10};
+		WContainerWidget *beforeButtonContainer = new WContainerWidget(thisInputContainer);
+	       for(auto before:beforeButtons)
+		{
+			WPushButton *bbutton = new WPushButton(WString(std::to_string(before)),beforeButtonContainer );
+			bbutton->clicked().connect(std::bind([=] ()
+			{
+				interact_zmq("input:before:"+std::to_string(before));
+				updateInputs();
+			}));
+		}
+
 	 	beforeSlider = inputSlider; //We need to reference this further on
 	}
 	if (input_name =="speed")
@@ -342,7 +328,7 @@ std::cout<<"Parsed names"<<std::endl;
     WContainerWidget *posContainer = new WContainerWidget(inputContainer);
     WContainerWidget *posButtonContainer = new WContainerWidget(posContainer);
 
- std::vector<int> seekButtons = {-10,-5,-1,1,5,10};
+    std::vector<int> seekButtons = {-10,-5,-1,1,5,10};
     for(auto seek:seekButtons)
     {
 	std::string title = std::to_string(seek);
@@ -385,17 +371,14 @@ std::cout<<"interacted pos"<<std::endl;
 
     Wt::WContainerWidget *markerContainer = new Wt::WContainerWidget;
     root()->addWidget(markerContainer);
-   // markerContainer->setHidden(true);
 
     WTreeTable *markerTree = new WTreeTable();
     markerContainer->addWidget(markerTree);
-    //markerTree->resize(800,10); 
-    markerTree->setObjectName("markertree");
+    markerTree->setObjectName("markertree"); //TODO: Still something wierd with the columns, they are sometimes offset
     markerTree->tree()->setSelectionMode(Wt::ExtendedSelection);
     markerTree->addColumn("Start time",100);
     markerTree->addColumn("End time",100); //StartButton
     markerTree->addColumn("Play from here",20); //StartButton
-//    markerTree->addColumn("",200);
 
     WPushButton *button = new WPushButton("Play selection" ,root());     
     button->setMargin(5, Left);
@@ -411,7 +394,7 @@ std::cout<<"interacted pos"<<std::endl;
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
 		long start = startW->time();
 		long stop = stopW->time();
-		if (start ==-1 or stop ==-1) //Check for group markers //TODO FIXME// Somehow still broken, dunno why
+		if (start ==-1 or stop ==-1) //Check for group markers //TODO FIXME// Somehow still broken, dunno why //This needs to take the child?
 		{
 			continue;
 		}
@@ -439,12 +422,10 @@ std::cout<<"interacted pos"<<std::endl;
 
 	
     }));
-//TODO: Split out the tab and untab functions so we can call them with the keyboard
     currentTrackContainer->addWidget(button);
 
 
-
-
+//TODO: Split out the tab and untab functions so we can call them with the keyboard
     WPushButton *tabButton = new WPushButton(">>>>" ,root());     
     tabButton->setMargin(5, Left);
    tabButton->clicked().connect(std::bind([=] ()
@@ -472,7 +453,6 @@ std::cout<<"interacted pos"<<std::endl;
 	}
     }));	
     currentTrackContainer->addWidget(tabButton);
-//std::cout<<"	Parent "<<dynamic_cast<MyTreeTableNode*>(parent)->text <<std::endl;
     WPushButton *untabButton = new WPushButton("<<<<<" ,root());     
     untabButton->setMargin(5, Left);
     untabButton->clicked().connect(std::bind([=] ()
@@ -524,9 +504,6 @@ std::cout<<"interacted pos"<<std::endl;
 	long pos = current_track_time();	
 	for (auto fragmentTTN:this->fragment_set)
 	{
-std::cout<<"Splitting fragment"<<std::endl;
-		//tree returns a tree with tree nodes. We need treetable nodes!
-//		MyTreeTableNode *fragmentTTN =  dynamic_cast<MyTreeTableNode*>(fragmentTN);
 		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
 		long start = startW->time();
@@ -538,7 +515,7 @@ std::cout<<"Splitting fragment"<<std::endl;
 			WTreeNode *my_parent = fragmentTTN->parentNode();
 			const std::vector< WTreeNode * > siblings = my_parent->childNodes();
 			int index = -1;
-			for(unsigned int i=0;i<siblings.size()+1;i++) //There is insert, and insertBefore, but no insertAfter. So frist, determine the index of the widget we're splitting, and then insert at that index.
+			for(unsigned int i=0;i<siblings.size()+1;i++) //There is insert, and insertBefore, but no insertAfter. So first, determine the index of the widget we're splitting, and then insert at that index.
 			{
 				if(fragmentTTN == siblings[i])
 				{
@@ -564,14 +541,10 @@ std::cout<<"Splitting fragment"<<std::endl;
     savebutton->setMargin(5, Left);
     savebutton->clicked().connect(std::bind([=] ()
     {	
-std::cout<<"clickeD"<<std::endl;
 	Json::Value fragmentsval = saveFragments(dynamic_cast<MyTreeTableNode*>(markerTree->tree()->treeRoot() ));
 	Json::Array& fragments = fragmentsval; 
-std::cout<<"gotten"<<std::endl;
 	std::string fragstring = Json::serialize(fragments);
 	fragstring = "{ \"fragments\" : "+fragstring + "}";
-std::cout<<"fragged"<<std::endl;
-std::cout<<"Fragments:"<<fragstring<<std::endl;
 			   zmq::context_t context (1);
 		   zmq::socket_t socket (context, ZMQ_REQ);
 		   socket.connect ("tcp://localhost:5555");
@@ -611,33 +584,21 @@ void EarUI::mark_current_fragment(long long pos)
 {
 	for (auto fragmentTTN:this->fragment_set)
 	{
-//std::cout<<"Style "<<fragmentTTN->styleClass()<<std::endl;
 		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
 		long start = startW->time();
 		long stop = stopW->time();
 		if(pos > start and pos < stop)
-		{ //Should also get all the parents
-//std::cout<<"Marking fragment"<<std::endl;
-//std::cout<<"Style "<<fragmentTTN->styleClass()<<std::endl;
-			//Fragment to mark
-			//WTreeNode *my_parent = fragmentTTN->parentNode();
-//fragmenTTN->addStyleClass("currentFragment"); //Thhis doesn't really work, and a lot of other options also don't seem to work. TODO
+		{ 
 			fragmentTTN->decorationStyle().setBackgroundColor(WColor(255,0,0)); //TODO: ?Make a proper style, and enlarge the font or something
 //TODO: Maybe get the parents too, if the current widget is not shown			
-//std::cout<<"Setting style class"<<std::endl;
-//std::cout<<"Style "<<fragmentTTN->styleClass()<<std::endl;
 
 		}
 		else
 		{
-//std::cout<<"Removing style cass"<<std::endl;
-//std::cout<<"Style "<<fragmentTTN->styleClass()<<std::endl;
 
-			//fragmentTTN->setStyleClass("");
 		fragmentTTN->decorationStyle().setBackgroundColor(WColor(255,255,255)); //TODO: Properly remove the previously added style
 
-//std::cout<<"Style "<<fragmentTTN->styleClass()<<std::endl;
 		}
 	
 	}
@@ -645,17 +606,6 @@ void EarUI::mark_current_fragment(long long pos)
 long EarUI::current_track_time( zmq::socket_t *socket )
 {
 
-//	Json::Object playingj = interact_zmq("playing?");
-//	bool playing = playingj->get("playing");
-/*	if (playing)
-	{
-long elapsed_wall_time = std::chrono::duration_cast<std::chrono_milliseconds>(Clock::now() - start_wall_time);
-	std::chrono::duration_cast<std::chrono_milliseconds>long current_track_time = start_track_time + elapsed_wall_time * (speed / 100) ;
-	}
-	else
-	{*/
-//For now, this turns out to be fast enough on my machine. That might not be true for other machines, or on other architectures or over the network, but on localhost zmq it doesn't seem worth it to go through the hassle of making a whole second state-keeping thing in this interface just to get a slightly better timer
-//std::cout<<"Updating time"<<std::endl;
 	Json::Object posj ;
 	if (socket == 0 )
 	{
@@ -693,7 +643,7 @@ std::cout<<"Made filter set"<<std::endl;
 		tags = boost::any_cast<std::set<WString>> (trackmodel->data(trackmodel->index(i,1), Wt::UserRole+1)); 
 		track_idx = boost::any_cast<int> (trackmodel->data(trackmodel->index(i,0), Wt::UserRole)); 
 		std::set<WString> res_set;
-	 	set_intersection(filters.begin(), filters.end(), tags.begin(), tags.end(), std::inserter(res_set, res_set.end())); //TODO: This may be really slow, and there must be a better way?
+	 	set_intersection(filters.begin(), filters.end(), tags.begin(), tags.end(), std::inserter(res_set, res_set.end())); 
 		if( res_set.size() > 0) // if tag in filters  
 //Currently we are ORring our filters, we probably want to AND our filters. This should also be made optional I guess
 		{
