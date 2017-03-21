@@ -59,7 +59,10 @@ def parse_fragments(root, tracks, used):
                     else:
                         name, start = line.rsplit(None, 1)
                         name = name.strip()
-                        start = int(start)
+                        try:
+                            start = int(start)
+                        except:
+                            start = int(float(start))
                         stack[-1].append(['fragment', name, start])
             if state == 'TRACK':
                 if key != 'Track':
@@ -189,7 +192,7 @@ def write_group(group, indent):
             ret += '{}{}:{}'.format(indent, fragment[1], EOL)
             ret += write_group(fragment[2], indent + INDENT)
         elif fragment[0] == 'fragment':
-            ret += '{}{}\t{}{}'.format(indent, fragment[1], fragment[2], EOL)
+            ret += '{}{}\t{}{}'.format(indent, fragment[1], int(fragment[2]), EOL)
         else:
             assert(fragment[0] == 'end')
             # Ignore.
@@ -220,6 +223,8 @@ def write(tracks):
     for track in tracks:
         # Don't define tracks without fragments.
         if len(track['fragments']) == 0:
+            continue
+        if len(track['fragments'])==1 and track['fragments'][0][2]==0:
             continue
         target = makepath(track['root'], FRAGMENTS)
         if target not in output:
