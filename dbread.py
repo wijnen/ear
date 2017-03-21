@@ -59,7 +59,10 @@ def parse_fragments(root, tracks, used):
                     else:
                         name, start = line.rsplit(None, 1)
                         name = name.strip()
-                        start = int(start)
+                        try:
+                            start = int(start)
+                        except:
+                            start = int(float(start))
                         stack[-1].append(['fragment', name, start])
             if state == 'TRACK':
                 if key != 'Track':
@@ -106,7 +109,7 @@ def autotag(trackname, root):
     return list(tags)
 
 def add_unfragmented_file(filename, root):
-    out = { 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] , 'tags' : autotag(filename,root)}
+    out = { 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] , 'tags' : autotag(filename,root), "dirty" : False}
     out['fragments'].append(["fragment",filename,0])
     return out
 
@@ -132,14 +135,15 @@ def read():
     # Add all other files.
     for dirname in basedirs:
         for root, dirs, files in os.walk(dirname, followlinks=True):
+            root = os.path.abspath(root)
             for filename in files:
                 if makepath(root, filename) in used:
                     continue
                 if os.path.splitext(filename)[1] not in exts:
                     continue
                 tracks.append(add_unfragmented_file(filename, root))
-
-    return load_test_tracks(tracks)
+    tracks = load_test_tracks(tracks)
+    return tracks
 
 def get_times(fragments):
     """Returns a flattened list of all times in the fragments"""
@@ -188,7 +192,7 @@ def write_group(group, indent):
             ret += '{}{}:{}'.format(indent, fragment[1], EOL)
             ret += write_group(fragment[2], indent + INDENT)
         elif fragment[0] == 'fragment':
-            ret += '{}{}\t{}{}'.format(indent, fragment[1], fragment[2], EOL)
+            ret += '{}{}\t{}{}'.format(indent, fragment[1], int(fragment[2]), EOL)
         else:
             assert(fragment[0] == 'end')
             # Ignore.
@@ -220,16 +224,20 @@ def write(tracks):
         # Don't define tracks without fragments.
         if len(track['fragments']) == 0:
             continue
+        if len(track['fragments'])==1 and track['fragments'][0][2]==0:
+            continue
         target = makepath(track['root'], FRAGMENTS)
         if target not in output:
             output[target] = {'contents':'','dirty':False}
         output[target]['contents'] += write_track(track)
+        if 'dirty' not in output[target].keys():
+             output[target]['dirty'] = False
         output[target]['dirty'] += track['dirty']
 
     for target in output:
         # Write as binary and manually encode as utf-8, so line endings are not mangled.
-        if target['dirty']:
+        if output[target]['dirty']:
             with open(target, 'wb') as f:
                 # To allow Microsoft to write these files as utf-8, start with a BOM.
-                f.write(('\ufeff' + output[target]).encode('utf-8'))
+                f.write(('\ufeff' + output[target]['contents']).encode('utf-8'))
 # vim: set expandtab tabstop=4 shiftwidth=4 :

@@ -1,3 +1,15 @@
 file-new
-color-code changed db
-tags
+color-code changed db (????)
+edit start/end times in UI
+(remove split)/(join fragments)
+export
+Change group playbutton to play first child instead. OR remove group play button
+Also, make group selections work better for 'play selection'
+Annotations
+REnder audio as image
+# http://stackoverflow.com/questions/19454832/gstreamer-audiosink-to-output-stream-of-integers-representing-volume-levels
+Find and fix bug that stops audio playing at a few seconds after start
+ - Maybe force stop before playing?
+Find out why files are output twice <-- Fixed
+
+

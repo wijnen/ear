@@ -961,7 +961,22 @@ MyTreeTableNode *EarUI::addNode(MyTreeTableNode *parent, WString name, const lon
 	Wt::WPushButton *startButton = new WPushButton("|>");
 	startButton->clicked().connect(std::bind([=]() {
 std::cout<<"Handlign a startbutton click from the markertree"<<std::endl;
-		long startBefore = start - beforeSlider->value()*1000;
+		long mystart = start;	
+		if(start == -1)
+		{ //MARK 
+			if (node->childNodes().size() > 0)
+			{
+				MyTreeTableNode *myttn = dynamic_cast<MyTreeTableNode*> (*(node->childNodes()).begin());
+				mystart = dynamic_cast<TimeWidget*>(myttn->columnWidget(1))->time();
+			}
+			else
+			{
+				return;
+			}
+		}
+		long startBefore = mystart - beforeSlider->value()*1000;
+		interact_zmq(WString("event:stop")); //Will this stop the wierd issues?
+
 		WString command="play:"+std::to_string(startBefore); 
 		interact_zmq(command);
 	}));
