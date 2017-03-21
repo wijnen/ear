@@ -251,7 +251,7 @@ kwargs = {"widgets" : widgets, 'data' : data ,
             'new_speed': lambda: speed_change(0),
             'new_position': lambda: data['media'].play(g.position, play = None) if not setting_pos else None,
             'stop': lambda x: stop(True),
-            'continue': lambda x: stop(False),
+            'continue': lambda x: stop(False), #Right now, this means play_from_start, and clicking pause again continues
 #            'seek_b_10s': lambda x: data['media'].seek(-10 * 1000),
 #            'seek_b_2s': lambda x: data['media'].seek(-2 * 1000),
 #            'seek_f_2s': lambda x: data['media'].seek(2 * 1000),

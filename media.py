@@ -153,22 +153,23 @@ class Media:
             wait = -1 *(start - self.offset)
             loop = GLib.MainLoop()
             start = self.offset
-            #TODO: Indicate that we're playing/coutnting down, and make sure that we otherwise stop playing!
             if self.timeout != None: 
-                GLib.source_remove(self.timeout) #Only do one timeout at a time to prevent wierd re-starting issuesỳypỳyp
+                GLib.source_remove(self.timeout) #Only do one timeout at a time to prevent wierd re-starting issues
                 self.timeout = None 
             if self.playing(): 
                 self.pause(True) 
             self.timeout = GLib.timeout_add(wait, lambda _: self.play(start = start, end=end, cb=cb,play=play, timed = True), None)
             self.countdown_end = time.time() + wait/1000.
             return True
+        print(start, self.offset, self.media_duration)
         if start is not None and start < self.offset + self.media_duration:
+            print("Actually playing")
             start -= self.offset
             start /= self.speed
             if end is not None:
                 end /= self.speed
             self.pause()
-            self.pipeline.get_state(Gst.CLOCK_TIME_NONE)
+            #self.pipeline.get_state(Gst.CLOCK_TIME_NONE) #In a track with no set fragments, the execution hangs here #What does it do anyway? If removed, normal tracks work, but those without fragments hang at the end of this function
             if end is not None and (start is None or end > start):
                 self.pipeline.seek(1.0, Gst.Format(Gst.Format.TIME), Gst.SeekFlags.ACCURATE | Gst.SeekFlags.FLUSH, Gst.SeekType.SET, start * Gst.MSECOND, Gst.SeekType.SET, end * Gst.MSECOND)
             else:
@@ -177,6 +178,7 @@ class Media:
             self.pause(False)
         if timed:
             self.timeout = None
+            self.countdown_end = None
             return False #Bit wierd, but makes this function possible to be used as a oneshot timer.
     def done(self):
         self.updater = None
@@ -198,7 +200,7 @@ class Media:
             self.pipeline.set_state(Gst.State.PLAYING)
             self.updater = GLib.timeout_add(100, self.update)
     def update(self):
-        self.pipeline.get_state(Gst.CLOCK_TIME_NONE)
+        #self.pipeline.get_state(Gst.CLOCK_TIME_NONE) #SEe comments at 175
         do_callback = False
         try:
             pos = self.pipeline.query_position(Gst.Format(Gst.Format.TIME))[1] / Gst.MSECOND * self.speed + self.offset
@@ -211,7 +213,6 @@ class Media:
     def get_pos(self):
         if self.timeout != None:
             if not self.playing():
-                print(self.countdown_end - time.time())
                 return -1000*(self.countdown_end - time.time())
         self.pipeline.get_state(Gst.CLOCK_TIME_NONE)
         try:

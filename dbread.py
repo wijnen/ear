@@ -6,7 +6,7 @@ import media
 FRAGMENTS = 'fragments.txt'
 INDENT = '\t'
 EOL = '\r\n'
-exts = ('.mp3', '.ogg', '.wav', '.mp4', '.ogv', '.mpg', '.mpeg', '.avi')
+exts = ('.mp3', '.ogg', '.wav', '.mp4', '.ogv', '.mpg', '.mpeg', '.avi') #TODO: Get these from whatever GStreamer can read
 
 def makepath(root, filename):
     '''Write a filename in a form that can be used to detect duplicates'''
@@ -172,7 +172,7 @@ def load_test_tracks(tracks):
         times = []
         end = int(max(durations))
         times = sorted(list(get_times(track['fragments'])))
-        if times[0] > 0: #TODO test
+        if times[0] > 0: 
             track['fragments'].insert(0, ["fragment", "Intro", 0] )
             times = sorted(list(get_times(track['fragments'])))
         times.append(end)
