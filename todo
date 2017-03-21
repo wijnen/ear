@@ -1,15 +1,37 @@
 file-new
+
 color-code changed db (????)
+
 edit start/end times in UI
+
 (remove split)/(join fragments)
+
 export
-Change group playbutton to play first child instead. OR remove group play button
-Also, make group selections work better for 'play selection'
+
+Make group selections work better for 'play selection' (check for children)
+
 Annotations
+
+
 REnder audio as image
 # http://stackoverflow.com/questions/19454832/gstreamer-audiosink-to-output-stream-of-integers-representing-volume-levels
+
+
+
 Find and fix bug that stops audio playing at a few seconds after start
- - Maybe force stop before playing?
-Find out why files are output twice <-- Fixed
+This happens after a track stopped of natural causes!
+Not always. It doesn't stop either, it drops out and comes back up.
+Steps to reproduce:
+Pavane (Orlando)
+Play the whole track
+Wait till it stops
+Play from start
+Retry this a few dozen times, sometimes it just drops out for a while.
+This may have been fixed along with the 'play selection' commit
 
 
+Fix the filtering of tracks and make the whole search thing in a seperate window
+
+Optional: look at styling
+
+Fix selecting the correct track on startup
