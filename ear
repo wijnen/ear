@@ -230,6 +230,10 @@ data = {
     'scalemarks': lambda m: setattr(g, 'scalemarks', m),
     }
 data['media'].send_pixbuf = lambda pixbuf: setattr(g, 'image', pixbuf)
+
+    
+
+
 if config['gtkUI']:
     widgets =  {'Markers': markers.Markers, 'Fileselector': fileselector.Fileselector}
 else:
@@ -241,7 +245,8 @@ kwargs = {"widgets" : widgets, 'data' : data ,
             #'save': lambda x: save(data['track'].dbname),
             'file_quit': lambda x: g(False),
             'new_file': new_file,
-            'pause': lambda: data['media'].pause(not g.playing),
+            #'pause': lambda: data['media'].pause(not data['media'].playing()),
+            'pause': lambda: data['media'].pause(data['media'].playing()),
             'marker_add': marker_add,
             'marker_remove': marker_remove,
             'marker_set_start': marker_set_start,
@@ -397,16 +402,17 @@ if config['webUI']:
                     events = [event for event in events if "help" not in event]
                     events = [event for event in events if "edit" not in event] #We probably want to make this a curated list somewhere in the source or something. I'm open for ideas"""
                     #The Wt JSON parser needs to know if stuff is a dict or a list before parsing (otherwise you can't assign to an Array or Object. That's why _EVERYTHING_ is a dict. We might use the second argument to describe the text on the widget instead of using the command name for that.
-                    events = OrderedDict ( [(k,None) for k in events ])
+                    nevents = ["stop","save_all"]
+                    events = OrderedDict ( [(k,None) for k in nevents ])
                     zmq_socket.send_json(events)
                 elif msg.startswith('event:'):
                     event=msg[len('event:'):]
                     print ("Event:{}".format(event))
-                    if event == "pause":
-                        data['media'].pause()
-                        #zmq_socket.send_json({"state":g.playing}) 
-                        zmq_socket.send_json({"dummy":"dummy"}) 
-                    elif event in kwargs['events'].keys():
+                    #if event == "pause":
+                    #    data['media'].pause()
+                    #    #zmq_socket.send_json({"state":g.playing}) 
+                    #    zmq_socket.send_json({"dummy":"dummy"}) 
+                    if event in kwargs['events'].keys():
                         try:
                             ret=kwargs['events'][event]("foo")
                         except TypeError:
@@ -502,6 +508,8 @@ if config['webUI']:
                 elif msg.startswith("fragments"):
                     print(msg)
                     zmq_socket.send_json({"dummy":g.position})
+                elif msg.startswith("playing?"):
+                    zmq_socket.send_json({"playing":data['media'].playing()})
                 else:
                     print ("Event not handled:{}".format(msg))
                     zmq_socket.send_json({"dummy":g.position})

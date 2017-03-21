@@ -137,6 +137,7 @@ private:
   Wt::WStringListModel *filter_trackmodel( WStringListModel *trackmodel, WContainerWidget *filterwidget );
 Json::Value saveFragments(MyTreeTableNode *root);
   int max_tags = 0;
+  WPushButton *playPauseButton;
 };
 
 
@@ -187,10 +188,12 @@ std::cout<<"Parsed names"<<std::endl;
 
     }
    
-
-    
-    
-
+    playPauseButton = new WPushButton("Play",currentTrackContainer);
+   playPauseButton->clicked().connect(std::bind([=] ()
+	{
+		interact_zmq(std::string("event:pause"));
+	} 
+   	));
     Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget();
     root()->addWidget(trackListContainer);
 
@@ -563,13 +566,27 @@ std::cout<<"interacted pos"<<std::endl;
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
     socket.connect ("tcp://localhost:5555");
+
 long long track_time = 	EarUI::current_track_time(&socket);
   	currentTime->setTime(track_time);
 	posSlider->setValue(track_time);
 	posText->setTime(track_time);
 	//TODO: Add a query for the playing state in here as well. This allows us to make play/pause a single button
 //Also, change the interval. When not playing, we can be slower updating and catch up within a second or something. This'll mainly help making the logs more readable, but also might help some performance
-	
+
+Json::Object playingj;
+bool playing;
+	playingj = interact_zmq(socket,std::string("playing?"));
+
+	playing = playingj.get("playing");
+	if (playing)
+	{
+		playPauseButton->setText("Pause");
+	}
+	else
+	{
+		playPauseButton->setText("Play");
+	}
     socket.disconnect("tcp://localhost:5555");
 mark_current_fragment(track_time); 
    }));
