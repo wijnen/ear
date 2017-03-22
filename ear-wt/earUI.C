@@ -194,7 +194,9 @@ std::cout<<"Parsed names"<<std::endl;
 		interact_zmq(std::string("event:pause"));
 	} 
    	));
-    Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget();
+    
+
+Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget();
     root()->addWidget(trackListContainer);
 
 
@@ -270,6 +272,7 @@ std::cout<<"Parsed names"<<std::endl;
 	thisInputContainer = new Wt::WContainerWidget();
         inputContainer->addWidget(thisInputContainer);
 	inputSettings = inputs.get(input_name);
+        inputText = new Wt::WText(thisInputContainer);
  	inputSlider = new Wt::WSlider(thisInputContainer);
 	inputSlider->setObjectName("inputSlider:"+input_name); //TODO: Change this, and updateInputs to using class members and not HTML names.
         inputSlider->resize(500,50);
@@ -315,9 +318,8 @@ std::cout<<"Parsed names"<<std::endl;
     	        }
 	  
 	}
-        inputText = new Wt::WText(thisInputContainer);
 	inputText->setObjectName("inputText:"+input_name);
-	inputContainer->addWidget(inputSlider);
+//	inputContainer->addWidget(inputSlider);
 //	inputContainer->addWidget(inputText);
 	inputText->setText(input_name+": "+inputSlider->valueText());
 	
@@ -329,6 +331,7 @@ std::cout<<"Parsed names"<<std::endl;
         }));
     }
     WContainerWidget *posContainer = new WContainerWidget(inputContainer);
+    posSlider = new WSlider(posContainer);
     WContainerWidget *posButtonContainer = new WContainerWidget(posContainer);
 
     std::vector<int> seekButtons = {-10,-5,-1,1,5,10};
@@ -347,7 +350,6 @@ std::cout<<"Parsed names"<<std::endl;
         } ));
 	
     }
-    posSlider = new WSlider(posContainer);
     posSlider->resize(500,50);
     posSlider->setTickInterval(60000); //One minute in ms
     posSlider->setTickPosition(Wt::WSlider::TicksAbove);
@@ -372,8 +374,8 @@ std::cout<<"interacted pos"<<std::endl;
   
     socket.disconnect("tcp://localhost:5555");
 
-    Wt::WContainerWidget *markerContainer = new Wt::WContainerWidget;
-    root()->addWidget(markerContainer);
+    Wt::WContainerWidget *markerContainer = new Wt::WContainerWidget(root());
+    Wt::WContainerWidget *fragmentButtonsContainer = new Wt::WContainerWidget(markerContainer);
 
     WTreeTable *markerTree = new WTreeTable();
     markerContainer->addWidget(markerTree);
@@ -383,9 +385,9 @@ std::cout<<"interacted pos"<<std::endl;
     markerTree->addColumn("End time",100); //StartButton
     markerTree->addColumn("Play from here",20); //StartButton
 
-    WPushButton *button = new WPushButton("Play selection" ,root());     
-    button->setMargin(5, Left);
-    button->clicked().connect(std::bind([=] ()
+    WPushButton *playSelectionButton = new WPushButton("Play selection" ,fragmentButtonsContainer);     
+    playSelectionButton->setMargin(5, Left);
+    playSelectionButton->clicked().connect(std::bind([=] ()
     {	
 	std::string ret = "{\"play\": [";	
 	bool first = true;
@@ -425,11 +427,10 @@ std::cout<<"interacted pos"<<std::endl;
 
 	
     }));
-    currentTrackContainer->addWidget(button);
 
 
 //TODO: Split out the tab and untab functions so we can call them with the keyboard
-    WPushButton *tabButton = new WPushButton(">>>>" ,root());     
+    WPushButton *tabButton = new WPushButton(">>>>" ,fragmentButtonsContainer);     
     tabButton->setMargin(5, Left);
    tabButton->clicked().connect(std::bind([=] ()
     {
@@ -455,8 +456,8 @@ std::cout<<"interacted pos"<<std::endl;
 		newNode->addChildNode(node);
 	}
     }));	
-    currentTrackContainer->addWidget(tabButton);
-    WPushButton *untabButton = new WPushButton("<<<<<" ,root());     
+    
+	WPushButton *untabButton = new WPushButton("<<<<<" ,fragmentButtonsContainer);     
     untabButton->setMargin(5, Left);
     untabButton->clicked().connect(std::bind([=] ()
     {
@@ -494,15 +495,14 @@ std::cout<<"interacted pos"<<std::endl;
 		grandparent->insertChildNode(index,node);
 	}
     }));	
-    currentTrackContainer->addWidget(untabButton);
 
 
 
 
 
-    WPushButton *button1 = new WPushButton("Split fragment here", root());
-    button1->setMargin(5, Left);
-    button1->clicked().connect(std::bind([=] ()
+    WPushButton *splitButton = new WPushButton("Split fragment here", fragmentButtonsContainer);
+    splitButton->setMargin(5, Left);
+    splitButton->clicked().connect(std::bind([=] ()
     {	
 	long pos = current_track_time();	
 	for (auto fragmentTTN:this->fragment_set)
@@ -536,10 +536,9 @@ std::cout<<"interacted pos"<<std::endl;
 		
 	}	
     }	));
-    currentTrackContainer->addWidget(button1);
 
 
-    WPushButton *savebutton = new WPushButton("Save fragments", root());
+    WPushButton *savebutton = new WPushButton("Save fragments", fragmentButtonsContainer);
     currentTrackContainer->addWidget(savebutton);
     savebutton->setMargin(5, Left);
     savebutton->clicked().connect(std::bind([=] ()
@@ -556,8 +555,6 @@ std::cout<<"interacted pos"<<std::endl;
 		   socket.disconnect("tcp://localhost:5555");
     }));	
 
-   TimeWidget *currentTime = new TimeWidget();
-   currentTime->setTime(0);
 
    Wt::WTimer *inputtimer = new Wt::WTimer();  
    inputtimer->setInterval(2000);
@@ -576,7 +573,6 @@ std::cout<<"interacted pos"<<std::endl;
     socket.connect ("tcp://localhost:5555");
 
 long long track_time = 	EarUI::current_track_time(&socket);
-  	currentTime->setTime(track_time);
 	posSlider->setValue(track_time);
 	posText->setTime(track_time);
 	//TODO: Add a query for the playing state in here as well. This allows us to make play/pause a single button
@@ -600,7 +596,6 @@ mark_current_fragment(track_time);
    }));
 
 	timer->start();
-	root()->addWidget(currentTime);
     updateInputs();
 
 
