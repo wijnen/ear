@@ -79,6 +79,25 @@ class Media:
         self.player.set_property('audio-sink', self.audiobin)
         self.timeout = None
         self.countdown_end = None
+        self.waveform = [(None,None)]
+    def make_waveform(self,filename): #TODO make optional for performance
+        pipeline = Gst.parse_launch("   filesrc location=\""+filename+"\" ! decodebin     ! audioconvert ! audioresample ! level ! fakesink ")
+        if pipeline == None:
+            return
+        bus = pipeline.get_bus()
+        bus.add_signal_watch()
+        output = []
+        done = False
+        def callback(bus,msg):
+            if msg.type == Gst.MessageType.ELEMENT:
+                if  "GstLevel" not in str(type(msg.src)):
+                    return
+                output.append( (msg.get_structure().get_value('timestamp')/Gst.MSECOND , sum(msg.get_structure().get_value('rms'))/2.  ))
+            elif msg.type == Gst.MessageType.EOS:
+                self.waveform = output #TODO set some signal that this can be sent to Wt
+                pipeline.set_state(Gst.State.NULL)
+        bus.connect('message', callback)
+        pipeline.set_state(Gst.State.PLAYING)
     @classmethod
     def get_duration(cls, filename): #Class method so we can check a files duration without instantiating everything
         cls.prober.set_property('uri', 'file://' + os.path.realpath(filename))
@@ -93,6 +112,7 @@ class Media:
             ret = None
         cls.probe_pipeline.set_state(Gst.State.NULL)
         return ret
+    @classmethod
     def new_pixbuf(self, bus, message, arg):
         #print(message.type)
         if message.type == Gst.MessageType.EOS:#This will be called at the end of a stream, but also at the end of a played fragment
@@ -125,6 +145,7 @@ class Media:
         self.player.set_property('uri', 'file://' + os.path.realpath(filename))
         self.pipeline.set_state(Gst.State.PAUSED)
         self.set_range(-self.media_duration, track['duration'])
+        self.make_waveform(filename)
     def set_speed(self, speed):
         pos = self.get_pos()
         self.speed = speed
