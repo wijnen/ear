@@ -4,47 +4,20 @@
 # Imports. {{{
 
 import fhs
-config = fhs.init({"webUI":True,"gtkUI":False })
+config = fhs.init({"webUI":True, 'gtkUI':False })
 
 from collections import OrderedDict
-if config['gtkUI']:
-    import markers
-    import fileselector
-    import gui
-else:
-    import gi
-    gi.require_version('GLib', '2.0')
-    from gi.repository import GLib
-
+import gi
+gi.require_version('GLib', '2.0')
+from gi.repository import GLib
 import os
 import media
 import dbread
+import zmq
+import simplejson.scanner
+import subprocess
 
-# }}}
-# Classes. {{{
-class Track:
-    def __init__(self, name, dbname):
-        self.iter = None
-        self.name = name
-        self.dbname = dbname
-        self.tags = []
-        self.files = []
-        self.markers = []
-        self.duration = 0
 
-class Marker:
-    def __init__(self, n, s, e):
-        self.iter = None
-        self.name = n
-        self.start = s
-        self.end = e
-    def __repr__(self):
-        return 'Marker(%s, %d, %d)' % (repr(self.name), self.start, self.end)
-# }}}
-
-db = dbread.read()
-
-# Event responses. {{{
 def file_new(dummy = None):
     db.append(Track('', data['track'].dbname if data['track'] else fhs.write_data(os.path.join('db', 'default' + os.extsep + 'db'), opened = False)))
     g.update_files = True
@@ -67,22 +40,6 @@ def new_file():
     g.media_list = [x[0] for x in data['track']['files']]
     g.media = 0
 
-def get_before():
-    if not g.before_active:
-        return 0
-    try:
-        return int(float(g.before) * 1000)
-    except:
-        return 0
-
-def get_delay():
-    if not g.delay_active:
-        return 0
-    try:
-        return int(float(g.delay) * 1000)
-    except:
-        return 0
-
 setting_pos = False
 def set_pos(pos):
     global setting_pos
@@ -92,79 +49,6 @@ def set_pos(pos):
     setting_pos = False
     if not data['track']:
         return
-    g.marker_target = pos
-
-def marker_add(arg = None):
-    if not g.editable or data['track'] is None:
-        return
-    pos = data['media'].get_pos()
-    markers = data['track'].markers
-    found = None
-    limit = None
-    for i, m in enumerate(markers):
-        if m.start < pos <= m.end:
-            found = i
-            continue
-        if m.start >= pos:
-            limit = m.start
-            break
-    if found is not None:
-        end = markers[found].end
-        markers[found].end = pos
-    else:
-        end = data['track'].duration if limit is None else limit
-    new = Marker(media.mkmomentstr(pos), pos, end)
-    markers.append(new)
-    markers.sort(key = lambda x: (x.start, -x.end))
-    g.markers_update = True
-    g.marker_current = (new, True)
-
-def marker_remove(arg = None):
-    g.pos = 0
-    if not g.editable:
-        return
-    obj = g.marker_current
-    if obj is None:
-        return
-    data['track'].markers.remove(obj)
-    g.markers_update = True
-
-def marker_set_start(arg = None):
-    if not g.editable:
-        return
-    obj = g.marker_current
-    if obj is None:
-        return
-    obj.start = data['media'].get_pos()
-    if obj.start > obj.end:
-        obj.end = obj.start
-    for m in data['track'].markers:
-        if obj.start < m.start and m.start < obj.end < m.end:
-            obj.end = m.start
-        if obj.end > m.end and m.start < obj.start < m.end:
-            obj.end = m.end
-    data['track'].markers.sort(key = lambda x: (x.start, -x.end))
-    g.markers_update = True
-
-def marker_set_end(arg = None):
-    if not g.editable:
-        return
-    obj = g.marker_current
-    if obj is None:
-        return
-    obj.end = data['media'].get_pos()
-    if obj.start > obj.end:
-        obj.start = obj.end
-    for m in data['track'].markers:
-        if obj.start < m.start and m.start < obj.end < m.end:
-            obj.start = m.start
-        if obj.end > m.end and m.start < obj.start < m.end:
-            obj.start = m.end
-    data['track'].markers.sort(key = lambda x: (x.start, -x.end))
-    g.markers_update = True
-
-def save(dbname):
-    print("DO NOT CLICK SAVE WHILE TESTING")
     return
 
 def stop(stopped):
@@ -173,154 +57,39 @@ def stop(stopped):
     set_pos(0) 
     data['media'].pause(stopped)
 
-def speed_change(change):
-    g.speed = g.speed + change
-    data['media'].set_speed(g.speed / 100.)
-
-def edit_change(arg = None):
-    g.editable = not g.editable
-    g.markers_update = True
-
-def new_media(filename):
-    duration = media.Media.get_duration(os.path.join(os.path.dirname(data['track'].dbname), filename))
-    if not duration:
-        return
-    #print('new track %s' % line.strip())
-    data['track'].files.append([filename, 0., duration])
-    if data['track'].duration < duration:
-        data['track'].duration = duration
-    data['media'].load(data['track'], len(data['track'].files) - 1)
-    g.media_list = [x[0] for x in data['track'].files]
-    g.media = len(data['track'].files) - 1
-
-def remove_media():
-    if len(data['track'].files) < 2:
-        return
-    n = g.media
-    data['track'].files.pop(n)
-    g.media_list = [x[0] for x in data['track'].files]
-    if n < len(data['track'].files):
-        g.media = n
-    else:
-        g.media = n - 1
-
-def new_offset():
-    data['track'].files[data['track'].media][1] = g.offset
-    data['media'].play(g.position, play = None)
-    g.length = (max(0, data['track'].files[data['track'].media][1]), data['track'].files[data['track'].media][1] + data['track'].files[data['track'].media][2])
-
-
 def save_all():
     dbread.write(db)
 
-# }}}
-
-# Build interface. {{{
+db = dbread.read()
 data = {
     'db': db,
     'track': None,
     'tag': '',
     'media': media.Media(set_pos, lambda min, max: setattr(g, 'offset_range', (min, max)), lambda p: setattr(g, 'marker_endtarget', p)),
-    'before': get_before,
-    'delay': get_delay,
-    'editable': lambda: g.editable,
     'playing': lambda x: setattr(g, 'playing', x),
-    'rename_track': lambda x: setattr(g, 'rename_track', x),
     'position': lambda pos: setattr(g, 'position', pos),
-    'scalemarks': lambda m: setattr(g, 'scalemarks', m),
     }
 data['media'].send_pixbuf = lambda pixbuf: setattr(g, 'image', pixbuf)
 
-    
+def play_list(track, play_tuple):
+    track.play(cb = None) #Essential to clear the callback
+    if len(play_tuple) < 1:
+        return
+    start, end = play_tuple[0][0], play_tuple[0][1]
+    if len(play_tuple[1:])>0: 
+        track.play(start, end, play = True, cb = lambda : play_list(track, play_tuple[1:]))
+    else:
+        track.play(start, end, play = True, cb = None)
 
-
-if config['gtkUI']:
-    widgets =  {'Markers': markers.Markers, 'Fileselector': fileselector.Fileselector}
-else:
-    widgets = None
-kwargs = {"widgets" : widgets, 'data' : data ,
+kwargs = { 'data' : data ,
         'events' : {
-            'help_about': lambda x: setattr(g, 'show_about', True),
-            'file_new': file_new,
-            #'save': lambda x: save(data['track'].dbname),
-            'file_quit': lambda x: g(False),
-            'new_file': new_file,
             #'pause': lambda: data['media'].pause(not data['media'].playing()),
             'pause': lambda: data['media'].pause(data['media'].playing()),
-            'marker_add': marker_add,
-            'marker_remove': marker_remove,
-            'marker_set_start': marker_set_start,
-            'marker_set_end': marker_set_end,
-            'edit_change': lambda: setattr(g, 'markers_update', True),
             'save_all': save_all,
-            'new_speed': lambda: speed_change(0),
-            'new_position': lambda: data['media'].play(g.position, play = None) if not setting_pos else None,
             'stop': lambda x: stop(True),
             'continue': lambda x: stop(False), #Right now, this means play_from_start, and clicking pause again continues
-#            'seek_b_10s': lambda x: data['media'].seek(-10 * 1000),
-#            'seek_b_2s': lambda x: data['media'].seek(-2 * 1000),
-#            'seek_f_2s': lambda x: data['media'].seek(2 * 1000),
-#            'seek_f_10s': lambda x: data['media'].seek(10 * 1000),
-            # """
-            #'seek_10p': lambda x: data['media'].play(data['track'].duration * 10 / 100, play = None),
-            #'seek_20p': lambda x: data['media'].play(data['track'].duration * 20 / 100, play = None),
-            #'seek_30p': lambda x: data['media'].play(data['track'].duration * 30 / 100, play = None),
-            #'seek_40p': lambda x: data['media'].play(data['track'].duration * 40 / 100, play = None),
-            #'seek_50p': lambda x: data['media'].play(data['track'].duration * 50 / 100, play = None),
-            #'seek_60p': lambda x: data['media'].play(data['track'].duration * 60 / 100, play = None),
-            #'seek_70p': lambda x: data['media'].play(data['track'].duration * 70 / 100, play = None),
-            #'seek_80p': lambda x: data['media'].play(data['track'].duration * 80 / 100, play = None),
-            #'seek_90p': lambda x: data['media'].play(data['track'].duration * 90 / 100, play = None),"""
-            #'seek_start': lambda x: data['media'].play(g.marker_current.start, play = None),
-            #'seek__track_start': lambda x: data['media'].seek(0),
-            #'seek_end': lambda x: data['media'].play(g.marker_current.end, play = None),
-            #'set_endtarget_start': lambda x: data['media'].play(None, (lambda m: m.start if m else 0) (g.marker_current), play = None),
-            #'set_endtarget_end': lambda x: data['media'].play(None, (lambda m: m.end if m else 0) (g.marker_current), play = None),
-            'toggle_delay': lambda x: setattr(g, 'delay_active', not g.delay_active),
-            'toggle_intro': lambda x: setattr(g, 'before_active', not g.before_active),
-            'toggle_edit': edit_change,
-            #'slower': lambda x: speed_change(-5),
-            #'faster': lambda x: speed_change(5),
-            'show_library': lambda x: setattr(g, 'set_select', True),
-            'media_changed': lambda: data['media'].load(data['track'], g.media),
-            'remove_media': remove_media,
-            'new_media': new_media,
-            'new_offset': new_offset,
         },
-        'inputs' : (
-            'before_active',
-            'before',
-            'delay_active',
-            'delay',
-            'editable',
-            'marker_current',
-            'playing',
-            'speed',
-            'position',
-            'media',
-            'offset',
-            ),
-        'outputs' :  (
-            'title',
-            'status',
-            'show_about',
-            'set_select',
-            'set_player',
-            'about',
-            'load_markers',
-            'markers_update',
-            'marker_target',
-            'marker_endtarget',
-            'rename_track',
-            'length',
-            'image',
-            'scalemarks',
-            'media_list',
-            'offset_range',
-            'update_files',
-            )
         }
-# }}}
 
 class State():
     def __init__(self,*args,**kwargs):
@@ -332,205 +101,156 @@ class State():
         else:
             setattr(self,k,v)
 
-if config['gtkUI']:
-    g = gui.Gui(**kwargs)
-else:
-    g = State(kwargs) 
-    """Set defaults"""
-    g.speed = 100
-    g.volume = 100
-    g.before = 3
+
+g = State(kwargs) 
+"""Set defaults"""
+g.speed = 100
+g.volume = 100
+g.before = 3
 #
+       
 
-def play_list(track, play_tuple):
-    track.play(cb = None) #Essential to clear the callback
-    if len(play_tuple) < 1:
-        return
-    start, end = play_tuple[0][0], play_tuple[0][1]
-    if len(play_tuple[1:])>0: 
-        track.play(start, end, play = True, cb = lambda : play_list(track, play_tuple[1:]))
-    else:
-        track.play(start, end, play = True, cb = None)
-        
-
-if config['webUI']:
-    import zmq
-    import simplejson.scanner
-    import subprocess
-    zmqcontext=zmq.Context()
-    zmq_socket=zmqcontext.socket(zmq.REP)
-    zmq_socket.bind("tcp://*:5555")
-    zmq_fd=zmq_socket.getsockopt(zmq.FD)
-    g.before_active = True
-    def zmq_callback(fd,condition,zmq_socket):
-        while zmq_socket.getsockopt(zmq.EVENTS) & zmq.POLLIN:
-            wt = False
-            try:
-                msg = zmq_socket.recv_json()
-            except simplejson.scanner.JSONDecodeError as e:
-                print(e)
-                zmq_socket.send_string("something recieved, please send json")
-                continue
-            
-            except Exception as e:
-                print(msg)
-                print(e)
-                continue
-            #if type(msg)!=str or not msg.startswith("pos"):
-            #    print(msg)
-            if type(msg) == dict:
-                if 'play' in msg.keys() and type(msg['play'])==list:
-                    play_list(data['media'], msg['play'])
-                    zmq_socket.send_json({"dummy":"dummy"})
-                if 'fragments' in msg.keys() and type(msg['fragments'])==list:
-                    data['track']['fragments'] = msg['fragments'][2] #In Wt, we need a single root. This is called 'fragments' and only has children. Children are stored in idx 2
-                    data['track']['dirty'] = True
-                    zmq_socket.send_json({'_':'_'})
-            if type(msg) == list:
-                if len(msg) ==1:
-                    msg=msg[0]
-            if type(msg)==str:
-                if msg =="events?":
-                    print("dirring")
-                    events=list(kwargs['events'].keys())
-                    events.sort()
-                    events.append("play") #Special temp usecase
-                    events = [event for event in events if "set" not in event]
-                    events = [event for event in events if "marker" not in event]
-                    events = [event for event in events if "toggle" not in event]
-                    events = [event for event in events if "file" not in event]
-                    events = [event for event in events if "new" not in event]
-                    events = [event for event in events if "show" not in event]
-                    events = [event for event in events if "media" not in event]
-                    events = [event for event in events if "help" not in event]
-                    events = [event for event in events if "edit" not in event] #We probably want to make this a curated list somewhere in the source or something. I'm open for ideas"""
-                    #The Wt JSON parser needs to know if stuff is a dict or a list before parsing (otherwise you can't assign to an Array or Object. That's why _EVERYTHING_ is a dict. We might use the second argument to describe the text on the widget instead of using the command name for that.
-                    nevents = ["stop","save_all"]
-                    events = OrderedDict ( [(k,None) for k in nevents ])
-                    zmq_socket.send_json(events)
-                elif msg.startswith('event:'):
-                    event=msg[len('event:'):]
-                    print ("Event:{}".format(event))
-                    #if event == "pause":
-                    #    data['media'].pause()
-                    #    #zmq_socket.send_json({"state":g.playing}) 
-                    #    zmq_socket.send_json({"dummy":"dummy"}) 
-                    if event in kwargs['events'].keys():
-                        try:
-                            ret=kwargs['events'][event]("foo")
-                        except TypeError:
-                            ret=kwargs['events'][event]()
-                        if ret ==None:
-                            ret=="None"
-                        zmq_socket.send_json({"ret":ret})   
-                    elif event == "play":
-                        g.playing = True
-                        data['media'].play()
-                        zmq_socket.send_json({"state":g.playing}) 
-                    else:
-                        zmq_socket.send_json("No such event")
-                        print("No such event")
-                elif msg =="inputs?":
-                    inputs = {"speed":[50,200],"before":[0,10]} #Needs volume as well at some point (min,max,cur)
-                    for inp in inputs.keys():
-                        inputs[inp].append(getattr(g,inp))
-                    zmq_socket.send_json(inputs)
-                elif msg.startswith("input:"):
-                    _,inp,val=msg.split(":")
+zmqcontext=zmq.Context()
+zmq_socket=zmqcontext.socket(zmq.REP)
+zmq_socket.bind("tcp://*:5555")
+zmq_fd=zmq_socket.getsockopt(zmq.FD)
+g.before_active = True
+def zmq_callback(fd,condition,zmq_socket):
+    while zmq_socket.getsockopt(zmq.EVENTS) & zmq.POLLIN:
+        wt = False
+        try:
+            msg = zmq_socket.recv_json()
+        except simplejson.scanner.JSONDecodeError as e:
+            print(e)
+            zmq_socket.send_string("something recieved, please send json")
+            continue
+        except Exception as e:
+            print(msg)
+            print(e)
+            continue
+        if type(msg) == dict:
+            if 'play' in msg.keys() and type(msg['play'])==list:
+                play_list(data['media'], msg['play'])
+                zmq_socket.send_json({"dummy":"dummy"})
+            if 'fragments' in msg.keys() and type(msg['fragments'])==list:
+                data['track']['fragments'] = msg['fragments'][2] #In Wt, we need a single root. This is called 'fragments' and only has children. Children are stored in idx 2
+                data['track']['dirty'] = True
+                zmq_socket.send_json({'_':'_'})
+        if type(msg) == list:
+            if len(msg) ==1:
+                msg=msg[0]
+        if type(msg)==str:
+            if msg =="events?":
+                #The Wt JSON parser needs to know if stuff is a dict or a list before parsing (otherwise you can't assign to an Array or Object. That's why _EVERYTHING_ is a dict. We might use the second argument to describe the text on the widget instead of using the command name for that.
+                nevents = ["stop","save_all"] #Maybe just move these last two names to Wt as well?
+                events = OrderedDict ( [(k,None) for k in nevents ])
+                zmq_socket.send_json(events)
+            elif msg.startswith('event:'):
+                event=msg[len('event:'):]
+                print ("Event:{}".format(event))
+                if event in kwargs['events'].keys():
                     try:
-                        val=float(val)
-                    except ValueError as e:
-                        print(e)
-                        continue
-                    print("Setting {} to {}".format(inp,val))
-                    setattr(g,inp,val)
-                    if inp == "speed":
-                        data['media'].set_speed(val / 100.)
-                    zmq_socket.send_json({"dummy":"dummy"})
-                elif msg =="track?":
-                    if not data['track']:
-                        zmq_socket.send_json({"current":-1})
-                    else:
-                        zmq_socket.send_json({"current":db.index(data['track'])})
-                elif msg =="tracks?":
-                    #zmq_socket.send_json({"tracks":[t['name'] for t in db]})
-                    
-                    out = OrderedDict()
-                    for x,track in enumerate(db):
-                        #out['tracks'].append({track['name'] : track['tags']})
-                        if len(track['tags']) == 0:
-                            track['tags'].append("")
-                        out[track['name']] = [x]+track['tags'] #track index is very much needed in the Wt UI!
-                    zmq_socket.send_json({'tracks': out})
-                elif msg.startswith('track:'):
-                    select=msg[len('track:'):]
-                    try:
-                        sel = int(select)
-                    except ValueError as e:
-                        print (e)
-                        continue
-                    data['track']=db[sel]    
-                    new_file()
-                    zmq_socket.send_json({"dummy":"dummy"})
-                elif msg == "fragments?":
-                    if not data['track']:
-                        zmq_socket.send_json({"fragments":[]})
-                        continue
-                    zmq_socket.send_json({"fragments":data['track']['fragments']})
-                elif msg =="markers?":
-                    if not data['track']:
-                        zmq_socket.send_json({"markers":[]})
-                        continue
-                    sendMarkers=[]
-                    for marker in data["track"]['fragments']:
-                        sendMarkers.append({"name":marker.name, "start":marker.start})
-                    zmq_socket.send_json({"markers":sendMarkers})
-                elif msg.startswith("play:"): #This at least works...
-                    try:
-                        startTime=float(msg[len("play:"):])
-                    except Exception as e:
-                        zmq_socket.send_json({"dummy":"dummy"})
-                        print(e)
-                        continue
-                    zmq_socket.send_json({"dummy":"dummy"})
-                    data['media'].play(startTime, play = True)
-                elif msg.startswith("pos?"):
-                    #print("pos:{}".format(g.position))
-                    zmq_socket.send_json({"pos":data['media'].get_pos()})
-                elif msg.startswith("pos:"): 
-                    try:
-                        npos = int(msg[len("pos:"):])
-                    except ValueError as e:
-                        print(e)
-                        continue
-                    set_pos(npos) #Set pos does not do what it says on the tin!
-                    data['media'].play(g.position, play = None)
-                    print("setting pos")
-                    zmq_socket.send_json({"pos":g.position})
-                    print("sending pos")
-                elif msg.startswith("fragments"):
-                    print(msg)
-                    zmq_socket.send_json({"dummy":g.position})
-                elif msg.startswith("playing?"):
-                    zmq_socket.send_json({"playing":data['media'].playing()})
+                        ret=kwargs['events'][event]("foo")
+                    except TypeError:
+                        ret=kwargs['events'][event]()
+                    if ret ==None:
+                        ret=="None"
+                    zmq_socket.send_json({"ret":ret})   
+                elif event == "play":
+                    g.playing = True
+                    data['media'].play()
+                    zmq_socket.send_json({"state":g.playing}) 
                 else:
-                    print ("Event not handled:{}".format(msg))
-                    zmq_socket.send_json({"dummy":g.position})
-        return True
+                    zmq_socket.send_json("No such event")
+                    print("No such event")
+            elif msg =="inputs?":
+                inputs = {"speed":[50,200],"before":[0,10]} #Needs volume as well at some point (min,max)
+                for inp in inputs.keys():
+                    inputs[inp].append(getattr(g,inp))
+                zmq_socket.send_json(inputs)
+            elif msg.startswith("input:"):
+                _,inp,val=msg.split(":")
+                try:
+                    val=float(val)
+                except ValueError as e:
+                    print(e)
+                    continue
+                setattr(g,inp,val)
+                if inp == "speed":
+                    data['media'].set_speed(val / 100.)
+                zmq_socket.send_json({"dummy":"dummy"})
+            elif msg =="track?":
+                if not data['track']:
+                    zmq_socket.send_json({"current":-1})
+                else:
+                    zmq_socket.send_json({"current":db.index(data['track'])})
+            elif msg =="tracks?":
+                out = OrderedDict()
+                for x,track in enumerate(db):
+                    if len(track['tags']) == 0:
+                        track['tags'].append("")
+                    out[track['name']] = [x]+track['tags'] #track index is very much needed in the Wt UI!
+                zmq_socket.send_json({'tracks': out})
+            elif msg.startswith('track:'):
+                select=msg[len('track:'):]
+                try:
+                    sel = int(select)
+                except ValueError as e:
+                    print (e)
+                    continue
+                data['track']=db[sel]    
+                new_file()
+                zmq_socket.send_json({"dummy":"dummy"})
+            elif msg == "fragments?":
+                if not data['track']:
+                    zmq_socket.send_json({"fragments":[]})
+                    continue
+                zmq_socket.send_json({"fragments":data['track']['fragments']})
+            elif msg =="markers?":
+                if not data['track']:
+                    zmq_socket.send_json({"markers":[]})
+                    continue
+                sendMarkers=[]
+                for marker in data["track"]['fragments']:
+                    sendMarkers.append({"name":marker.name, "start":marker.start})
+                zmq_socket.send_json({"markers":sendMarkers})
+            elif msg.startswith("play:"): 
+                try:
+                    startTime=float(msg[len("play:"):])
+                except Exception as e:
+                    zmq_socket.send_json({"dummy":"dummy"})
+                    print(e)
+                    continue
+                zmq_socket.send_json({"dummy":"dummy"})
+                data['media'].play(startTime, play = True)
+            elif msg.startswith("pos?"):
+                zmq_socket.send_json({"pos":data['media'].get_pos()})
+            elif msg.startswith("pos:"): 
+                try:
+                    npos = int(msg[len("pos:"):])
+                except ValueError as e:
+                    print(e)
+                    continue
+                set_pos(npos) 
+                data['media'].play(g.position, play = None)
+                zmq_socket.send_json({"pos":g.position})
+            elif msg.startswith("fragments"):
+                zmq_socket.send_json({"dummy":g.position})
+            elif msg.startswith("playing?"):
+                zmq_socket.send_json({"playing":data['media'].playing()})
+            else:
+                print ("Event not handled:{}".format(msg))
+                zmq_socket.send_json({"dummy":g.position})
+    return True
 
-    from gi.repository import GObject
-    GObject.io_add_watch(zmq_fd,GObject.IO_IN, zmq_callback, zmq_socket)
-
-
+from gi.repository import GObject
+GObject.io_add_watch(zmq_fd,GObject.IO_IN, zmq_callback, zmq_socket)
 
 set_pos(0)
-if config['gtkUI']:
-    g()
-else:
-    data['track']=db[-1]    
-    new_file()
-    print(data['track'])
-    print(data['media'])
-    GLib.MainLoop().run()
+data['track']=db[-1]    
+new_file()
+print(data['track'])
+print(data['media'])
+GLib.MainLoop().run()
     
 #
