@@ -559,6 +559,13 @@ std::cout<<"interacted pos"<<std::endl;
    TimeWidget *currentTime = new TimeWidget();
    currentTime->setTime(0);
 
+   Wt::WTimer *inputtimer = new Wt::WTimer();  
+   inputtimer->setInterval(2000);
+   inputtimer->timeout().connect(std::bind([=] ()
+   {
+	updateInputs();
+   }));
+   inputtimer->start();
 
    Wt::WTimer *timer = new Wt::WTimer();  
    timer->setInterval(50);
