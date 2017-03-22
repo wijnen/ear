@@ -559,6 +559,7 @@ std::cout<<"interacted pos"<<std::endl;
    TimeWidget *currentTime = new TimeWidget();
    currentTime->setTime(0);
 
+
    Wt::WTimer *timer = new Wt::WTimer();  
    timer->setInterval(50);
    timer->timeout().connect(std::bind([=] ()
@@ -859,10 +860,16 @@ std::cout<<"Current track in ui is "<<comboBox->currentIndex()<<std::endl;
 std::cout<<"Current track in ear is "<<track<<std::endl;
 int row = comboBox->currentIndex();
 //if (row!=-1) //Wait till everything is inited.. //TODO
-//{
+// //Segfault round here{
+std::cout<<"Precast"<<std::endl;
 WStringListModel *trackmodel = dynamic_cast<WStringListModel*>(comboBox->model());
-int tracknumber = boost::any_cast<int>(trackmodel->data(trackmodel->index(row,0), Wt::UserRole)); 
-
+std::cout<<"Pre int cast"<<std::endl;
+int tracknumber =-2;
+if (row!=-1)
+{
+ tracknumber = boost::any_cast<int>(trackmodel->data(trackmodel->index(row,0), Wt::UserRole)); 
+}
+std::cout<<"postcast"<<std::endl;
 	if (track !=tracknumber) 
 	{
 std::cout<<"Loading markers"<<std::endl;
@@ -878,14 +885,14 @@ std::cout<<"Not loading markers"<<std::endl;
 	for (auto dummy:trackmodel->stringList()) //Loop through the model to find the track. Somehow, we can't get the indeces to be used as index, or something
 	{
 		atrack =  boost::any_cast<int>(trackmodel->data(trackmodel->index(i,0), Wt::UserRole)); 
-		if(atrack == tracknumber)
+		if(atrack == track)
 		{
 			newtrack = i;
 			break;
 		}
     		i++;
 	}
-
+std::cout<<" newtrack " << std::to_string(newtrack) << " tracknumber  " << std::to_string(tracknumber) << "track  " << std::to_string(track) << std::endl;
 	comboBox->setCurrentIndex(newtrack) ;
 //}
 	WPanel *panel;
