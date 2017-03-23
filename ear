@@ -16,7 +16,7 @@ import dbread
 import zmq
 import simplejson.scanner
 import subprocess
-
+#}}}
 
 def file_new(dummy = None):
     db.append(Track('', data['track'].dbname if data['track'] else fhs.write_data(os.path.join('db', 'default' + os.extsep + 'db'), opened = False)))
