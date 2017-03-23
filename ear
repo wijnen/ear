@@ -18,6 +18,28 @@ import simplejson.scanner
 import subprocess
 #}}}
 
+try:
+    from fuzzywuzzy import process
+    fuzzy = True
+except:
+    fuzzy = False
+
+def filtered(search,must,mays):
+    for i,track in enumerate(db):
+        for must in musts:
+            if must not in track['tags']:
+                continue
+        if len(mays)>0:
+            for tag in track['tags']:
+                if tag not in mays:
+                    continue 
+        tracks[track['name']]=i #Todo: Think of a better filter model
+    out = process.extract(search,tracks.keys(),limit=100)
+    toSend =OrderedDict()
+    for res in out:
+        toSend[res[0]]=tracks[res[0]]
+    return toSend 
+
 def file_new(dummy = None):
     db.append(Track('', data['track'].dbname if data['track'] else fhs.write_data(os.path.join('db', 'default' + os.extsep + 'db'), opened = False)))
     g.update_files = True
@@ -136,6 +158,9 @@ def zmq_callback(fd,condition,zmq_socket):
                 data['track']['fragments'] = msg['fragments'][2] #In Wt, we need a single root. This is called 'fragments' and only has children. Children are stored in idx 2
                 data['track']['dirty'] = True
                 zmq_socket.send_json({'_':'_'})
+            if 'filteredTtracks' in msg.keys() and type(msg['filteredTracks'])== dict:
+                data = msg['filteredTracks']
+                zmq_socket.send_json(filtered(data['search'],data['must'],data['may'])) 
         if type(msg) == list:
             if len(msg) ==1:
                 msg=msg[0]
