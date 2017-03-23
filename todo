@@ -12,6 +12,7 @@ Make group selections work better for 'play selection' (check for children)
 
 Annotations
 
+Allow splitting of fragments from the Wt video widget
 
 REnder audio as image
 # http://stackoverflow.com/questions/19454832/gstreamer-audiosink-to-output-stream-of-integers-representing-volume-levels
@@ -31,7 +32,7 @@ This may have been fixed along with the 'play selection' commit
 
 
 Fix the filtering of tracks and make the whole search thing in a seperate window
+http://www.chokkan.org/software/simstring/
 
 Optional: look at styling
 
-Fix selecting the correct track on startup
