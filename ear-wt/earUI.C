@@ -962,8 +962,8 @@ std::cout<<std::to_string(i) <<" "<< std::to_string(timestamp) <<" "<< std::to_s
 std::cout<<"Done filling model"<<std::endl;
 	
   //waveformChart->setModel(waveformModel);        // set the model
-// waveformChart->resize(50,500); //This is needed to render the modlel, but causes a crash on my laptop. This is because of some font issues with libharu. Retry on more recent OS's first to see if that fixes things.
-//https://sourceforge.net/p/witty/mailman/message/30272114/
+ //waveformChart->resize(50,500); //This is needed to render the modlel, but causes a crash on my laptop. This is because of some font issues with libharu. Retry on more recent OS's first to see if that fixes things.
+//https://sourceforge.net/p/witty/mailman/message/30272114/ //Won't work on Debian for now
 //http://witty-interest.narkive.com/1FcaBlfE/wt-interest-wpdfimage-error-102b
 std::cout<<"Set a model"<<std::endl;
 }
