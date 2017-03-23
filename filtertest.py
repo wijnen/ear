@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
-import fuzzywuzzy
-import dbread
 
-search = "Keizerwals"
-musts = ["wals"]
+#import fuzzywuzzy
+from fuzzywuzzy import process
+import dbread
+import fhs
+config = fhs.init({"webUI":True, 'gtkUI':False })
+from collections import OrderedDict
+
+
+search = "Quadrille"
+musts = [""]
 mays = [""]
 
 db = dbread.read()
+tick=time.time()
 tracks={}
 for i,track in enumerate(db):
     for must in musts:
@@ -15,16 +22,16 @@ for i,track in enumerate(db):
     #for tag in track['tags']:
     #    if tag not in mays:
     #        continue
-    tracks[track['title']]=i
+    tracks[track['name']]=i
     #Change mays in must not 
     #Actually, discuss filtering
-		
-out = fuzzywuzzy.process.extract(search,tracks.keys())
-toSend ={}
+out = process.extract(search,tracks.keys(),limit=100)
+toSend =OrderedDict()
 for res in out:
-	toSend[res[0]]=tracks[res[0]]
-
-print(toSend)
+    print(res)
+    toSend[res[0]]=tracks[res[0]]
+import pprint
+pprint.pprint(toSend)
 """
 > choices = ["Atlanta Falcons", "New York Jets", "New York Giants", "Dallas Cowboys"]
 >>> process.extract("new york jets", choices, limit=2)
