@@ -39,6 +39,88 @@
 
 #define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here. 
 
+
+class FilteredStringModel : Wt::WStringListModel
+{
+ /*
+Class to make a stringlistmodel that filters itsself based on filters set previously. Uses zeroMQ to talk to the Python Ear implementation and let Python (fuzzywuzzy) do the actual heavy lifting
+*/
+    public:
+	FilteredStringModel(std::string zmqString = std::string("filteredTracks?"), WObject *parent=0) : Wt::WStringListModel(parent)
+{
+searchString = "";
+};
+	std::vector<Wt::WString> mustFilters;
+	std::vector<Wt::WString> mayFilters;
+	Wt::WString searchString;
+	void update();
+    private:
+	Wt::WString zmqString;
+
+};
+void FilteredStringModel::update()
+{
+	Wt::Json::Value jSearchString = searchString;
+//https://www.webtoolkit.eu/wt/doc/reference/html/classWt_1_1Json_1_1Value.html
+//Make a Value with type Array, extract the Array, add to that, then add the Value to the Object, then serialize	
+	//https://www.webtoolkit.eu/wt/doc/reference/html/classWt_1_1Json_1_1Value.html#ab0aa6e7b5b5b35056e4238ccd4a0e5e8
+/*
+Json::Object person;
+person["children"] = Json::Value(Json::ArrayType);
+Json::Array& childre
+Json::Object person;
+person["children"] = Json::Value(Json::ArrayType);
+Json::Array& children = person.get("children");
+// add children ...
+
+*/
+	Wt::Json::Object package ;//;= new Wt::Json::Object();
+	package[std::string(zmqString.narrow())]=Wt::Json::Value(Wt::Json::ObjectType);
+		
+
+	Wt::Json::Object question = package.get(std::string(zmqString.narrow()));// = new Wt::Json::Object();
+//	question[std::string("search")]=Wt::Json::Value(Wt::Json::Type);	
+	question[std::string("must")]=Wt::Json::Value(Wt::Json::ArrayType);	
+	question[std::string("may")]=Wt::Json::Value(Wt::Json::ArrayType);	
+
+	Wt::Json::Array jMustFilters = question.get("must");
+	for (auto filter:mustFilters)
+	{
+		jMustFilters.push_back(filter);
+	}
+	Wt::Json::Array jMayFilters = question.get("may");
+	for (auto filter:mayFilters)
+	{
+		jMayFilters.push_back(filter);
+	}
+
+    zmq::context_t context (1);
+    zmq::socket_t socket (context, ZMQ_REQ);
+	std::string send = Wt::Json::serialize( package);
+    socket.connect ("tcp://localhost:5555");
+    Wt::Json::Object retval;
+	socket.send(send.c_str(),send.size());	
+	char buffer[MAXSIZE];
+    int nbytes = socket.recv(buffer, MAXSIZE);
+//std::cout<<"Recieved stuff"<<buffer<<std::endl;
+      Wt::Json::parse(std::string(buffer, nbytes),retval);
+    socket.disconnect("tcp://localhost:5555");
+	Wt::Json::Array options = retval.get("options");
+	int x=0;
+	for(auto voption:options)
+	{
+		Wt::Json::Object option = voption;
+		addString(option.get("name"));
+		setData(x,0,option.get("index"),Wt::UserRole);
+		x++;
+	}
+//std::cout<<"Disonnected from ZMQ"<<std::endl;
+
+}
+
+
+
+
 class MyTreeTableNode : public Wt::WTreeTableNode
 {
 	public:
@@ -240,7 +322,7 @@ Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget();
     Wt::WContainerWidget *searchContainer = new WContainerWidget(filterContainer);
     Wt::WContainerWidget *filtersContainer = new WContainerWidget(filterContainer);
     Wt::WLineEdit *filterbox = new Wt::WLineEdit(searchContainer);
-    filterbox->setPlaceholderText("Filter"); //TODO fuzzy search
+    filterbox->setPlaceholderText("Filter"); //TODO fuzzy search --> Will be done in Python, means changing this entire widget thign
     Wt::WPushButton *addFilter = new Wt::WPushButton("Add",searchContainer);
     addFilter->clicked().connect(std::bind([=] ()
     {
@@ -266,8 +348,7 @@ Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget();
      }));
     
 
-    Wt::WContainerWidget *inputContainer = new Wt::WContainerWidget();
-    root()->addWidget(inputContainer);
+    Wt::WContainerWidget *inputContainer = new Wt::WContainerWidget(root());
     Json::Object inputs;
     inputs = interact_zmq(socket,"inputs?");
     Wt::WContainerWidget *thisInputContainer;
@@ -338,7 +419,7 @@ Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget();
         }));
     }
     WContainerWidget *posContainer = new WContainerWidget(inputContainer);
-    WContainerWidget *chartContainer = new WContainerWidget(posContainer);
+    WContainerWidget *chartContainer = new WContainerWidget(inputContainer);
 	chartText = new  WText( "chart", chartContainer);
 std::cout<<"Charting"<<std::endl;
  waveformChart = new Chart::WCartesianChart(chartContainer);
@@ -347,10 +428,8 @@ std::cout<<"Charting"<<std::endl;
  waveformChart->setModel(waveformModel);        // set the model
 std::cout<< "Got a model"<<std::endl;
  waveformChart->setXSeriesColumn(0);    // set the column that holds the categorie
- waveformChart->setAutoLayoutEnabled(true);
  waveformChart->setType(Wt::Chart::ScatterPlot);
-waveformChart->axis(Wt::Chart::XAxis).setLocation(Wt::Chart::ZeroValue);
-waveformChart->axis(Wt::Chart::YAxis).setLocation(Wt::Chart::ZeroValue);
+ waveformChart->setAutoLayoutEnabled(true);
  	Chart::WDataSeries *l = new Chart::WDataSeries(1, Wt::Chart::LineSeries);
     l->setShadow(WShadow(3, 3, WColor(0, 0, 0, 127), 3));
  waveformChart->addSeries(*l);
@@ -882,7 +961,10 @@ std::cout<<std::to_string(i) <<" "<< std::to_string(timestamp) <<" "<< std::to_s
 	}
 std::cout<<"Done filling model"<<std::endl;
 	
-  waveformChart->setModel(waveformModel);        // set the model
+  //waveformChart->setModel(waveformModel);        // set the model
+// waveformChart->resize(50,500); //This is needed to render the modlel, but causes a crash on my laptop. This is because of some font issues with libharu. Retry on more recent OS's first to see if that fixes things.
+//https://sourceforge.net/p/witty/mailman/message/30272114/
+//http://witty-interest.narkive.com/1FcaBlfE/wt-interest-wpdfimage-error-102b
 std::cout<<"Set a model"<<std::endl;
 }
 
@@ -1104,7 +1186,6 @@ Json::Object EarUI::interact_zmq(zmq::socket_t &socket,Json::Object value)
 {
 	return interact_zmq(socket, Json::serialize(value));
 }
-
 
 Json::Object EarUI::interact_zmq(zmq::socket_t &socket,std::string value)
 {
