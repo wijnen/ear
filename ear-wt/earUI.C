@@ -14,6 +14,7 @@
 #include <Wt/WGroupBox>
 #include <Wt/WAnimation>
 #include <Wt/WStringListModel>
+#include <Wt/WStandardItemModel>
 #include <Wt/WComboBox>
 #include <Wt/WPanel>
 #include <Wt/WSlider>
@@ -28,6 +29,7 @@
 #include <Wt/WTree>
 #include <Wt/WTreeNode>
 #include <Wt/WTreeTableNode>
+#include <Wt/Chart/WCartesianChart>
 #include <zmq.hpp>
 #include <string>
 #include <iostream>
@@ -125,11 +127,16 @@ private:
  std::vector<MyTreeTableNode*> fragment_set;
   void clicked(WPushButton* source );
   void loadFragments(zmq::socket_t &socket);
-  void loadFragments();
+  void loadFragments();	
+  void loadWaveform();
+  WTimer *waveformTimer;
   void updateInputs();
   void loadGroup(MyTreeTableNode *current_root, Json::Array fragments);
   void mark_current_fragment(long long track_time);
   long current_track_time( zmq::socket_t *socket  =0  );
+  WStandardItemModel *waveformModel;
+  Chart::WCartesianChart *waveformChart;
+  WText *chartText;
   WSlider *posSlider;
   MyTreeTableNode *addNode(MyTreeTableNode *parent, WString name, const long start, const long stop );
   Wt::WStringListModel *get_trackmodel( zmq::socket_t &socket );
@@ -331,6 +338,37 @@ Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget();
         }));
     }
     WContainerWidget *posContainer = new WContainerWidget(inputContainer);
+    WContainerWidget *chartContainer = new WContainerWidget(posContainer);
+	chartText = new  WText( "chart", chartContainer);
+std::cout<<"Charting"<<std::endl;
+ waveformChart = new Chart::WCartesianChart(chartContainer);
+ waveformModel = new WStandardItemModel(0,3);
+ loadWaveform();
+ waveformChart->setModel(waveformModel);        // set the model
+std::cout<< "Got a model"<<std::endl;
+ waveformChart->setXSeriesColumn(0);    // set the column that holds the categorie
+ waveformChart->setAutoLayoutEnabled(true);
+ waveformChart->setType(Wt::Chart::ScatterPlot);
+waveformChart->axis(Wt::Chart::XAxis).setLocation(Wt::Chart::ZeroValue);
+waveformChart->axis(Wt::Chart::YAxis).setLocation(Wt::Chart::ZeroValue);
+ 	Chart::WDataSeries *l = new Chart::WDataSeries(1, Wt::Chart::LineSeries);
+    l->setShadow(WShadow(3, 3, WColor(0, 0, 0, 127), 3));
+ waveformChart->addSeries(*l);
+ /*Chart::WDataSeries *r = new Chart::WDataSeries(2, Wt::Chart::LineSeries);
+    r->setShadow(WShadow(3, 3, WColor(0, 0, 0, 127), 3));
+   waveformChart->addSeries(*r);*/
+//   waveformChart->resize(500,100);//This causes a PDF error? WTF?
+	waveformTimer = new WTimer();
+	waveformTimer->setSingleShot(true);
+	waveformTimer->setInterval(500);
+	waveformTimer->timeout().connect( std::bind([=] ()
+	{
+		loadWaveform();
+	}));
+	waveformTimer->start();
+//Not sure why weŕe not seeing the chart
+std::cout<<"Done charting "<<std::endl;
+
     posSlider = new WSlider(posContainer);
     WContainerWidget *posButtonContainer = new WContainerWidget(posContainer);
 
@@ -804,6 +842,52 @@ std::cout<<"Type not understood"<<std::endl;
 
 		
 }
+void EarUI::loadWaveform()
+{
+std::cout<<"Loading waveform"<<std::endl;
+	Json::Object ret = interact_zmq(std::string("waveform?"));
+std::cout<<"Extravting waveform"<<std::endl;
+	Json::Array waveform = ret.get("waveform");
+chartText->setText(WString(std::to_string(waveform.size())));
+std::cout<<"Got a waveform"<<std::endl;
+	waveformModel->removeRows(0,waveformModel->rowCount());
+	waveformModel->insertRows(0,waveform.size());
+	if(waveform.size() < 10)
+	{
+std::cout<<"WAves too short"<<std::endl;
+	waveformModel->insertRows(0,10);
+		waveformTimer->start();
+		for(int i=0;i<10;i++)
+		{
+			waveformModel->setData(i,0,i);
+			waveformModel->setData(i,1,i);
+			waveformModel->setData(i,2,i);
+		}
+std::cout<<"Added dummy data"<<std::endl;
+		return;
+	}
+	int i=0;
+std::cout<<"Filling model"<<std::endl;
+	for(auto item: waveform)
+	{
+		Json::Array foo = item;
+		double timestamp = foo[0];
+		double l = foo[1];
+		double r = foo[2];
+std::cout<<std::to_string(i) <<" "<< std::to_string(timestamp) <<" "<< std::to_string(l) <<std::endl;
+		waveformModel->setData(i,0,timestamp);
+		waveformModel->setData(i,1,l);
+		waveformModel->setData(i,2,r);
+		i++;
+	}
+std::cout<<"Done filling model"<<std::endl;
+	
+  waveformChart->setModel(waveformModel);        // set the model
+std::cout<<"Set a model"<<std::endl;
+}
+
+
+
 
 void EarUI::loadFragments()
 {
@@ -812,7 +896,9 @@ void EarUI::loadFragments()
     socket.connect ("tcp://localhost:5555");
 	loadFragments(socket);
     socket.disconnect("tcp://localhost:5555");
+	loadWaveform();
 }
+
 void EarUI::loadFragments(zmq::socket_t &socket)
 {
 

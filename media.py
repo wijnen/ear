@@ -79,7 +79,7 @@ class Media:
         self.player.set_property('audio-sink', self.audiobin)
         self.timeout = None
         self.countdown_end = None
-        self.waveform = [(None,None)]
+        self.waveform = [(None,None,None)]
     def make_waveform(self,filename): #TODO make optional for performance
         pipeline = Gst.parse_launch("   filesrc location=\""+filename+"\" ! decodebin     ! audioconvert ! audioresample ! level ! fakesink ")
         if pipeline == None:
@@ -91,9 +91,11 @@ class Media:
         def callback(bus,msg):
             if msg.type == Gst.MessageType.ELEMENT:
                 if  "GstLevel" not in str(type(msg.src)):
-                    return
-                output.append( (msg.get_structure().get_value('timestamp')/Gst.MSECOND , sum(msg.get_structure().get_value('rms'))/2.  ))
+                    return #TODO: Optimize code below to not append and be faster
+                rms = msg.get_structure().get_value('rms')
+                output.append( (msg.get_structure().get_value('timestamp')/Gst.MSECOND , rms[0],rms[1]))
             elif msg.type == Gst.MessageType.EOS:
+                print(output)
                 self.waveform = output #TODO set some signal that this can be sent to Wt
                 pipeline.set_state(Gst.State.NULL)
         bus.connect('message', callback)
@@ -128,6 +130,7 @@ class Media:
         # Discard old cb.
         self.cb = None
         track['media'] = index
+        self.waveform = [(None,None,None)]
         self.track = track
         if self.pipeline is not None:
             self.pause(True)
