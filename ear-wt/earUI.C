@@ -16,6 +16,7 @@
 #include <Wt/WStringListModel>
 #include <Wt/WStandardItemModel>
 #include <Wt/WComboBox>
+#include <Wt/WSelectionBox>
 #include <Wt/WPanel>
 #include <Wt/WSlider>
 #include <Wt/WTimer>
@@ -40,7 +41,7 @@
 #define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here. 
 
 
-class FilteredStringModel : Wt::WStringListModel
+class FilteredStringModel : public Wt::WStringListModel
 {
  /*
 Class to make a stringlistmodel that filters itsself based on filters set previously. Uses zeroMQ to talk to the Python Ear implementation and let Python (fuzzywuzzy) do the actual heavy lifting
@@ -49,17 +50,20 @@ Class to make a stringlistmodel that filters itsself based on filters set previo
 	FilteredStringModel(std::string zmqString = std::string("filteredTracks?"), WObject *parent=0) : Wt::WStringListModel(parent)
 {
 searchString = "";
+this->zmqString = zmqString;
 };
 	std::vector<Wt::WString> mustFilters;
 	std::vector<Wt::WString> mayFilters;
 	Wt::WString searchString;
 	void update();
+	Wt::WStringListModel(parent);
     private:
 	Wt::WString zmqString;
 
 };
 void FilteredStringModel::update()
 {
+	std::cout<<"Updating model in model class"<<std::endl;
 	Wt::Json::Value jSearchString = searchString;
 //https://www.webtoolkit.eu/wt/doc/reference/html/classWt_1_1Json_1_1Value.html
 //Make a Value with type Array, extract the Array, add to that, then add the Value to the Object, then serialize	
@@ -83,20 +87,27 @@ Json::Array& children = person.get("children");
 	question[std::string("must")]=Wt::Json::Value(Wt::Json::ArrayType);	
 	question[std::string("may")]=Wt::Json::Value(Wt::Json::ArrayType);	
 
+	std::cout<<"mustfilrers in model class"<<std::endl;
 	Wt::Json::Array jMustFilters = question.get("must");
 	for (auto filter:mustFilters)
 	{
+std::cout<<"Mustfilter"<<std::endl;
 		jMustFilters.push_back(filter);
 	}
 	Wt::Json::Array jMayFilters = question.get("may");
+
+std::cout<<"Mayfilters"<<std::endl;
 	for (auto filter:mayFilters)
 	{
+std::cout<<"Mayfilter"<<std::endl;
 		jMayFilters.push_back(filter);
 	}
 
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
 	std::string send = Wt::Json::serialize( package);
+std::cout<<"Sending:"<<std::endl;
+std::cout<<send<<std::endl;
     socket.connect ("tcp://localhost:5555");
     Wt::Json::Object retval;
 	socket.send(send.c_str(),send.size());	
@@ -104,17 +115,21 @@ Json::Array& children = person.get("children");
     int nbytes = socket.recv(buffer, MAXSIZE);
 //std::cout<<"Recieved stuff"<<buffer<<std::endl;
       Wt::Json::parse(std::string(buffer, nbytes),retval);
+std::cout<<"Recieved"<<std::endl;
     socket.disconnect("tcp://localhost:5555");
 	Wt::Json::Array options = retval.get("options");
 	int x=0;
+std::cout<<"Parsing"<<std::endl;
 	for(auto voption:options)
 	{
+std::cout<<"Parsing: x:"<<std::to_string(x)<<std::endl;
 		Wt::Json::Object option = voption;
 		addString(option.get("name"));
 		setData(x,0,option.get("index"),Wt::UserRole);
 		x++;
 	}
 //std::cout<<"Disonnected from ZMQ"<<std::endl;
+	std::cout<<"Done model in model class"<<std::endl;
 
 }
 
@@ -285,8 +300,34 @@ std::cout<<"Parsed names"<<std::endl;
    	));
     
 
-Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget();
-    root()->addWidget(trackListContainer);
+Wt::WContainerWidget *trackSearchContainer = new Wt::WContainerWidget(root()); //New implementation, used side-to-side during testing
+
+Wt::WLineEdit *searchBox = new Wt::WLineEdit(trackSearchContainer); 
+searchBox->setPlaceholderText("Type to search");
+Wt::WSelectionBox *trackSelectionBox = new Wt::WSelectionBox(trackSearchContainer);
+FilteredStringModel *trackModel = new FilteredStringModel();
+searchBox->textInput().connect(std::bind([=] ()
+{
+	trackModel->searchString = searchBox->text();
+	std::cout<<"Updating model"<<std::endl;
+	trackModel->update();
+}));
+trackModel->update();
+trackSelectionBox->setModel(trackModel);
+trackSelectionBox->setSelectionMode(Wt::SingleSelection);
+Wt::WPushButton *selectButton = new Wt::WPushButton("Select track",trackSearchContainer);
+selectButton->clicked().connect(std::bind([=] ()
+{
+	int row = trackSelectionBox->currentIndex();
+	int tracknumber = boost::any_cast<int>(trackModel->data(trackModel->index(row,0),Wt::UserRole));
+	interact_zmq(WString("track:"+std::to_string(tracknumber)));
+	updateInputs();
+}));
+
+
+
+
+Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget(root());
 
 
 
@@ -445,7 +486,7 @@ std::cout<< "Got a model"<<std::endl;
 	{
 		loadWaveform();
 	}));
-//	waveformTimer->start();
+	waveformTimer->start();
 //Not sure why weŕe not seeing the chart
 std::cout<<"Done charting "<<std::endl;
 #endif //Plot

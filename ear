@@ -268,8 +268,7 @@ def zmq_callback(fd,condition,zmq_socket):
             elif msg.startswith("playing?"):
                 zmq_socket.send_json({"playing":data['media'].playing()})
             elif msg.startswith("waveform?"):
-                #zmq_socket.send_json({"waveform":data['media'].waveform}) #CAn be huge message 
-                zmq_socket.send_json({"waveform":None}) #CAn be huge message 
+                zmq_socket.send_json({"waveform":data['media'].waveform}) #CAn be huge message 
             else:
                 print ("Event not handled:{}".format(msg))
                 zmq_socket.send_json({"dummy":g.position})
