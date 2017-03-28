@@ -419,6 +419,7 @@ Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget();
         }));
     }
     WContainerWidget *posContainer = new WContainerWidget(inputContainer);
+#ifdef PLOT
     WContainerWidget *chartContainer = new WContainerWidget(inputContainer);
 	chartText = new  WText( "chart", chartContainer);
 std::cout<<"Charting"<<std::endl;
@@ -444,10 +445,10 @@ std::cout<< "Got a model"<<std::endl;
 	{
 		loadWaveform();
 	}));
-	waveformTimer->start();
+//	waveformTimer->start();
 //Not sure why weŕe not seeing the chart
 std::cout<<"Done charting "<<std::endl;
-
+#endif //Plot
     posSlider = new WSlider(posContainer);
     WContainerWidget *posButtonContainer = new WContainerWidget(posContainer);
 
@@ -921,6 +922,7 @@ std::cout<<"Type not understood"<<std::endl;
 
 		
 }
+#ifdef PLOT
 void EarUI::loadWaveform()
 {
 std::cout<<"Loading waveform"<<std::endl;
@@ -936,7 +938,7 @@ std::cout<<"Got a waveform"<<std::endl;
 std::cout<<"WAves too short"<<std::endl;
 	waveformModel->insertRows(0,10);
 		waveformTimer->start();
-		for(int i=0;i<10;i++)
+		for(int i=0;i<10+1;i++)
 		{
 			waveformModel->setData(i,0,i);
 			waveformModel->setData(i,1,i);
@@ -962,12 +964,13 @@ std::cout<<std::to_string(i) <<" "<< std::to_string(timestamp) <<" "<< std::to_s
 std::cout<<"Done filling model"<<std::endl;
 	
   //waveformChart->setModel(waveformModel);        // set the model
- //waveformChart->resize(50,500); //This is needed to render the modlel, but causes a crash on my laptop. This is because of some font issues with libharu. Retry on more recent OS's first to see if that fixes things.
+ waveformChart->resize(50,500); //This is needed to render the modlel, but causes a crash on my laptop. This is because of some font issues with libharu. Retry on more recent OS's first to see if that fixes things.
 //https://sourceforge.net/p/witty/mailman/message/30272114/ //Won't work on Debian for now
 //http://witty-interest.narkive.com/1FcaBlfE/wt-interest-wpdfimage-error-102b
 std::cout<<"Set a model"<<std::endl;
 }
 
+#endif
 
 
 
@@ -978,7 +981,10 @@ void EarUI::loadFragments()
     socket.connect ("tcp://localhost:5555");
 	loadFragments(socket);
     socket.disconnect("tcp://localhost:5555");
-	loadWaveform();
+#ifdef PLOT
+waveformTimer->start();
+#endif
+
 }
 
 void EarUI::loadFragments(zmq::socket_t &socket)
