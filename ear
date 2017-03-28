@@ -16,6 +16,7 @@ import dbread
 import zmq
 import simplejson.scanner
 import subprocess
+import pprint #Debug
 #}}}
 
 try:
@@ -24,7 +25,8 @@ try:
 except:
     fuzzy = False
 
-def filtered(search,must,mays):
+def filtered(search,musts = [],mays = []):
+    tracks = {}
     for i,track in enumerate(db):
         for must in musts:
             if must not in track['tags']:
@@ -34,10 +36,16 @@ def filtered(search,must,mays):
                 if tag not in mays:
                     continue 
         tracks[track['name']]=i #Todo: Think of a better filter model
+    #print("tracks:") 
+    #print(tracks.__repr__().encode('utf-8'))
     out = process.extract(search,tracks.keys(),limit=100)
+    #print("out")
+    #print(out.__repr__().encode('utf-8'))
     toSend =OrderedDict()
-    for res in out:
+    for res in out: #out = [("title", score)]
         toSend[res[0]]=tracks[res[0]]
+    #print("toSend")
+    #print(toSend.__repr__().encode('utf-8')) 
     return toSend 
 
 def file_new(dummy = None):
@@ -138,7 +146,6 @@ zmq_socket.bind("tcp://*:5555")
 zmq_fd=zmq_socket.getsockopt(zmq.FD)
 g.before_active = True
 def zmq_callback(fd,condition,zmq_socket):
-    global data
     while zmq_socket.getsockopt(zmq.EVENTS) & zmq.POLLIN:
         wt = False
         try:
@@ -151,6 +158,11 @@ def zmq_callback(fd,condition,zmq_socket):
             print(msg)
             print(e)
             continue
+        """print(type(msg))
+        pprint.pprint(msg)
+        print("data:")
+        print(data.keys())
+        print(data['track'])"""
         if type(msg) == dict:
             if 'play' in msg.keys() and type(msg['play'])==list:
                 play_list(data['media'], msg['play'])
@@ -159,10 +171,12 @@ def zmq_callback(fd,condition,zmq_socket):
                 data['track']['fragments'] = msg['fragments'][2] #In Wt, we need a single root. This is called 'fragments' and only has children. Children are stored in idx 2
                 data['track']['dirty'] = True
                 zmq_socket.send_json({'_':'_'})
-            if 'filteredTtracks' in msg.keys():
-                if type(msg['filteredTracks'])== dict:
-                    data = msg['filteredTracks']
-                    zmq_socket.send_json(filtered(data['search'],data['must'],data['may'])) 
+            if 'filteredTracks?' in msg.keys():
+                if type(msg['filteredTracks?'])== dict:
+                    pprint.pprint(msg)
+                    print(msg['filteredTracks?'])
+                    query = msg['filteredTracks?']
+                    zmq_socket.send_json(filtered(query['searchString'],query['musts'],[])) 
                 else:
                     zmq_socket.send_json({"dummy":"dummy"}) 
         if type(msg) == list:
@@ -274,14 +288,16 @@ def zmq_callback(fd,condition,zmq_socket):
                 zmq_socket.send_json({"dummy":g.position})
     return True
 
-from gi.repository import GObject
-GObject.io_add_watch(zmq_fd,GObject.IO_IN, zmq_callback, zmq_socket)
-
 set_pos(0)
 data['track']=db[-1]    
 new_file()
 print(data['track'])
 print(data['media'])
+from gi.repository import GObject
+GObject.io_add_watch(zmq_fd,GObject.IO_IN, zmq_callback, zmq_socket)
+
+
+
 GLib.MainLoop().run()
     
 #

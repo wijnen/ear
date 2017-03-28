@@ -63,8 +63,38 @@ this->zmqString = zmqString;
 };
 void FilteredStringModel::update()
 {
-	std::cout<<"Updating model in model class"<<std::endl;
-	Wt::Json::Value jSearchString = searchString;
+
+
+	std::string retval = "{";
+	retval += "\""+zmqString.narrow()+"\" : {";
+ 	retval += "\"searchString\" : \""+searchString.narrow()+"\", ";
+	retval += "\"musts\" : [";
+	for (auto filter:mustFilters)
+	{
+		retval += "\""+filter.narrow()+ "\" , ";
+	}
+	if(mustFilters.size()>0)
+	{
+		retval = retval.substr(0,retval.length() -3); //Remove comma
+	}
+	retval += "], ";
+	retval += "\"mays\" : [";
+	for (auto filter:mayFilters)
+	{
+		retval += "\""+filter.narrow()+ "\" , ";
+	}
+	if(mayFilters.size()>0)
+	{
+		retval = retval.substr(0,retval.length() -3); //Remove comma
+	}
+	retval += "] ";
+	retval +="}}";
+
+
+
+
+//	std::cout<<"Updating model in model class"<<std::endl;
+//	Wt::Json::Value jSearchString = searchString;
 //https://www.webtoolkit.eu/wt/doc/reference/html/classWt_1_1Json_1_1Value.html
 //Make a Value with type Array, extract the Array, add to that, then add the Value to the Object, then serialize	
 	//https://www.webtoolkit.eu/wt/doc/reference/html/classWt_1_1Json_1_1Value.html#ab0aa6e7b5b5b35056e4238ccd4a0e5e8
@@ -76,56 +106,77 @@ Json::Object person;
 person["children"] = Json::Value(Json::ArrayType);
 Json::Array& children = person.get("children");
 // add children ...
-
+//This does not seem to work for nested objects. 
 */
-	Wt::Json::Object package ;//;= new Wt::Json::Object();
-	package[std::string(zmqString.narrow())]=Wt::Json::Value(Wt::Json::ObjectType);
-		
+/*	Wt::Json::Object package ;//;= new Wt::Json::Object();
+	std::string key = zmqString.narrow();
+	package[key]=Wt::Json::Value(Wt::Json::ArrayType);
+*/		
 
-	Wt::Json::Object question = package.get(std::string(zmqString.narrow()));// = new Wt::Json::Object();
+//	Wt::Json::Object jMus = 
 //	question[std::string("search")]=Wt::Json::Value(Wt::Json::Type);	
-	question[std::string("must")]=Wt::Json::Value(Wt::Json::ArrayType);	
-	question[std::string("may")]=Wt::Json::Value(Wt::Json::ArrayType);	
-
+///	question[std::string("must")]=Wt::Json::Value(Wt::Json::ArrayType);	
+//	question[std::string("may")]=Wt::Json::Value(Wt::Json::ArrayType);	
+/*
 	std::cout<<"mustfilrers in model class"<<std::endl;
-	Wt::Json::Array jMustFilters = question.get("must");
+	Wt::Json::Array jMustFilters = package.get(key);// = new Wt::Json::Object();
 	for (auto filter:mustFilters)
 	{
 std::cout<<"Mustfilter"<<std::endl;
 		jMustFilters.push_back(filter);
 	}
-	Wt::Json::Array jMayFilters = question.get("may");
-
+if(jMustFilters.size() ==0)
+{
+std::cout<<"Adding a line"<<std::endl;
+	jMustFilters.push_back("null");
+}*/
+/*	Wt::Json::Array jMayFilters = question.get("may");
 std::cout<<"Mayfilters"<<std::endl;
 	for (auto filter:mayFilters)
 	{
 std::cout<<"Mayfilter"<<std::endl;
 		jMayFilters.push_back(filter);
 	}
-
+if(jMayFilters.size() ==0)
+{
+std::cout<<"Adding a line"<<std::endl;
+	jMayFilters.push_back("null");
+}
+*/	
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
-	std::string send = Wt::Json::serialize( package);
+//	std::string send = Wt::Json::serialize( package);
 std::cout<<"Sending:"<<std::endl;
-std::cout<<send<<std::endl;
+std::cout<<retval<<std::endl;
+for(int j=0;j<100;j++)
+{
+std::cout<<j%10;
+}
+std::cout<<std::endl;
+for(int j=0;j<100;j++)
+{
+std::cout<<j/10;
+}
+std::cout<<std::endl;
+ 
     socket.connect ("tcp://localhost:5555");
-    Wt::Json::Object retval;
-	socket.send(send.c_str(),send.size());	
+    Wt::Json::Object options;
+	socket.send(retval.c_str(),retval.size());	
 	char buffer[MAXSIZE];
     int nbytes = socket.recv(buffer, MAXSIZE);
 //std::cout<<"Recieved stuff"<<buffer<<std::endl;
-      Wt::Json::parse(std::string(buffer, nbytes),retval);
-std::cout<<"Recieved"<<std::endl;
+//std::cout<<"Recieved"<<std::endl;
+std::cout<<buffer<<std::endl;
+      Wt::Json::parse(std::string(buffer, nbytes),options);
+//std::cout<<"Parsed jsond"<<std::endl;
     socket.disconnect("tcp://localhost:5555");
-	Wt::Json::Array options = retval.get("options");
 	int x=0;
-std::cout<<"Parsing"<<std::endl;
-	for(auto voption:options)
+//std::cout<<"Parsing"<<std::endl;
+	for(auto name:options.names())
 	{
-std::cout<<"Parsing: x:"<<std::to_string(x)<<std::endl;
-		Wt::Json::Object option = voption;
-		addString(option.get("name"));
-		setData(x,0,option.get("index"),Wt::UserRole);
+//std::cout<<"Parsing: x:"<<std::to_string(x)<<std::endl;
+		addString(name);
+		setData(x,0,options.get(name),Wt::UserRole);
 		x++;
 	}
 //std::cout<<"Disonnected from ZMQ"<<std::endl;
