@@ -92,95 +92,28 @@ void FilteredStringModel::update()
 
 
 
-
-//	std::cout<<"Updating model in model class"<<std::endl;
-//	Wt::Json::Value jSearchString = searchString;
-//https://www.webtoolkit.eu/wt/doc/reference/html/classWt_1_1Json_1_1Value.html
-//Make a Value with type Array, extract the Array, add to that, then add the Value to the Object, then serialize	
-	//https://www.webtoolkit.eu/wt/doc/reference/html/classWt_1_1Json_1_1Value.html#ab0aa6e7b5b5b35056e4238ccd4a0e5e8
-/*
-Json::Object person;
-person["children"] = Json::Value(Json::ArrayType);
-Json::Array& childre
-Json::Object person;
-person["children"] = Json::Value(Json::ArrayType);
-Json::Array& children = person.get("children");
-// add children ...
-//This does not seem to work for nested objects. 
-*/
-/*	Wt::Json::Object package ;//;= new Wt::Json::Object();
-	std::string key = zmqString.narrow();
-	package[key]=Wt::Json::Value(Wt::Json::ArrayType);
-*/		
-
-//	Wt::Json::Object jMus = 
-//	question[std::string("search")]=Wt::Json::Value(Wt::Json::Type);	
-///	question[std::string("must")]=Wt::Json::Value(Wt::Json::ArrayType);	
-//	question[std::string("may")]=Wt::Json::Value(Wt::Json::ArrayType);	
-/*
-	std::cout<<"mustfilrers in model class"<<std::endl;
-	Wt::Json::Array jMustFilters = package.get(key);// = new Wt::Json::Object();
-	for (auto filter:mustFilters)
-	{
-std::cout<<"Mustfilter"<<std::endl;
-		jMustFilters.push_back(filter);
-	}
-if(jMustFilters.size() ==0)
-{
-std::cout<<"Adding a line"<<std::endl;
-	jMustFilters.push_back("null");
-}*/
-/*	Wt::Json::Array jMayFilters = question.get("may");
-std::cout<<"Mayfilters"<<std::endl;
-	for (auto filter:mayFilters)
-	{
-std::cout<<"Mayfilter"<<std::endl;
-		jMayFilters.push_back(filter);
-	}
-if(jMayFilters.size() ==0)
-{
-std::cout<<"Adding a line"<<std::endl;
-	jMayFilters.push_back("null");
-}
-*/	
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
-//	std::string send = Wt::Json::serialize( package);
-std::cout<<"Sending:"<<std::endl;
-std::cout<<retval<<std::endl;
-for(int j=0;j<100;j++)
-{
-std::cout<<j%10;
-}
-std::cout<<std::endl;
-for(int j=0;j<100;j++)
-{
-std::cout<<j/10;
-}
-std::cout<<std::endl;
  
     socket.connect ("tcp://localhost:5555");
-    Wt::Json::Object options;
+    Wt::Json::Object response;
 	socket.send(retval.c_str(),retval.size());	
 	char buffer[MAXSIZE];
     int nbytes = socket.recv(buffer, MAXSIZE);
-//std::cout<<"Recieved stuff"<<buffer<<std::endl;
-//std::cout<<"Recieved"<<std::endl;
-std::cout<<buffer<<std::endl;
-      Wt::Json::parse(std::string(buffer, nbytes),options);
-//std::cout<<"Parsed jsond"<<std::endl;
+      Wt::Json::parse(std::string(buffer, nbytes),response);
+	Wt::Json::Array options = response.get("options");
     socket.disconnect("tcp://localhost:5555");
 	int x=0;
-//std::cout<<"Parsing"<<std::endl;
-	for(auto name:options.names())
+	removeRows(0,rowCount());
+	for(auto voption:options)
 	{
-//std::cout<<"Parsing: x:"<<std::to_string(x)<<std::endl;
-		addString(name);
-		setData(x,0,options.get(name),Wt::UserRole);
+	Wt::Json::Array option = voption;
+	std::string name = option[0];
+	int idx = option[1];
+	        addString(name);
+		setData(x,0,idx,Wt::UserRole);
 		x++;
 	}
-//std::cout<<"Disonnected from ZMQ"<<std::endl;
-	std::cout<<"Done model in model class"<<std::endl;
 
 }
 
@@ -362,6 +295,8 @@ searchBox->textInput().connect(std::bind([=] ()
 	trackModel->searchString = searchBox->text();
 	std::cout<<"Updating model"<<std::endl;
 	trackModel->update();
+	trackSelectionBox->setModel(trackModel);
+std::cout<<"Updated model"<<std::endl;
 }));
 trackModel->update();
 trackSelectionBox->setModel(trackModel);
@@ -767,7 +702,7 @@ std::cout<<"interacted pos"<<std::endl;
 
 
    Wt::WTimer *inputtimer = new Wt::WTimer();  
-   inputtimer->setInterval(2000);
+   inputtimer->setInterval(5000);
    inputtimer->timeout().connect(std::bind([=] ()
    {
 	updateInputs();
@@ -775,7 +710,7 @@ std::cout<<"interacted pos"<<std::endl;
    inputtimer->start();
 
    Wt::WTimer *timer = new Wt::WTimer();  
-   timer->setInterval(50);
+   timer->setInterval(1000);
    timer->timeout().connect(std::bind([=] ()
    {
     zmq::context_t context (1);

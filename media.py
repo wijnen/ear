@@ -95,7 +95,6 @@ class Media:
                 rms = msg.get_structure().get_value('rms')
                 output.append( (msg.get_structure().get_value('timestamp')/Gst.MSECOND , rms[0],rms[1]))
             elif msg.type == Gst.MessageType.EOS:
-                print(output)
                 self.waveform = output #TODO set some signal that this can be sent to Wt
                 pipeline.set_state(Gst.State.NULL)
         bus.connect('message', callback)

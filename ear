@@ -38,12 +38,14 @@ def filtered(search,musts = [],mays = []):
         tracks[track['name']]=i #Todo: Think of a better filter model
     #print("tracks:") 
     #print(tracks.__repr__().encode('utf-8'))
+    #TODO: if len(search)<0
     out = process.extract(search,tracks.keys(),limit=100)
     #print("out")
     #print(out.__repr__().encode('utf-8'))
-    toSend =OrderedDict()
+    toSend =OrderedDict() #No such thing in JSON!
+    toSend = []
     for res in out: #out = [("title", score)]
-        toSend[res[0]]=tracks[res[0]]
+        toSend.append( ( res[0],tracks[res[0]]))
     #print("toSend")
     #print(toSend.__repr__().encode('utf-8')) 
     return toSend 
@@ -176,7 +178,7 @@ def zmq_callback(fd,condition,zmq_socket):
                     pprint.pprint(msg)
                     print(msg['filteredTracks?'])
                     query = msg['filteredTracks?']
-                    zmq_socket.send_json(filtered(query['searchString'],query['musts'],[])) 
+                    zmq_socket.send_json({"options":filtered(query['searchString'],query['musts'],[])}) 
                 else:
                     zmq_socket.send_json({"dummy":"dummy"}) 
         if type(msg) == list:
