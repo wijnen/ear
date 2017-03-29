@@ -284,11 +284,27 @@ std::cout<<"Parsed names"<<std::endl;
    	));
     
 
-Wt::WContainerWidget *trackSearchContainer = new Wt::WContainerWidget(root()); //New implementation, used side-to-side during testing
 
+    Wt::WPanel *selectPanel = new Wt::WPanel(root());
+selectPanel->setTitle("Select new track");
+    selectPanel->setObjectName("selectionPanel");
+    selectPanel->setCollapsible(true);
+/*    Wt::WAnimation animation(Wt::WAnimation::SlideInFromTop,
+			 Wt::WAnimation::EaseOut,
+			 100);*/
+    selectPanel->setAnimation(animation);
+   
+
+Wt::WContainerWidget *trackSearchContainer = new Wt::WContainerWidget(root()); //New implementation, used side-to-side during testing
+//Make this a VBox instead of the current HBox maybe? TODO
+selectPanel->setCentralWidget(trackSearchContainer);
+
+
+selectPanel->setHidden(false);
 Wt::WLineEdit *searchBox = new Wt::WLineEdit(trackSearchContainer); 
 searchBox->setPlaceholderText("Type to search");
 Wt::WSelectionBox *trackSelectionBox = new Wt::WSelectionBox(trackSearchContainer);
+trackSelectionBox->resize(500,500);
 FilteredStringModel *trackModel = new FilteredStringModel();
 searchBox->textInput().connect(std::bind([=] ()
 {
@@ -313,11 +329,11 @@ selectButton->clicked().connect(std::bind([=] ()
 
 
 
-Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget(root());
+Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget(trackSearchContainer);
 
 
 
-    Wt::WComboBox *trackcombo = new Wt::WComboBox(trackListContainer); //TODO: Change from track list container to something searchable
+    Wt::WComboBox *trackcombo = new Wt::WComboBox(trackListContainer); 
     trackcombo->setMargin(10, Wt::Right);
 
     
@@ -338,14 +354,13 @@ Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget(root());
 	interact_zmq("track:"+std::to_string(tracknumber));
 	updateInputs();
 	loadFragments();
-//TODO: This should probably happen in more places?
 
     }));
     Wt::WContainerWidget *filterContainer = new WContainerWidget(trackListContainer);
     Wt::WContainerWidget *searchContainer = new WContainerWidget(filterContainer);
     Wt::WContainerWidget *filtersContainer = new WContainerWidget(filterContainer);
     Wt::WLineEdit *filterbox = new Wt::WLineEdit(searchContainer);
-    filterbox->setPlaceholderText("Filter"); //TODO fuzzy search --> Will be done in Python, means changing this entire widget thign
+    filterbox->setPlaceholderText("Filter"); 
     Wt::WPushButton *addFilter = new Wt::WPushButton("Add",searchContainer);
     addFilter->clicked().connect(std::bind([=] ()
     {
@@ -442,8 +457,6 @@ Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget(root());
 	  
 	}
 	inputText->setObjectName("inputText:"+input_name);
-//	inputContainer->addWidget(inputSlider);
-//	inputContainer->addWidget(inputText);
 	inputText->setText(input_name+": "+inputSlider->valueText());
 	
 	inputSlider->valueChanged().connect(std::bind([=] ()
@@ -454,7 +467,7 @@ Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget(root());
         }));
     }
     WContainerWidget *posContainer = new WContainerWidget(inputContainer);
-#ifdef PLOT
+#ifdef PLOT //ifdef'd out as it crashes on all Debian versions of Wt
     WContainerWidget *chartContainer = new WContainerWidget(inputContainer);
 	chartText = new  WText( "chart", chartContainer);
 std::cout<<"Charting"<<std::endl;
@@ -472,7 +485,7 @@ std::cout<< "Got a model"<<std::endl;
  /*Chart::WDataSeries *r = new Chart::WDataSeries(2, Wt::Chart::LineSeries);
     r->setShadow(WShadow(3, 3, WColor(0, 0, 0, 127), 3));
    waveformChart->addSeries(*r);*/
-//   waveformChart->resize(500,100);//This causes a PDF error? WTF?
+   waveformChart->resize(500,100);//This causes a PDF error? WTF?
 	waveformTimer = new WTimer();
 	waveformTimer->setSingleShot(true);
 	waveformTimer->setInterval(50);
@@ -481,7 +494,6 @@ std::cout<< "Got a model"<<std::endl;
 		loadWaveform();
 	}));
 	waveformTimer->start();
-//Not sure why weŕe not seeing the chart
 std::cout<<"Done charting "<<std::endl;
 #endif //Plot
     posSlider = new WSlider(posContainer);
@@ -563,7 +575,6 @@ std::cout<<"interacted pos"<<std::endl;
 		else
 		{
 			start -= beforeSlider->value()*1000;
-			//start_track_time = start;
 		}
 		first = false;
 		ret += "["+std::to_string(start)+" , "+	std::to_string(stop)+"]\n";
@@ -721,18 +732,15 @@ std::cout<<"interacted pos"<<std::endl;
    timer->setInterval(100);
    timer->timeout().connect(std::bind([=] ()
    {
-    zmq::context_t context (1);
-    zmq::socket_t socket (context, ZMQ_REQ);
-    socket.connect ("tcp://localhost:5555");
+	zmq::context_t context (1);
+	zmq::socket_t socket (context, ZMQ_REQ);
+	socket.connect ("tcp://localhost:5555");
 
-long long track_time = 	EarUI::current_track_time(&socket);
+	long long track_time = 	EarUI::current_track_time(&socket);
 	posSlider->setValue(track_time);
 	posText->setTime(track_time);
-	//TODO: Add a query for the playing state in here as well. This allows us to make play/pause a single button
-//Also, change the interval. When not playing, we can be slower updating and catch up within a second or something. This'll mainly help making the logs more readable, but also might help some performance
-
-Json::Object playingj;
-bool playing;
+	Json::Object playingj;
+	bool playing;
 	playingj = interact_zmq(socket,std::string("playing?"));
 
 	playing = playingj.get("playing");
@@ -744,11 +752,11 @@ bool playing;
 	{
 		playPauseButton->setText("Play");
 	}
-    socket.disconnect("tcp://localhost:5555");
-mark_current_fragment(track_time); 
+        socket.disconnect("tcp://localhost:5555");
+        mark_current_fragment(track_time); 
    }));
 
-	timer->start();
+    timer->start();
     updateInputs();
 
 
@@ -795,7 +803,7 @@ long EarUI::current_track_time( zmq::socket_t *socket )
 }
 
 Wt::WStringListModel *EarUI::filter_trackmodel( WStringListModel *trackmodel, WContainerWidget *filterWidget )
-{
+{ //TODO: Most of this should be removed soon as it has been translated into Python
 std::cout<<"Handling filter"<<std::endl;
 	std::set<WString> filters;
 	std::set<WString> tags;
@@ -894,13 +902,9 @@ Json::Value EarUI::saveFragments(MyTreeTableNode *root)
 {
 
 	Json::Value retVal = Json::Value(Json::ArrayType);
-std::cout<<__LINE__<<std::endl;
 	Json::Array& ret = retVal; 
 	WString name;
-//	WText *nameWidget = root->label();
-std::cout<<__LINE__<<std::endl;
 	name = root->text;	
-std::cout<<__LINE__<<std::endl;
 	if(root->childNodes().size()>0)
 	{
 		ret.push_back(Json::Value(WString("group")));
@@ -1073,29 +1077,17 @@ void EarUI::updateInputs()
 	response=interact_zmq(socket,"track?");
 	int track;
 	track = response.get("current");
-std::cout<<"Current track in ui is "<<comboBox->currentIndex()<<std::endl;
-std::cout<<"Current track in ear is "<<track<<std::endl;
-int row = comboBox->currentIndex();
-//if (row!=-1) //Wait till everything is inited.. //TODO
-// //Segfault round here{
-std::cout<<"Precast"<<std::endl;
-WStringListModel *trackmodel = dynamic_cast<WStringListModel*>(comboBox->model());
-std::cout<<"Pre int cast"<<std::endl;
-int tracknumber =-2;
-if (row!=-1)
-{
- tracknumber = boost::any_cast<int>(trackmodel->data(trackmodel->index(row,0), Wt::UserRole)); 
-}
-std::cout<<"postcast"<<std::endl;
+	int row = comboBox->currentIndex();
+	WStringListModel *trackmodel = dynamic_cast<WStringListModel*>(comboBox->model());
+	int tracknumber =-2;
+	if (row!=-1)
+	{
+		tracknumber = boost::any_cast<int>(trackmodel->data(trackmodel->index(row,0), Wt::UserRole)); 
+	}
 	if (track !=tracknumber) 
 	{
-std::cout<<"Loading markers"<<std::endl;
 		loadFragments(socket);
 	}	
-	else
-	{
-std::cout<<"Not loading markers"<<std::endl;
-	}
 	int newtrack = 0;
 	int atrack = 0;
 	int i = 0;
@@ -1154,7 +1146,7 @@ MyTreeTableNode *EarUI::addNode(MyTreeTableNode *parent, WString name, const lon
 std::cout<<"Handlign a startbutton click from the markertree"<<std::endl;
 		long mystart = start;	
 		if(start == -1)
-		{ //MARK 
+		{ 
 			if (node->childNodes().size() > 0)
 			{
 				MyTreeTableNode *myttn = dynamic_cast<MyTreeTableNode*> (*(node->childNodes()).begin());
@@ -1166,7 +1158,7 @@ std::cout<<"Handlign a startbutton click from the markertree"<<std::endl;
 			}
 		}
 		long startBefore = mystart - beforeSlider->value()*1000;
-		interact_zmq(WString("event:stop")); //Will this stop the wierd issues?
+		interact_zmq(WString("event:stop")); //Probably needed to help stop the track from stopping the middle of a play
 
 		WString command="play:"+std::to_string(startBefore); 
 		interact_zmq(command);
@@ -1207,11 +1199,9 @@ Json::Object EarUI::interact_zmq(Json::Object value)//Should use a function temp
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
     socket.connect ("tcp://localhost:5555");
-//std::cout<<"Connected to ZMQ"<<std::endl;
     Json::Object retval;
     retval = interact_zmq(socket,value);	
     socket.disconnect("tcp://localhost:5555");
-//std::cout<<"Disonnected from ZMQ"<<std::endl;
     return retval;
 }
 
@@ -1221,11 +1211,9 @@ Json::Object EarUI::interact_zmq(std::string value)
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
     socket.connect ("tcp://localhost:5555");
-//std::cout<<"Connected to ZMQ"<<std::endl;
     Json::Object retval;
     retval = interact_zmq(socket,value);	
     socket.disconnect("tcp://localhost:5555");
-//std::cout<<"Disonnected from ZMQ"<<std::endl;
     return retval;
 }
 
@@ -1238,14 +1226,11 @@ Json::Object EarUI::interact_zmq(zmq::socket_t &socket,std::string value)
 {
     send_zmq(socket,value);
     Json::Object retval;
-//std::cout<<"Recieving and parsing"<<std::endl;	
     Json::parse(recv_zmq(socket),retval);
-//std::cout<<"Parsed"<<std::endl;
     return retval;
 }
 void EarUI::send_zmq(zmq::socket_t &socket, std::string value) 
 {
-//std::cout<<"Sending stuff: "<<value<<std::endl;
     Json::Value msg_str;
     msg_str = WString( value);
     Json::Array msg_arr;
@@ -1257,10 +1242,8 @@ void EarUI::send_zmq(zmq::socket_t &socket, std::string value)
 
 std::string EarUI::recv_zmq(zmq::socket_t &socket) 
 {
-//std::cout<<"Recieving stuff"<<std::endl;
     char buffer[MAXSIZE];
     int nbytes = socket.recv(buffer, MAXSIZE);
-//std::cout<<"Recieved stuff"<<buffer<<std::endl;
     return std::string(buffer, nbytes);
 }
 
