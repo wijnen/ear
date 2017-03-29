@@ -26,28 +26,35 @@ except:
     fuzzy = False
 
 def filtered(search,musts = [],mays = []):
-    tracks = {}
+    tracks = OrderedDict()
     for i,track in enumerate(db):
-        for must in musts:
-            if must not in track['tags']:
-                continue
+        """if track['name'] in tracks.keys():
+             print("Track double")
+             print(track['name'].encode('utf-8'), track['files'].__repr__().encode('utf-8'))
+             double = db[tracks[track['name']]]
+             print(double['name'].encode('utf-8'), double['files'].__repr__().encode('utf-8'))"""
+        if not all([(must in track['tags']) for must in musts]) and len(musts)>0:
+              print("Removing something because of a filter")
+              continue
         if len(mays)>0:
             for tag in track['tags']:
                 if tag not in mays:
                     continue 
         tracks[track['name']]=i #Todo: Think of a better filter model
-    #print("tracks:") 
-    #print(tracks.__repr__().encode('utf-8'))
-    #TODO: if len(search)<0
-    out = process.extract(search,tracks.keys(),limit=100)
+    #TODO: if len(search)<0 maybe show alphabetical list?
+    toSend = []
+    if len(search)<1:
+        if len(musts)==0 and len(mays)==0:
+              print(len(tracks), len(db)) #Why do we get so much doubes?
+        for k,v in tracks.items():
+            toSend.append((k,v))     #ASCIIbetical filename ordering due to ordereddict used above. Basically, order by whatever happens in the fragments files, and then determistically random crud. Pretty close to what you'd expect anyway
+        return toSend
+    out = process.extract(search,tracks.keys(),limit=len(tracks))
+    for res in out: #out = [("title", score)]
+         toSend.append( ( res[0],tracks[res[0]]))
     #print("out")
     #print(out.__repr__().encode('utf-8'))
-    toSend =OrderedDict() #No such thing in JSON!
-    toSend = []
-    for res in out: #out = [("title", score)]
-        toSend.append( ( res[0],tracks[res[0]]))
-    #print("toSend")
-    #print(toSend.__repr__().encode('utf-8')) 
+   #print("toSend")
     return toSend 
 
 def file_new(dummy = None):

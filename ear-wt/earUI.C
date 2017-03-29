@@ -52,8 +52,8 @@ Class to make a stringlistmodel that filters itsself based on filters set previo
 searchString = "";
 this->zmqString = zmqString;
 };
-	std::vector<Wt::WString> mustFilters;
-	std::vector<Wt::WString> mayFilters;
+	std::vector<Wt::WString> musts;
+	std::vector<Wt::WString> mays;
 	Wt::WString searchString;
 	void update();
 	Wt::WStringListModel(parent);
@@ -69,21 +69,21 @@ void FilteredStringModel::update()
 	retval += "\""+zmqString.narrow()+"\" : {";
  	retval += "\"searchString\" : \""+searchString.narrow()+"\", ";
 	retval += "\"musts\" : [";
-	for (auto filter:mustFilters)
+	for (auto filter:musts)
 	{
 		retval += "\""+filter.narrow()+ "\" , ";
 	}
-	if(mustFilters.size()>0)
+	if(musts.size()>0)
 	{
 		retval = retval.substr(0,retval.length() -3); //Remove comma
 	}
 	retval += "], ";
 	retval += "\"mays\" : [";
-	for (auto filter:mayFilters)
+	for (auto filter:mays)
 	{
 		retval += "\""+filter.narrow()+ "\" , ";
 	}
-	if(mayFilters.size()>0)
+	if(mays.size()>0)
 	{
 		retval = retval.substr(0,retval.length() -3); //Remove comma
 	}
@@ -338,12 +338,8 @@ Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget(root());
 	interact_zmq("track:"+std::to_string(tracknumber));
 	updateInputs();
 	loadFragments();
+//TODO: This should probably happen in more places?
 
-                TimeWidget *firstW = dynamic_cast<TimeWidget*>((*fragment_set.begin())->columnWidget(1));
-                TimeWidget *lastW = dynamic_cast<TimeWidget*>((*fragment_set.rbegin())->columnWidget(2));
-                posSlider->setMinimum(firstW->time());
-                posSlider->setMaximum(lastW->time());
-	
     }));
     Wt::WContainerWidget *filterContainer = new WContainerWidget(trackListContainer);
     Wt::WContainerWidget *searchContainer = new WContainerWidget(filterContainer);
@@ -354,12 +350,22 @@ Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget(root());
     addFilter->clicked().connect(std::bind([=] ()
     {
 	Wt::WContainerWidget *thisFilter = new Wt::WContainerWidget(filtersContainer); 
-	new WText(filterbox->text(),thisFilter);
+	WString filterName = filterbox->text();
+	new WText(filterName,thisFilter);
 	Wt::WPushButton *removeButton = new WPushButton("X",thisFilter);
 		removeButton->clicked().connect(std::bind([=] ()
 		{
 			filtersContainer->removeWidget(thisFilter);
 			thisFilter->clear();
+			//New model code
+			std::vector<WString>::iterator pos = std::find(trackModel->musts.begin(), trackModel->musts.end(), filterName);
+			if(pos!=trackModel->musts.end())
+			{
+				trackModel->musts.erase(pos);
+				trackModel->update();
+			}
+			//End new model code
+
 			if(filtersContainer->count()>0)
 			{
 			 	trackcombo->setModel(filter_trackmodel(get_trackmodel(),filtersContainer));
@@ -369,9 +375,11 @@ Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget(root());
 			 	trackcombo->setModel(get_trackmodel());
 			}
 		}));
+        trackModel->musts.push_back(filterName);  //new model code
+				trackModel->update();
 	trackcombo->setModel(filter_trackmodel(trackmodel,filtersContainer));
 	filterbox->setText("");
-	filterbox->setPlaceholderText("Filter");
+	filterbox->setPlaceholderText("Filter"); //TODO: Autofill/autocomplete
      }));
     
 
@@ -467,7 +475,7 @@ std::cout<< "Got a model"<<std::endl;
 //   waveformChart->resize(500,100);//This causes a PDF error? WTF?
 	waveformTimer = new WTimer();
 	waveformTimer->setSingleShot(true);
-	waveformTimer->setInterval(500);
+	waveformTimer->setInterval(50);
 	waveformTimer->timeout().connect( std::bind([=] ()
 	{
 		loadWaveform();
@@ -702,7 +710,7 @@ std::cout<<"interacted pos"<<std::endl;
 
 
    Wt::WTimer *inputtimer = new Wt::WTimer();  
-   inputtimer->setInterval(5000);
+   inputtimer->setInterval(2500);
    inputtimer->timeout().connect(std::bind([=] ()
    {
 	updateInputs();
@@ -710,7 +718,7 @@ std::cout<<"interacted pos"<<std::endl;
    inputtimer->start();
 
    Wt::WTimer *timer = new Wt::WTimer();  
-   timer->setInterval(1000);
+   timer->setInterval(100);
    timer->timeout().connect(std::bind([=] ()
    {
     zmq::context_t context (1);
@@ -1031,6 +1039,12 @@ void EarUI::loadFragments(zmq::socket_t &socket)
 	loadGroup(current_root,fragments);
 	
 	root->expand();
+
+                TimeWidget *firstW = dynamic_cast<TimeWidget*>((*fragment_set.begin())->columnWidget(1));
+                TimeWidget *lastW = dynamic_cast<TimeWidget*>((*fragment_set.rbegin())->columnWidget(2));
+                posSlider->setMinimum(firstW->time());
+                posSlider->setMaximum(lastW->time());
+	
 }
 
 
