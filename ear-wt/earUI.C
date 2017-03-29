@@ -130,6 +130,7 @@ class MyTreeTableNode : public Wt::WTreeTableNode
 		}
 	using Wt::WTreeTableNode::labelArea;
 	Wt::WString text;		
+	Wt::WInPlaceEdit*  editWidget;
 
 };
 
@@ -700,8 +701,47 @@ std::cout<<"interacted pos"<<std::endl;
 		
 	}	
     }	));
-
-
+    WPushButton *joinButton = new WPushButton("Join fragments", fragmentButtonsContainer);
+    joinButton->setMargin(5, Left);
+    joinButton->clicked().connect(std::bind([=] ()
+    {
+//Get selected nodes
+	long prevStop = -2;
+	std::string newname ="";
+	std::set<WTreeNode*> selectedNodes =markerTree->tree()->selectedNodes();
+	for (auto node:selectedNodes)	{
+	//tree returns a tree with tree nodes. We need treetable nodes!
+		MyTreeTableNode *fragmentTTN =  dynamic_cast<MyTreeTableNode*>(node);
+		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
+		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
+		long start = startW->time();
+		long stop = stopW->time();
+		if (prevStop !=-2)
+		{
+			if (prevStop != start)
+			{
+				return; //Not contiguous
+			}
+		}
+		prevStop = stop;
+		newname +=" "+ fragmentTTN->text.narrow();
+	}
+//Change the first node
+	MyTreeTableNode *firstNode = dynamic_cast<MyTreeTableNode*>(*selectedNodes.begin());
+        firstNode->editWidget->setText(newname) ;//Will this work? //It doesn't.. The one below does though
+	dynamic_cast<TimeWidget*>(firstNode->columnWidget(2))->setTime(prevStop);
+	bool first=true;
+//Dlete all others
+	for (auto node:selectedNodes)	{
+		if (not first)
+		{
+			node->parentNode()->removeChildNode(node);
+		}
+		first = false;
+	}
+     }));
+ 
+//TODO: Delete (empty) group button
     WPushButton *savebutton = new WPushButton("Save fragments", fragmentButtonsContainer);
     currentTrackContainer->addWidget(savebutton);
     savebutton->setMargin(5, Left);
@@ -1131,16 +1171,17 @@ MyTreeTableNode *EarUI::addNode(MyTreeTableNode *parent, WString name, const lon
 	WContainerWidget *labelArea = node->labelArea();
 	WWidget *labelWidget = labelArea->widget(0); //See source of WTreeNode.
 	labelArea->removeWidget(labelWidget);
-	WInPlaceEdit  *editWidget = new WInPlaceEdit(name);
+	node->editWidget = new WInPlaceEdit(name);
 	
-	editWidget->valueChanged().connect(std::bind([=]() {
-		node->text = editWidget->text();
+	node->editWidget->valueChanged().connect(std::bind([=]() {
+		node->text = node->editWidget->text();
 	}));
-	node->text = editWidget->text();
-	labelArea->addWidget(editWidget );
+	node->text = node->editWidget->text();
+	labelArea->addWidget(node->editWidget );
 	TimeWidget *startWidget = new TimeWidget();
 	startWidget->setTime(start);
 	node->setColumnWidget(1, startWidget); 
+//todo: add doubleclick trick to allow modal edit
 	Wt::WPushButton *startButton = new WPushButton("|>");
 	startButton->clicked().connect(std::bind([=]() {
 std::cout<<"Handlign a startbutton click from the markertree"<<std::endl;
