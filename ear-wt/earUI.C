@@ -564,7 +564,7 @@ std::cout<<"interacted pos"<<std::endl;
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
 		long start = startW->time();
 		long stop = stopW->time();
-		if (start ==-1 or stop ==-1) //Check for group markers //TODO FIXME// Somehow still broken, dunno why //This needs to take the child?
+		if (start ==-1 or stop ==-1) //Check for group markers //TODO: If it's a group, check for hidden children
 		{
 			continue;
 		}
@@ -753,10 +753,9 @@ std::cout<<"interacted pos"<<std::endl;
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
 		long start = startW->time();
 		long stop = stopW->time(); 
-		if (start > 0 or stop > 0)
+		if (start != -1  or stop !=-1)
 		{
 std::cout<<"TRying to delete a none-group"<<std::endl;
-std::cout<<std::to_string(start)<<" "<<std::to_string(stop)<<std::endl; //Why are these not -1 for groups?
 			return;
 		}
 		if(node->childNodes().size()>0)
@@ -769,7 +768,6 @@ std::cout<<"Trying to delete a non-empty group"<<std::endl;
 		
 	}));
 
-//TODO: Delete (empty) group button
     WPushButton *savebutton = new WPushButton("Save fragments", fragmentButtonsContainer);
     currentTrackContainer->addWidget(savebutton);
     savebutton->setMargin(5, Left);
