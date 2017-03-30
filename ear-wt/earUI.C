@@ -157,6 +157,7 @@ long long TimeWidget::time()
 
 bool TimeWidget::setTime(long time)
 {
+		this->_time = time; //Just moved this outside the if. NEEDS TESTING! --30-3-2017
 	if(time != -1)
 	{
 		bool negative = false;
@@ -165,8 +166,6 @@ bool TimeWidget::setTime(long time)
 			negative = true;
 			time *= -1; 
 		}
-			
-		this->_time = time;
 		int minutes, seconds, milliseconds;
 		seconds =  ((time / 1000) % 60) ;
 		minutes =  ((time / (1000*60)) % 60);
@@ -595,7 +594,7 @@ std::cout<<"interacted pos"<<std::endl;
 
 
 //TODO: Split out the tab and untab functions so we can call them with the keyboard
-    WPushButton *tabButton = new WPushButton(">>>>" ,fragmentButtonsContainer);     
+    WPushButton *tabButton = new WPushButton("Group selection >>>>" ,fragmentButtonsContainer);     
     tabButton->setMargin(5, Left);
    tabButton->clicked().connect(std::bind([=] ()
     {
@@ -622,7 +621,7 @@ std::cout<<"interacted pos"<<std::endl;
 	}
     }));	
     
-	WPushButton *untabButton = new WPushButton("<<<<<" ,fragmentButtonsContainer);     
+	WPushButton *untabButton = new WPushButton("Ungroup selection <<<<<" ,fragmentButtonsContainer);     
     untabButton->setMargin(5, Left);
     untabButton->clicked().connect(std::bind([=] ()
     {
@@ -701,7 +700,7 @@ std::cout<<"interacted pos"<<std::endl;
 		
 	}	
     }	));
-    WPushButton *joinButton = new WPushButton("Join fragments", fragmentButtonsContainer);
+    WPushButton *joinButton = new WPushButton("Join selected fragments", fragmentButtonsContainer);
     joinButton->setMargin(5, Left);
     joinButton->clicked().connect(std::bind([=] ()
     {
@@ -732,7 +731,8 @@ std::cout<<"interacted pos"<<std::endl;
 	dynamic_cast<TimeWidget*>(firstNode->columnWidget(2))->setTime(prevStop);
 	bool first=true;
 //Dlete all others
-	for (auto node:selectedNodes)	{
+	for (auto node:selectedNodes)	
+	{
 		if (not first)
 		{
 			node->parentNode()->removeChildNode(node);
@@ -741,6 +741,34 @@ std::cout<<"interacted pos"<<std::endl;
 	}
      }));
  
+    WPushButton *delgrpButton = new WPushButton("Delete empty group", fragmentButtonsContainer);
+    delgrpButton->setMargin(5, Left);
+    delgrpButton->clicked().connect(std::bind([=] ()
+    {	
+	std::set<WTreeNode*> selectedNodes =markerTree->tree()->selectedNodes();
+	for (auto node:selectedNodes)	
+	{
+		MyTreeTableNode *fragmentTTN =  dynamic_cast<MyTreeTableNode*>(node);
+		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
+		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
+		long start = startW->time();
+		long stop = stopW->time(); 
+		if (start > 0 or stop > 0)
+		{
+std::cout<<"TRying to delete a none-group"<<std::endl;
+std::cout<<std::to_string(start)<<" "<<std::to_string(stop)<<std::endl; //Why are these not -1 for groups?
+			return;
+		}
+		if(node->childNodes().size()>0)
+		{
+std::cout<<"Trying to delete a non-empty group"<<std::endl;
+			return;
+		}
+		node->parentNode()->removeChildNode(node);
+	}
+		
+	}));
+
 //TODO: Delete (empty) group button
     WPushButton *savebutton = new WPushButton("Save fragments", fragmentButtonsContainer);
     currentTrackContainer->addWidget(savebutton);
@@ -1072,7 +1100,7 @@ void EarUI::loadFragments(zmq::socket_t &socket)
 	Wt::WTreeTable *treeTable; 
 	treeTable = dynamic_cast<WTreeTable*> (findWidget("markertree"));
 	MyTreeTableNode *root = new MyTreeTableNode("Fragments");
-	treeTable->setTreeRoot(root, "Fragments for this track");
+	treeTable->setTreeRoot(root, "Fragments for this track"); //TODO: Add track name here
 	MyTreeTableNode *current_root = root;
 	this->fragment_set.clear();
 	Json::Object response;
