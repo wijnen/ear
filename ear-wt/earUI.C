@@ -226,6 +226,7 @@ private:
 Json::Value saveFragments(MyTreeTableNode *root);
   int max_tags = 0;
   WPushButton *playPauseButton;
+  std::string play_selection(std::vector<WTreeNode*>&  nodes, int offset);
 };
 
 
@@ -555,32 +556,14 @@ std::cout<<"interacted pos"<<std::endl;
     playSelectionButton->clicked().connect(std::bind([=] ()
     {	
 	std::string ret = "{\"play\": [";	
-	bool first = true;
-	for (auto fragmentTN:markerTree->tree()->selectedNodes())
-	{
-	//tree returns a tree with tree nodes. We need treetable nodes!
-		MyTreeTableNode *fragmentTTN =  dynamic_cast<MyTreeTableNode*>(fragmentTN);
-		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
-		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
-		long start = startW->time();
-		long stop = stopW->time();
-		if (start ==-1 or stop ==-1) //Check for group markers //TODO: If it's a group, check for hidden children
-		{
-			continue;
-		}
-		if (not first)
-		{	
-			ret += " , ";
-		}
-		else
-		{
-			start -= beforeSlider->value()*1000;
-		}
-		first = false;
-		ret += "["+std::to_string(start)+" , "+	std::to_string(stop)+"]\n";
-		//Manual socket as we need to send our own little "JSON" string plaintext.
-	}
+//std::copy(input.begin(), input.end(), std::back_inserter(output));
+std::set<WTreeNode*> nodeSet = markerTree->tree()->selectedNodes();
+std::vector<WTreeNode*> selectedNodes(nodeSet.size());
+std::copy(nodeSet.begin(),nodeSet.end(),selectedNodes.begin());
+        ret += play_selection(selectedNodes,beforeSlider->value()*1000);
+
 	ret += "]}";
+std::cout<<ret<<std::endl;
 		   zmq::context_t context (1);
 		   zmq::socket_t socket (context, ZMQ_REQ);
 		   socket.connect ("tcp://localhost:5555");
@@ -1117,6 +1100,50 @@ void EarUI::loadFragments(zmq::socket_t &socket)
 	
 }
 
+
+
+  std::string EarUI::play_selection( std::vector<WTreeNode*>&  nodes, int offset)
+{
+	std::string ret = "";
+	bool commafirst = true;
+	for (auto fragmentTN:nodes)
+	{
+	//tree returns a tree with tree nodes. We need treetable nodes!
+		MyTreeTableNode *fragmentTTN =  dynamic_cast<MyTreeTableNode*>(fragmentTN);
+		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
+		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
+		long start = startW->time();
+		long stop = stopW->time();
+std::cout<<start<<" "<<stop<<std::endl;
+	if (not commafirst)
+		{	
+			ret += " , ";
+		}
+		
+		if (start ==(long) -1 or stop == (long)-1) //Check for group markers //TODO: If it's a group, check for hidden children
+		{
+			if (fragmentTTN->childNodes().size()>0)
+			{
+				if(not fragmentTTN->isExpanded()) //So they are not currently selected
+				{	
+				//	std::vector<WTreeNode*> childNodes = fragmentTTN->childNodes();
+			//		const std::set<WTreeNode*> childSet (childNodes.begin(),childNodes.end());
+					std::vector<WTreeNode*> childNodes = fragmentTTN->childNodes();
+					ret += play_selection(childNodes , 0);
+				}
+			}
+			continue;
+		}
+		start -= offset;
+			offset = 0;
+		commafirst = false;
+		ret += "["+std::to_string(start)+" , "+	std::to_string(stop)+"]\n";
+	}
+
+
+
+	return ret;	
+}
 
 void EarUI::updateInputs()
 {	
