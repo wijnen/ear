@@ -185,7 +185,38 @@ bool TimeWidget::setTime(long time)
 
 using namespace Wt;
 
+//TODO: Write a tree-to-vector function. On that vector, get isSelected and stuff
 
+
+std::vector<MyTreeTableNode*> children_as_vector(MyTreeTableNode *root)
+{
+	std::vector<MyTreeTableNode*> retval;
+	std::vector<WTreeNode*> children = root->childNodes();
+	for(auto node:children)
+	{
+		retval.push_back(dynamic_cast<MyTreeTableNode*>(node));
+		if(node->childNodes().size()>0)
+
+		{	std::vector<MyTreeTableNode*> grandchildren = children_as_vector(dynamic_cast<MyTreeTableNode*>(node));
+			retval.insert(retval.end(),grandchildren.begin(),grandchildren.end()); 
+		}
+			
+	}
+	return retval;
+
+}
+
+std::vector<MyTreeTableNode*> ancestors_as_vector(MyTreeTableNode *child)
+{
+	std::vector<MyTreeTableNode*> retval;
+	MyTreeTableNode* currentGen = child;
+	while(currentGen != child->tree()->treeRoot())
+	{
+		retval.push_back(currentGen);
+		currentGen = dynamic_cast<MyTreeTableNode*>(currentGen->parentNode());
+	}
+	return retval;
+}
 
 class EarUI : public WApplication
 {
@@ -226,7 +257,6 @@ private:
 Json::Value saveFragments(MyTreeTableNode *root);
   int max_tags = 0;
   WPushButton *playPauseButton;
-  std::string play_selection(std::vector<WTreeNode*>&  nodes, int offset);
 };
 
 
@@ -557,12 +587,43 @@ std::cout<<"interacted pos"<<std::endl;
     {	
 	std::string ret = "{\"play\": [";	
 //std::copy(input.begin(), input.end(), std::back_inserter(output));
-std::set<WTreeNode*> nodeSet = markerTree->tree()->selectedNodes();
-std::vector<WTreeNode*> selectedNodes(nodeSet.size());
-std::copy(nodeSet.begin(),nodeSet.end(),selectedNodes.begin());
-        ret += play_selection(selectedNodes,beforeSlider->value()*1000);
-
-	ret += "]}";
+bool first = true;
+	for(auto node:children_as_vector(dynamic_cast<MyTreeTableNode*>(markerTree->tree()->treeRoot())))
+	{
+		TimeWidget *startW = dynamic_cast<TimeWidget*>(node->columnWidget(1));
+		TimeWidget *stopW = dynamic_cast<TimeWidget*>(node->columnWidget(2));
+		long start = startW->time();
+		long stop = stopW->time();
+		bool selected = markerTree->tree()->isSelected(node);
+		if (start == -1 or stop ==-1)
+		{
+			continue;
+		}
+		for(auto parent:ancestors_as_vector(node))
+		{
+			if(markerTree->tree()->isSelected(parent) and not parent->isExpanded())
+			{
+				selected = true;
+				break;
+			}
+		}
+		if(selected)
+		{
+	
+			if (first)
+			{
+				start -= beforeSlider->value()*1000;
+				first = false;
+			}
+			else
+			{
+				ret+=" , ";
+			}
+			ret += "["+std::to_string(start)+" , "+	std::to_string(stop)+"]\n";
+			
+		}
+	}
+	ret+="]}";
 std::cout<<ret<<std::endl;
 		   zmq::context_t context (1);
 		   zmq::socket_t socket (context, ZMQ_REQ);
@@ -1101,49 +1162,6 @@ void EarUI::loadFragments(zmq::socket_t &socket)
 }
 
 
-
-  std::string EarUI::play_selection( std::vector<WTreeNode*>&  nodes, int offset)
-{
-	std::string ret = "";
-	bool commafirst = true;
-	for (auto fragmentTN:nodes)
-	{
-	//tree returns a tree with tree nodes. We need treetable nodes!
-		MyTreeTableNode *fragmentTTN =  dynamic_cast<MyTreeTableNode*>(fragmentTN);
-		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
-		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
-		long start = startW->time();
-		long stop = stopW->time();
-std::cout<<start<<" "<<stop<<std::endl;
-	if (not commafirst)
-		{	
-			ret += " , ";
-		}
-		
-		if (start ==(long) -1 or stop == (long)-1) //Check for group markers //TODO: If it's a group, check for hidden children
-		{
-			if (fragmentTTN->childNodes().size()>0)
-			{
-				if(not fragmentTTN->isExpanded()) //So they are not currently selected
-				{	
-				//	std::vector<WTreeNode*> childNodes = fragmentTTN->childNodes();
-			//		const std::set<WTreeNode*> childSet (childNodes.begin(),childNodes.end());
-					std::vector<WTreeNode*> childNodes = fragmentTTN->childNodes();
-					ret += play_selection(childNodes , 0);
-				}
-			}
-			continue;
-		}
-		start -= offset;
-			offset = 0;
-		commafirst = false;
-		ret += "["+std::to_string(start)+" , "+	std::to_string(stop)+"]\n";
-	}
-
-
-
-	return ret;	
-}
 
 void EarUI::updateInputs()
 {	
