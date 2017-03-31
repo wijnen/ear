@@ -111,6 +111,7 @@ data = {
 data['media'].send_pixbuf = lambda pixbuf: setattr(g, 'image', pixbuf)
 
 def play_list(track, play_tuple):
+    print("Playing list, play_tuple {}".format(play_tuple))
     track.play(cb = None) #Essential to clear the callback
     if len(play_tuple) < 1:
         return

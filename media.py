@@ -113,7 +113,6 @@ class Media:
             ret = None
         cls.probe_pipeline.set_state(Gst.State.NULL)
         return ret
-    @classmethod
     def new_pixbuf(self, bus, message, arg):
         #print(message.type)
         if message.type == Gst.MessageType.EOS:#This will be called at the end of a stream, but also at the end of a played fragment
