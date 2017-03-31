@@ -113,7 +113,7 @@ class Media:
             ret = None
         cls.probe_pipeline.set_state(Gst.State.NULL)
         return ret
-    def new_pixbuf(self, bus, message, arg):
+    def new_pixbuf(self, bus, message, arg): #TODO: Rename to signal_handler
         #print(message.type)
         if message.type == Gst.MessageType.EOS:#This will be called at the end of a stream, but also at the end of a played fragment
             self.done()
@@ -181,9 +181,9 @@ class Media:
             self.timeout = GLib.timeout_add(wait, lambda _: self.play(start = start, end=end, cb=cb,play=play, timed = True), None)
             self.countdown_end = time.time() + wait/1000.
             return True
-        print(start, self.offset, self.media_duration)
+        print("start, offset, duration, ",start, self.offset, self.media_duration)
         if start is not None and start < self.offset + self.media_duration:
-            print("Actually playing")
+            print("Actually playing because startis not none")
             start -= self.offset
             start /= self.speed
             if end is not None:
@@ -208,7 +208,13 @@ class Media:
                 cb()
         else:
             print("Ending without a callback")
-            self.play(start=self.get_pos(),end=self.media_duration,play=False)
+            if (self.get_pos()+1000 < self.media_duration):
+                print("But wait, there's more!")
+                self.play(start=self.get_pos(),end=self.media_duration,play=False)
+            else:
+                print("That's all folks")
+                self.play(start=0,play=False)
+            
             #Do not change the position but make sure the playing state is off, and allow us to continue where we left off
         return False
 

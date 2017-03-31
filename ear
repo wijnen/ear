@@ -112,7 +112,7 @@ data['media'].send_pixbuf = lambda pixbuf: setattr(g, 'image', pixbuf)
 
 def play_list(track, play_tuple):
     print("Playing list, play_tuple {}".format(play_tuple))
-    track.play(cb = None) #Essential to clear the callback
+    #track.play(cb = None) #Essential to clear the callback
     if len(play_tuple) < 1:
         return
     start, end = play_tuple[0][0], play_tuple[0][1]
@@ -175,7 +175,17 @@ def zmq_callback(fd,condition,zmq_socket):
         print(data['track'])"""
         if type(msg) == dict:
             if 'play' in msg.keys() and type(msg['play'])==list:
-                play_list(data['media'], msg['play'])
+                inp = msg['play']
+                ostop = None
+                out = []
+                for (start,stop) in inp:
+                    if start != ostop:
+                        out.append([start, stop])
+                    else:
+                        out[-1][1] = stop #the previous stop
+                    ostop = stop
+                print(inp,out)
+                play_list(data['media'], out)
                 zmq_socket.send_json({"dummy":"dummy"})
             if 'fragments' in msg.keys() and type(msg['fragments'])==list:
                 data['track']['fragments'] = msg['fragments'][2] #In Wt, we need a single root. This is called 'fragments' and only has children. Children are stored in idx 2
