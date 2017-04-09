@@ -12,6 +12,7 @@
 #include <Wt/WText>
 #include <Wt/WString>
 #include <Wt/WGroupBox>
+#include <Wt/WVBoxLayout>
 #include <Wt/WAnimation>
 #include <Wt/WStringListModel>
 #include <Wt/WStandardItemModel>
@@ -185,8 +186,6 @@ bool TimeWidget::setTime(long time)
 
 using namespace Wt;
 
-//TODO: Write a tree-to-vector function. On that vector, get isSelected and stuff
-
 
 std::vector<MyTreeTableNode*> children_as_vector(MyTreeTableNode *root)
 {
@@ -246,14 +245,15 @@ private:
   void loadGroup(MyTreeTableNode *current_root, Json::Array fragments);
   void mark_current_fragment(long long track_time);
   long current_track_time( zmq::socket_t *socket  =0  );
+  int ui_track_idx = -1;
   WStandardItemModel *waveformModel;
   Chart::WCartesianChart *waveformChart;
   WText *chartText;
   WSlider *posSlider;
   MyTreeTableNode *addNode(MyTreeTableNode *parent, WString name, const long start, const long stop );
-  Wt::WStringListModel *get_trackmodel( zmq::socket_t &socket );
-  Wt::WStringListModel *get_trackmodel( );
-  Wt::WStringListModel *filter_trackmodel( WStringListModel *trackmodel, WContainerWidget *filterwidget );
+//  Wt::WStringListModel *get_trackmodel( zmq::socket_t &socket );
+//  Wt::WStringListModel *get_trackmodel( );
+//  Wt::WStringListModel *filter_trackmodel( WStringListModel *trackmodel, WContainerWidget *filterwidget );
 Json::Value saveFragments(MyTreeTableNode *root);
   int max_tags = 0;
   WPushButton *playPauseButton;
@@ -273,14 +273,14 @@ EarUI::EarUI(const WEnvironment& env)
 /*
 ZMQ should connect and disconnect after every set of actions to make room for another interface. Saves working on lots of listeners and the Python interface doesn't have to know who's talking
 */
-    Json::Object command_names; //
+   /* Json::Object command_names; //
     command_names = interact_zmq(socket,"events?");
     std::set<std::string> names;
     names = command_names.names();
 std::cout<<"Parsed names"<<std::endl;
-
+*/
     
-    Wt::WPanel *panel = new Wt::WPanel(root());
+  /*  Wt::WPanel *panel = new Wt::WPanel(root());
     panel->setTitle("Control current track");
     panel->setObjectName("trackpanel");
     panel->addStyleClass("centered-example");
@@ -306,36 +306,36 @@ std::cout<<"Parsed names"<<std::endl;
 
 
     }
+   */
    
-    playPauseButton = new WPushButton("Play",currentTrackContainer);
-   playPauseButton->clicked().connect(std::bind([=] ()
-	{
-		interact_zmq(std::string("event:pause"));
-	} 
-   	));
-    
 
 
     Wt::WPanel *selectPanel = new Wt::WPanel(root());
 selectPanel->setTitle("Select new track");
     selectPanel->setObjectName("selectionPanel");
     selectPanel->setCollapsible(true);
-/*    Wt::WAnimation animation(Wt::WAnimation::SlideInFromTop,
-			 Wt::WAnimation::EaseOut,
-			 100);*/
-    selectPanel->setAnimation(animation);
-   
-
-Wt::WContainerWidget *trackSearchContainer = new Wt::WContainerWidget(root()); //New implementation, used side-to-side during testing
-//Make this a VBox instead of the current HBox maybe? TODO
-selectPanel->setCentralWidget(trackSearchContainer);
+//    Wt::WAnimation animation(Wt::WAnimation::SlideInFromTop,
+//			 Wt::WAnimation::EaseOut,
+//			 100); //Animation breaks with a VBoxLayout. Maybe report?
+ //   selectPanel->setAnimation(animation);
+    selectPanel->setCollapsed(true); 
 
 
-selectPanel->setHidden(false);
-Wt::WLineEdit *searchBox = new Wt::WLineEdit(trackSearchContainer); 
+
+Wt::WContainerWidget *trackSearchContainer = new Wt::WContainerWidget(root()); 
+trackSearchContainer->resize(500,500);
+//Make this a GridLayout and add a second column showing the track settings TODO
+
+Wt::WVBoxLayout *vbox = new Wt::WVBoxLayout();
+trackSearchContainer->setLayout(vbox);
+
+
+//selectPanel->setHidden(false);
+Wt::WLineEdit *searchBox = new Wt::WLineEdit(); 
+vbox->addWidget(searchBox);
 searchBox->setPlaceholderText("Type to search");
-Wt::WSelectionBox *trackSelectionBox = new Wt::WSelectionBox(trackSearchContainer);
-trackSelectionBox->resize(500,500);
+Wt::WSelectionBox *trackSelectionBox = new Wt::WSelectionBox();
+vbox->addWidget(trackSelectionBox,1);
 FilteredStringModel *trackModel = new FilteredStringModel();
 searchBox->textInput().connect(std::bind([=] ()
 {
@@ -348,7 +348,8 @@ std::cout<<"Updated model"<<std::endl;
 trackModel->update();
 trackSelectionBox->setModel(trackModel);
 trackSelectionBox->setSelectionMode(Wt::SingleSelection);
-Wt::WPushButton *selectButton = new Wt::WPushButton("Select track",trackSearchContainer);
+Wt::WPushButton *selectButton = new Wt::WPushButton("Select track");
+vbox->addWidget(selectButton);
 selectButton->clicked().connect(std::bind([=] ()
 {
 	int row = trackSelectionBox->currentIndex();
@@ -357,37 +358,8 @@ selectButton->clicked().connect(std::bind([=] ()
 	updateInputs();
 }));
 
-
-
-
-Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget(trackSearchContainer);
-
-
-
-    Wt::WComboBox *trackcombo = new Wt::WComboBox(trackListContainer); 
-    trackcombo->setMargin(10, Wt::Right);
-
-    
-    //trackcombo->setNoSelectionEnabled(true); //Depends on Wt version, disabled for now
-
-    WStringListModel *trackmodel = get_trackmodel(socket);
-    trackcombo->setModel(trackmodel);
-
-
-
-    trackcombo->setObjectName("trackComboBox"); 
-    trackcombo->changed().connect(std::bind([=] () 
-    {
-	WStringListModel *this_trackmodel = dynamic_cast<WStringListModel*>( trackcombo->model());
-    	int row = trackcombo->currentIndex();
-	int tracknumber = boost::any_cast<int>
-                       (this_trackmodel->data(this_trackmodel->index(row,0), Wt::UserRole)); 
-	interact_zmq("track:"+std::to_string(tracknumber));
-	updateInputs();
-	loadFragments();
-
-    }));
-    Wt::WContainerWidget *filterContainer = new WContainerWidget(trackListContainer);
+    Wt::WContainerWidget *filterContainer = new WContainerWidget(trackSearchContainer);
+vbox->addWidget(filterContainer);
     Wt::WContainerWidget *searchContainer = new WContainerWidget(filterContainer);
     Wt::WContainerWidget *filtersContainer = new WContainerWidget(filterContainer);
     Wt::WLineEdit *filterbox = new Wt::WLineEdit(searchContainer);
@@ -403,31 +375,23 @@ Wt::WContainerWidget *trackListContainer = new Wt::WContainerWidget(trackSearchC
 		{
 			filtersContainer->removeWidget(thisFilter);
 			thisFilter->clear();
-			//New model code
 			std::vector<WString>::iterator pos = std::find(trackModel->musts.begin(), trackModel->musts.end(), filterName);
 			if(pos!=trackModel->musts.end())
 			{
 				trackModel->musts.erase(pos);
 				trackModel->update();
 			}
-			//End new model code
-
-			if(filtersContainer->count()>0)
-			{
-			 	trackcombo->setModel(filter_trackmodel(get_trackmodel(),filtersContainer));
-			}
-			else
-			{
-			 	trackcombo->setModel(get_trackmodel());
-			}
 		}));
-        trackModel->musts.push_back(filterName);  //new model code
+        trackModel->musts.push_back(filterName);  
 				trackModel->update();
-	trackcombo->setModel(filter_trackmodel(trackmodel,filtersContainer));
 	filterbox->setText("");
 	filterbox->setPlaceholderText("Filter"); //TODO: Autofill/autocomplete
      }));
     
+selectPanel->setCentralWidget(trackSearchContainer);
+
+
+
 
     Wt::WContainerWidget *inputContainer = new Wt::WContainerWidget(root());
     Json::Object inputs;
@@ -580,7 +544,13 @@ std::cout<<"interacted pos"<<std::endl;
     markerTree->addColumn("Start time",100);
     markerTree->addColumn("End time",100); //StartButton
     markerTree->addColumn("Play from here",20); //StartButton
-
+    playPauseButton = new WPushButton("Play",fragmentButtonsContainer);
+    playPauseButton->clicked().connect(std::bind([=] ()
+	{
+		interact_zmq(std::string("event:pause"));
+	} 
+   	));
+ 
     WPushButton *playSelectionButton = new WPushButton("Play selection" ,fragmentButtonsContainer);     
     playSelectionButton->setMargin(5, Left);
     playSelectionButton->clicked().connect(std::bind([=] ()
@@ -813,7 +783,7 @@ std::cout<<"Trying to delete a non-empty group"<<std::endl;
 	}));
 
     WPushButton *savebutton = new WPushButton("Save fragments", fragmentButtonsContainer);
-    currentTrackContainer->addWidget(savebutton);
+//    currentTrackContainer->addWidget(savebutton);
     savebutton->setMargin(5, Left);
     savebutton->clicked().connect(std::bind([=] ()
     {	
@@ -912,7 +882,7 @@ long EarUI::current_track_time( zmq::socket_t *socket )
 	
 }
 
-Wt::WStringListModel *EarUI::filter_trackmodel( WStringListModel *trackmodel, WContainerWidget *filterWidget )
+/*Wt::WStringListModel *EarUI::filter_trackmodel( WStringListModel *trackmodel, WContainerWidget *filterWidget )
 { //TODO: Most of this should be removed soon as it has been translated into Python
 std::cout<<"Handling filter"<<std::endl;
 	std::set<WString> filters;
@@ -950,7 +920,7 @@ std::cout<<"Made filter set"<<std::endl;
 	 
  return newtrackmodel;
 }
-
+*//*
 Wt::WStringListModel *EarUI::get_trackmodel( )
 {
     zmq::context_t context (1);
@@ -962,8 +932,8 @@ Wt::WStringListModel *EarUI::get_trackmodel( )
    socket.disconnect("tcp://localhost:5555");
 std::cout<<"Disonnected from ZMQ"<<std::endl;
     return retval;
-}
-
+}*/
+/*
 
 Wt::WStringListModel *EarUI::get_trackmodel(zmq::socket_t &socket )
 {
@@ -1007,7 +977,7 @@ Wt::WStringListModel *EarUI::get_trackmodel(zmq::socket_t &socket )
 	return trackmodel;
 
 }
-
+*/
 Json::Value EarUI::saveFragments(MyTreeTableNode *root)
 {
 
@@ -1141,11 +1111,16 @@ void EarUI::loadFragments(zmq::socket_t &socket)
 
 	Wt::WTreeTable *treeTable; 
 	treeTable = dynamic_cast<WTreeTable*> (findWidget("markertree"));
-	MyTreeTableNode *root = new MyTreeTableNode("Fragments");
-	treeTable->setTreeRoot(root, "Fragments for this track"); //TODO: Add track name here
+	
+	Json::Object response;
+
+	response = interact_zmq(socket,"title?");
+
+	WString trackname = response.get("title"); 
+	MyTreeTableNode *root = new MyTreeTableNode(trackname);
+	treeTable->setTreeRoot(root,trackname); 
 	MyTreeTableNode *current_root = root;
 	this->fragment_set.clear();
-	Json::Object response;
 	response = interact_zmq(socket,"fragments?");
 	Json::Array fragments;
 	fragments = response.get("fragments");
@@ -1179,53 +1154,17 @@ void EarUI::updateInputs()
 		sliderWidget = dynamic_cast<WSlider*> (findWidget("inputSlider:"+name));
 		sliderWidget->setValue(inputSettings[2]);
 		textWidget = dynamic_cast<WText*> (findWidget("inputText:"+name));
-		textWidget->setText(name + ": " + sliderWidget->valueText()); //The slider does the casting from double to string!
+		textWidget->setText(name + ": " + sliderWidget->valueText());
 
 	}
-	WComboBox *comboBox;
-	comboBox = dynamic_cast<WComboBox*> (findWidget("trackComboBox"));
 	Json::Object response;
 	response=interact_zmq(socket,"track?");
-	int track;
-	track = response.get("current");
-	int row = comboBox->currentIndex();
-	WStringListModel *trackmodel = dynamic_cast<WStringListModel*>(comboBox->model());
-	int tracknumber =-2;
-	if (row!=-1)
-	{
-		tracknumber = boost::any_cast<int>(trackmodel->data(trackmodel->index(row,0), Wt::UserRole)); 
-	}
-	if (track !=tracknumber) 
+	
+	int server_track_idx = response.get("current");
+	if(ui_track_idx != server_track_idx)
 	{
 		loadFragments(socket);
 	}	
-	int newtrack = 0;
-	int atrack = 0;
-	int i = 0;
-	for (auto dummy:trackmodel->stringList()) //Loop through the model to find the track. Somehow, we can't get the indeces to be used as index, or something
-	{
-		atrack =  boost::any_cast<int>(trackmodel->data(trackmodel->index(i,0), Wt::UserRole)); 
-		if(atrack == track)
-		{
-			newtrack = i;
-			break;
-		}
-    		i++;
-	}
-std::cout<<" newtrack " << std::to_string(newtrack) << " tracknumber  " << std::to_string(tracknumber) << "track  " << std::to_string(track) << std::endl;
-	comboBox->setCurrentIndex(newtrack) ;
-//}
-	WPanel *panel;
-	panel = dynamic_cast<WPanel*>(findWidget("trackpanel"));
-std::cout<<"Set track to "<<comboBox->currentIndex()<<std::endl;
-	if ( track != -1)
-	{
-		panel->setHidden(false);
-	}
-	else
-	{
-		panel->setHidden(true);
-	}
 
 
 	
