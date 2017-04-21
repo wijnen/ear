@@ -13,6 +13,7 @@
 #include <Wt/WString>
 #include <Wt/WGroupBox>
 #include <Wt/WVBoxLayout>
+#include <Wt/WHBoxLayout>
 #include <Wt/WAnimation>
 #include <Wt/WStringListModel>
 #include <Wt/WStandardItemModel>
@@ -235,6 +236,7 @@ static long start_track_time;
 static long stop_track_time;
 static long time_speed;
 private:
+ int width = 600; //This should really be 100% in pixels or something, but please see the comments around the inputslider
  std::vector<MyTreeTableNode*> fragment_set;
   void clicked(WPushButton* source );
   void loadFragments(zmq::socket_t &socket);
@@ -323,7 +325,8 @@ selectPanel->setTitle("Select new track");
 
 
 Wt::WContainerWidget *trackSearchContainer = new Wt::WContainerWidget(root()); 
-trackSearchContainer->resize(500,500);
+//trackSearchContainer->resize(Wt::WLength(100,Wt::WLength::Unit::Percentage),500);
+trackSearchContainer->resize(width,500);
 //Make this a GridLayout and add a second column showing the track settings TODO
 
 Wt::WVBoxLayout *vbox = new Wt::WVBoxLayout();
@@ -394,36 +397,73 @@ selectPanel->setCentralWidget(trackSearchContainer);
 
 
     Wt::WContainerWidget *inputContainer = new Wt::WContainerWidget(root());
+    inputContainer->resize(width,Wt::WLength::Auto);
+    Wt::WVBoxLayout *inputbox = new Wt::WVBoxLayout();
+    inputContainer->setLayout(inputbox);
+ 
     Json::Object inputs;
     inputs = interact_zmq(socket,"inputs?");
     Wt::WContainerWidget *thisInputContainer;
+//    Wt::WContainerWidget *thisSliderContainer;
     Wt::WSlider *inputSlider;
     Json::Array inputSettings;
-    Wt::WText *inputText; 
+    Wt::WText *valueText; 
+    Wt::WText *titleText;
+    WContainerWidget *inputButtonContainer;
+std::cout<<"Making input boxes for "<<std::endl;
     for(auto input_name:inputs.names())   
     {
+std::cout<<"Making input box for "<<input_name<<std::endl;
 	thisInputContainer = new Wt::WContainerWidget();
-        inputContainer->addWidget(thisInputContainer);
+        inputbox->addWidget(thisInputContainer);
+	Wt::WVBoxLayout *thisInputBox = new Wt::WVBoxLayout();
+	thisInputContainer->setLayout(thisInputBox);
+	Wt::WHBoxLayout *textbox = new Wt::WHBoxLayout();
+	WContainerWidget *foo = new WContainerWidget();
+	WContainerWidget *thisSliderContainer = new WContainerWidget();
+	foo->setLayout(textbox);
+       	thisInputBox->addWidget(foo);	
+std::cout<<"It's in the box"<<std::endl;	
+	titleText = new Wt::WText(input_name);
+	textbox->addWidget(titleText);
+	valueText = new Wt::WText("");
+	valueText->setObjectName("inputText:"+input_name);
+	
+	textbox->addWidget(valueText);	
 	inputSettings = inputs.get(input_name);
-        inputText = new Wt::WText(thisInputContainer);
- 	inputSlider = new Wt::WSlider(thisInputContainer);
+ 	inputSlider = new Wt::WSlider(); 
+	thisSliderContainer->addWidget(inputSlider);
+	inputSlider->resize(width,50); //TODO fix this to take full width
+//	inputSlider->resize( Wt::WLength(100,Wt::WLength::Unit::Percentage) ,50); //This kind of works. We get a huge slider (which si good) but the ticks are all in 100px or something on one side, and so is the min/max
+// inputSlider->setNativeControl(true); //If we use this, and move the slider, the program freezes
 	inputSlider->setObjectName("inputSlider:"+input_name); //TODO: Change this, and updateInputs to using class members and not HTML names.
-        inputSlider->resize(500,50);
 	int min, max;
 	min = inputSettings[0];
 	max = inputSettings[1]; 
         inputSlider->setMinimum(min); 
+	
         inputSlider->setMaximum(max); 
 	inputSlider->setTickInterval( (max-min)/6);
         inputSlider->setValue(inputSettings[2]); 
 	inputSlider->setTickPosition(Wt::WSlider::TicksAbove);
+	thisInputBox->addWidget(thisSliderContainer,1);
+//	thisInputBox->addWidget(inputSlider,1); //So, if we put it in iwthout a container it won't appear. If we put it in a container, it appears, but resizing is wierd. If we put a 100% the slider is there but the ticks and the min/max are all in one corner, if we put it 500px wide everything works except it's a hard limit. I'm debugging on a 4k screen and it should work on a phone. Now what?
+	
+std::cout<<"Slider made"<<std::endl;	
+std::cout<<"Line"<<std::endl;
+	inputButtonContainer = new WContainerWidget();
+	thisInputBox->addWidget(inputButtonContainer);
+	WHBoxLayout *buttonbox = new Wt::WHBoxLayout();
+        inputButtonContainer->setLayout(buttonbox);
+std::cout<<"Who's special?"<<std::endl;
 	if (input_name == "before")
 	{
+std::cout<<" Before is special"<<std::endl;
 		std::vector<int> beforeButtons = {0,3,6,10};
-		WContainerWidget *beforeButtonContainer = new WContainerWidget(thisInputContainer);
 	       for(auto before:beforeButtons)
 		{
-			WPushButton *bbutton = new WPushButton(WString(std::to_string(before)),beforeButtonContainer );
+			WPushButton *bbutton = new WPushButton(WString(std::to_string(before)));
+			buttonbox->addWidget(bbutton);
 			bbutton->clicked().connect(std::bind([=] ()
 			{
 				interact_zmq("input:before:"+std::to_string(before));
@@ -436,12 +476,12 @@ selectPanel->setCentralWidget(trackSearchContainer);
 	if (input_name =="speed")
 	{
 		std::vector<int> speedButtons = {50,75,80,90,100,110,120,125,150,200};
-		WContainerWidget *speedButtonContainer = new WContainerWidget(thisInputContainer);
 	       for(auto speed:speedButtons)
 		{
 			std::string title = std::to_string(speed);
 			title += "%";
-			WPushButton *sbutton = new WPushButton(WString(title),speedButtonContainer );
+			WPushButton *sbutton = new WPushButton(WString(title));
+			buttonbox->addWidget(sbutton);
 			sbutton->clicked().connect(std::bind([=] ()
 			{
 				interact_zmq("input:speed:"+std::to_string(speed));
@@ -451,17 +491,22 @@ selectPanel->setCentralWidget(trackSearchContainer);
     	        }
 	  
 	}
-	inputText->setObjectName("inputText:"+input_name);
-	inputText->setText(input_name+": "+inputSlider->valueText());
-	
+std::cout<<"Connecting the valueChanged"<<std::endl;
 	inputSlider->valueChanged().connect(std::bind([=] ()
         {
         	interact_zmq("input:"+input_name+":"+inputSlider->valueText());
-		inputText->setText(input_name+": "+inputSlider->valueText());
+		valueText->setText(inputSlider->valueText());
 		updateInputs();
         }));
+
+
     }
-    WContainerWidget *posContainer = new WContainerWidget(inputContainer);
+ std::cout<<"Done making new sliders"<<std::endl;
+    WContainerWidget *posContainer = new WContainerWidget();
+    posContainer->resize(width,Wt::WLength::Auto);
+    inputbox->addWidget(posContainer);
+//TODO add layout stuffs
+
 #ifdef PLOT //ifdef'd out as it crashes on all Debian versions of Wt
     WContainerWidget *chartContainer = new WContainerWidget(inputContainer);
 	chartText = new  WText( "chart", chartContainer);
@@ -480,7 +525,7 @@ std::cout<< "Got a model"<<std::endl;
  /*Chart::WDataSeries *r = new Chart::WDataSeries(2, Wt::Chart::LineSeries);
     r->setShadow(WShadow(3, 3, WColor(0, 0, 0, 127), 3));
    waveformChart->addSeries(*r);*/
-   waveformChart->resize(500,100);//This causes a PDF error? WTF?
+   waveformChart->resize(width,100);
 	waveformTimer = new WTimer();
 	waveformTimer->setSingleShot(true);
 	waveformTimer->setInterval(50);
@@ -490,7 +535,7 @@ std::cout<< "Got a model"<<std::endl;
 	}));
 	waveformTimer->start();
 std::cout<<"Done charting "<<std::endl;
-#endif //Plot
+#endif //Plot //Start here with adding to inputBox and stuff like that TODO
     posSlider = new WSlider(posContainer);
     WContainerWidget *posButtonContainer = new WContainerWidget(posContainer);
 
@@ -510,7 +555,8 @@ std::cout<<"Done charting "<<std::endl;
         } ));
 	
     }
-    posSlider->resize(500,50);
+//    posSlider->resize(Wt::WLength(100,Wt::WLength::Percentage),50);
+    posSlider->resize(width,50);
     posSlider->setTickInterval(60000); //One minute in ms
     posSlider->setTickPosition(Wt::WSlider::TicksAbove);
     TimeWidget *posText = new TimeWidget(posContainer);
@@ -546,18 +592,22 @@ std::cout<<"interacted pos"<<std::endl;
     markerTree->addColumn("Play from here",20); //StartButton
     playPauseButton = new WPushButton("Play",fragmentButtonsContainer);
     playPauseButton->clicked().connect(std::bind([=] ()
-	{
-		interact_zmq(std::string("event:pause"));
-	} 
-   	));
+    {
+	interact_zmq(std::string("event:pause"));
+    }));
+    WPushButton *stopButton = new WPushButton("Stop",fragmentButtonsContainer); 
+    stopButton->clicked().connect(std::bind([=] ()
+    {
+	interact_zmq(std::string("event:stop"));
+    }));
+    stopButton->setMargin(5, Left);
  
     WPushButton *playSelectionButton = new WPushButton("Play selection" ,fragmentButtonsContainer);     
     playSelectionButton->setMargin(5, Left);
     playSelectionButton->clicked().connect(std::bind([=] ()
     {	
 	std::string ret = "{\"play\": [";	
-//std::copy(input.begin(), input.end(), std::back_inserter(output));
-bool first = true;
+	bool first = true;
 	for(auto node:children_as_vector(dynamic_cast<MyTreeTableNode*>(markerTree->tree()->treeRoot())))
 	{
 		TimeWidget *startW = dynamic_cast<TimeWidget*>(node->columnWidget(1));
@@ -610,12 +660,12 @@ std::cout<<ret<<std::endl;
 //TODO: Split out the tab and untab functions so we can call them with the keyboard
     WPushButton *tabButton = new WPushButton("Group selection >>>>" ,fragmentButtonsContainer);     
     tabButton->setMargin(5, Left);
-   tabButton->clicked().connect(std::bind([=] ()
+    tabButton->clicked().connect(std::bind([=] ()
     {
-    WTreeNode *parent;
-    WTreeNode *newNode;
+ 	WTreeNode *parent;
+	WTreeNode *newNode;
 	std::set<WTreeNode*> selectedNodes =markerTree->tree()->selectedNodes();
-			std::vector< WTreeNode*> siblings;
+	std::vector< WTreeNode*> siblings;
  	
 	WTreeNode *firstNode = *selectedNodes.begin();
 	if(firstNode == markerTree->tree()->treeRoot())
@@ -635,7 +685,7 @@ std::cout<<ret<<std::endl;
 	}
     }));	
     
-	WPushButton *untabButton = new WPushButton("Ungroup selection <<<<<" ,fragmentButtonsContainer);     
+    WPushButton *untabButton = new WPushButton("Ungroup selection <<<<<" ,fragmentButtonsContainer);     
     untabButton->setMargin(5, Left);
     untabButton->clicked().connect(std::bind([=] ()
     {
@@ -830,7 +880,14 @@ std::cout<<"Trying to delete a non-empty group"<<std::endl;
 	}
 	else
 	{
-		playPauseButton->setText("Play");
+		if(track_time > 0)
+		{
+			playPauseButton->setText("Continue");
+		}
+		else
+		{
+			playPauseButton->setText("Play");
+		}
 	}
         socket.disconnect("tcp://localhost:5555");
         mark_current_fragment(track_time); 
@@ -1083,7 +1140,7 @@ std::cout<<std::to_string(i) <<" "<< std::to_string(timestamp) <<" "<< std::to_s
 std::cout<<"Done filling model"<<std::endl;
 	
   //waveformChart->setModel(waveformModel);        // set the model
- waveformChart->resize(50,500); //This is needed to render the modlel, but causes a crash on my laptop. This is because of some font issues with libharu. Retry on more recent OS's first to see if that fixes things.
+ waveformChart->resize(500,50); //This is needed to render the modlel, but causes a crash on my laptop. This is because of some font issues with libharu. Retry on more recent OS's first to see if that fixes things.
 //https://sourceforge.net/p/witty/mailman/message/30272114/ //Won't work on Debian for now
 //http://witty-interest.narkive.com/1FcaBlfE/wt-interest-wpdfimage-error-102b
 std::cout<<"Set a model"<<std::endl;
@@ -1140,6 +1197,7 @@ void EarUI::loadFragments(zmq::socket_t &socket)
 
 void EarUI::updateInputs()
 {	
+ std::cout<<"Updating inpouts"<<std::endl;
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
     socket.connect ("tcp://localhost:5555");
@@ -1152,9 +1210,13 @@ void EarUI::updateInputs()
 	{
 		inputSettings = responses.get(name);
 		sliderWidget = dynamic_cast<WSlider*> (findWidget("inputSlider:"+name));
+ std::cout<<"Updating slider "<<name<<std::endl;
 		sliderWidget->setValue(inputSettings[2]);
+ std::cout<<"Updated slider "<<name<<std::endl;
 		textWidget = dynamic_cast<WText*> (findWidget("inputText:"+name));
-		textWidget->setText(name + ": " + sliderWidget->valueText());
+ std::cout<<"Found text "<<name<<std::endl;
+		textWidget->setText(sliderWidget->valueText());
+ std::cout<<"Updating texts"<<std::endl;
 
 	}
 	Json::Object response;
@@ -1163,9 +1225,12 @@ void EarUI::updateInputs()
 	int server_track_idx = response.get("current");
 	if(ui_track_idx != server_track_idx)
 	{
+std::cout<<"UI track "<<ui_track_idx<<" server track "<<server_track_idx<<std::endl;
 		loadFragments(socket);
+ui_track_idx = server_track_idx;
 	}	
 
+ std::cout<<"Updated"<<std::endl;
 
 	
     socket.disconnect("tcp://localhost:5555");
