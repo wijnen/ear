@@ -66,13 +66,18 @@ class Media:
         self.pitch = Gst.ElementFactory.make('pitch', 'pitch')
         self.convert2 = Gst.ElementFactory.make('audioconvert')
         self.audiosink = Gst.ElementFactory.make('autoaudiosink')
+        self.gstvolume = Gst.ElementFactory.make("volume")
+        self.gstvolume.set_property('volume',1.0) 
         self.audiobin.add(self.convert)
         self.audiobin.add(self.pitch)
         self.audiobin.add(self.convert2)
+        self.audiobin.add(self.gstvolume)
         self.audiobin.add(self.audiosink)
         self.convert.link(self.pitch)
         self.pitch.link(self.convert2)
-        self.convert2.link(self.audiosink)
+        self.convert2.link(self.gstvolume)
+        self.gstvolume.link(self.audiosink)
+        
         pad = Gst.GhostPad.new('sink', self.convert.get_static_pad('sink'))
         pad.set_active(True)
         self.audiobin.add_pad(pad)
@@ -80,6 +85,11 @@ class Media:
         self.timeout = None
         self.countdown_end = None
         self.waveform = [(None,None,None)]
+    def volume(self,volume = None):
+        print("Setting volume {}".format(volume))
+        if volume != None:
+            self.gstvolume.set_property("volume",volume)
+        return self.gstvolume.get_property("volume")
     def make_waveform(self,filename): #TODO make optional for performance
         pipeline = Gst.parse_launch("   filesrc location=\""+filename+"\" ! decodebin     ! audioconvert ! audioresample ! level ! fakesink ")
         if pipeline == None:
