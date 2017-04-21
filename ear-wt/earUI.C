@@ -236,7 +236,7 @@ static long start_track_time;
 static long stop_track_time;
 static long time_speed;
 private:
- int width = 600; //This should really be 100% in pixels or something, but please see the comments around the inputslider
+ Wt::WLength width = Wt::WLength::Auto; 
  std::vector<MyTreeTableNode*> fragment_set;
   void clicked(WPushButton* source );
   void loadFragments(zmq::socket_t &socket);
@@ -441,8 +441,7 @@ std::cout<<"It's in the box"<<std::endl;
 	thisSliderContainer->addWidget(inputSlider);
 	inputSlider->resize(width,50); //TODO fix this to take full width
 //	inputSlider->resize( Wt::WLength(100,Wt::WLength::Unit::Percentage) ,50); //This kind of works. We get a huge slider (which si good) but the ticks are all in 100px or something on one side, and so is the min/max
-// inputSlider->setNativeControl(true); //If we use this, and move the slider, the program freezes
-//	inputSlider->setObjectName("inputSlider:"+input_name); //TODO: Change this, and updateInputs to using class members and not HTML names.
+ //inputSlider->setNativeControl(true); //If we use this, and move the slider, the program freezes
         inputSliders[input_name] =inputSlider;
 	int min, max;
 	min = inputSettings[0];
@@ -453,8 +452,8 @@ std::cout<<"It's in the box"<<std::endl;
 	inputSlider->setTickInterval( (max-min)/6);
         inputSlider->setValue(inputSettings[2]); 
 	inputSlider->setTickPosition(Wt::WSlider::TicksAbove);
-	thisInputBox->addWidget(thisSliderContainer,1);
-//	thisInputBox->addWidget(inputSlider,1); //So, if we put it in iwthout a container it won't appear. If we put it in a container, it appears, but resizing is wierd. If we put a 100% the slider is there but the ticks and the min/max are all in one corner, if we put it 500px wide everything works except it's a hard limit. I'm debugging on a 4k screen and it should work on a phone. Now what?
+//	thisInputBox->addWidget(thisSliderContainer,1);
+	thisInputBox->addWidget(inputSlider,1); //So, if we put it in iwthout a container it won't appear. If we put it in a container, it appears, but resizing is wierd. If we put a 100% the slider is there but the ticks and the min/max are all in one corner, if we put it 500px wide everything works except it's a hard limit. I'm debugging on a 4k screen and it should work on a phone. Now what?
 	
 std::cout<<"Slider made"<<std::endl;	
 std::cout<<"Line"<<std::endl;
