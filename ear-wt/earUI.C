@@ -247,6 +247,9 @@ private:
   void loadGroup(MyTreeTableNode *current_root, Json::Array fragments);
   void mark_current_fragment(long long track_time);
   long current_track_time( zmq::socket_t *socket  =0  );
+std::map<std::string, Wt::WText*> inputTexts;
+std::map<std::string, Wt::WSlider*> inputSliders;
+
   int ui_track_idx = -1;
   WStandardItemModel *waveformModel;
   Chart::WCartesianChart *waveformChart;
@@ -314,6 +317,7 @@ std::cout<<"Parsed names"<<std::endl;
 
     Wt::WPanel *selectPanel = new Wt::WPanel(root());
 selectPanel->setTitle("Select new track");
+	selectPanel->resize(width,Wt::WLength::Auto);
     selectPanel->setObjectName("selectionPanel");
     selectPanel->setCollapsible(true);
 //    Wt::WAnimation animation(Wt::WAnimation::SlideInFromTop,
@@ -426,17 +430,20 @@ std::cout<<"Making input box for "<<input_name<<std::endl;
 std::cout<<"It's in the box"<<std::endl;	
 	titleText = new Wt::WText(input_name);
 	textbox->addWidget(titleText);
+//	valueText = new Wt::WText("");
 	valueText = new Wt::WText("");
-	valueText->setObjectName("inputText:"+input_name);
-	
 	textbox->addWidget(valueText);	
+        inputTexts[input_name] = valueText;
+//	valueText->setObjectName("inputText:"+input_name); //Soo, setting this makes the widget disappear.
+
 	inputSettings = inputs.get(input_name);
  	inputSlider = new Wt::WSlider(); 
 	thisSliderContainer->addWidget(inputSlider);
 	inputSlider->resize(width,50); //TODO fix this to take full width
 //	inputSlider->resize( Wt::WLength(100,Wt::WLength::Unit::Percentage) ,50); //This kind of works. We get a huge slider (which si good) but the ticks are all in 100px or something on one side, and so is the min/max
 // inputSlider->setNativeControl(true); //If we use this, and move the slider, the program freezes
-	inputSlider->setObjectName("inputSlider:"+input_name); //TODO: Change this, and updateInputs to using class members and not HTML names.
+//	inputSlider->setObjectName("inputSlider:"+input_name); //TODO: Change this, and updateInputs to using class members and not HTML names.
+        inputSliders[input_name] =inputSlider;
 	int min, max;
 	min = inputSettings[0];
 	max = inputSettings[1]; 
@@ -581,8 +588,9 @@ std::cout<<"interacted pos"<<std::endl;
     socket.disconnect("tcp://localhost:5555");
 
     Wt::WContainerWidget *markerContainer = new Wt::WContainerWidget(root());
+    markerContainer->resize(width,Wt::WLength::Auto);
     Wt::WContainerWidget *fragmentButtonsContainer = new Wt::WContainerWidget(markerContainer);
-
+    
     WTreeTable *markerTree = new WTreeTable();
     markerContainer->addWidget(markerTree);
     markerTree->setObjectName("markertree"); //TODO: Still something wierd with the columns, they are sometimes offset
@@ -1209,13 +1217,16 @@ void EarUI::updateInputs()
 	for(auto name:responses.names())
 	{
 		inputSettings = responses.get(name);
-		sliderWidget = dynamic_cast<WSlider*> (findWidget("inputSlider:"+name));
+//		sliderWidget = dynamic_cast<WSlider*> (findWidget("inputSlider:"+name));
+		sliderWidget = inputSliders[name];
  std::cout<<"Updating slider "<<name<<std::endl;
 		sliderWidget->setValue(inputSettings[2]);
  std::cout<<"Updated slider "<<name<<std::endl;
-		textWidget = dynamic_cast<WText*> (findWidget("inputText:"+name));
+//		textWidget = dynamic_cast<WText*> (findWidget("inputText:"+name));
+		textWidget = inputTexts[name];
  std::cout<<"Found text "<<name<<std::endl;
 		textWidget->setText(sliderWidget->valueText());
+//		textWidget->setText("BAR");
  std::cout<<"Updating texts"<<std::endl;
 
 	}
