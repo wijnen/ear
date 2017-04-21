@@ -227,7 +227,7 @@ def zmq_callback(fd,condition,zmq_socket):
                     zmq_socket.send_json("No such event")
                     print("No such event")
             elif msg =="inputs?":
-                inputs = {"speed":[50,200],"before":[0,10],"volume":[0,100]} #Needs volume as well at some point (min,max)
+                inputs = {"speed":[50,200],"before":[0,10],"volume":[0,200]} #Needs volume as well at some point (min,max)
                 for inp in inputs.keys():
                     inputs[inp].append(getattr(g,inp))
                 zmq_socket.send_json(inputs)
