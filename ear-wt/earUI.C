@@ -422,24 +422,22 @@ std::cout<<"Making input box for "<<input_name<<std::endl;
         inputbox->addWidget(thisInputContainer);
 	Wt::WVBoxLayout *thisInputBox = new Wt::WVBoxLayout();
 	thisInputContainer->setLayout(thisInputBox);
-	Wt::WHBoxLayout *textbox = new Wt::WHBoxLayout();
-	WContainerWidget *foo = new WContainerWidget();
+	Wt::WHBoxLayout *textbox = new Wt::WHBoxLayout(); //Todo, make sure we pad the buttons and not expand them
 	WContainerWidget *thisSliderContainer = new WContainerWidget();
-	foo->setLayout(textbox);
-       	thisInputBox->addWidget(foo);	
+       	thisInputBox->addLayout(textbox);	
 std::cout<<"It's in the box"<<std::endl;	
 	titleText = new Wt::WText(input_name);
-	textbox->addWidget(titleText);
-//	valueText = new Wt::WText("");
+	textbox->addWidget(titleText,0);
 	valueText = new Wt::WText("");
-	textbox->addWidget(valueText);	
+	textbox->addWidget(valueText,0);	
+	textbox->addStretch();
         inputTexts[input_name] = valueText;
-//	valueText->setObjectName("inputText:"+input_name); //Soo, setting this makes the widget disappear.
+//	valueText->setObjectName("inputText:"+input_name); //Soo, setting this makes the widget disappear, or at least act up
 
 	inputSettings = inputs.get(input_name);
  	inputSlider = new Wt::WSlider(); 
 	thisSliderContainer->addWidget(inputSlider);
-	inputSlider->resize(width,50); //TODO fix this to take full width
+	inputSlider->resize(width,50); 
 //	inputSlider->resize( Wt::WLength(100,Wt::WLength::Unit::Percentage) ,50); //This kind of works. We get a huge slider (which si good) but the ticks are all in 100px or something on one side, and so is the min/max
  //inputSlider->setNativeControl(true); //If we use this, and move the slider, the program freezes
         inputSliders[input_name] =inputSlider;
@@ -453,13 +451,14 @@ std::cout<<"It's in the box"<<std::endl;
         inputSlider->setValue(inputSettings[2]); 
 	inputSlider->setTickPosition(Wt::WSlider::TicksAbove);
 //	thisInputBox->addWidget(thisSliderContainer,1);
-	thisInputBox->addWidget(inputSlider,1); //So, if we put it in iwthout a container it won't appear. If we put it in a container, it appears, but resizing is wierd. If we put a 100% the slider is there but the ticks and the min/max are all in one corner, if we put it 500px wide everything works except it's a hard limit. I'm debugging on a 4k screen and it should work on a phone. Now what?
+	thisInputBox->addWidget(inputSlider,1); //So, if we put it in iwthout a container it won't appear. If we put it in a container, it appears, but resizing is wierd. If we put a 100% the slider is there but the ticks and the min/max are all in one corner, if we put it 500px wide everything works except it's a hard limit. I'm debugging on a 4k screen and it should work on a phone. Now what? //Turns out, if you don't set the objectName, it all works as advertised. TODO: Make a minimal example and submit the bug
 	
 std::cout<<"Slider made"<<std::endl;	
 std::cout<<"Line"<<std::endl;
 	inputButtonContainer = new WContainerWidget();
 	thisInputBox->addWidget(inputButtonContainer);
 	WHBoxLayout *buttonbox = new Wt::WHBoxLayout();
+	buttonbox->addStretch();
         inputButtonContainer->setLayout(buttonbox);
 std::cout<<"Who's special?"<<std::endl;
 	if (input_name == "before")
@@ -469,7 +468,8 @@ std::cout<<" Before is special"<<std::endl;
 	       for(auto before:beforeButtons)
 		{
 			WPushButton *bbutton = new WPushButton(WString(std::to_string(before)));
-			buttonbox->addWidget(bbutton);
+			buttonbox->addWidget(bbutton,0);
+	buttonbox->addStretch();
 			bbutton->clicked().connect(std::bind([=] ()
 			{
 				interact_zmq("input:before:"+std::to_string(before));
@@ -481,13 +481,14 @@ std::cout<<" Before is special"<<std::endl;
 	}
 	if (input_name =="speed")
 	{
-		std::vector<int> speedButtons = {50,75,80,90,100,110,120,125,150,200};
+		std::vector<int> speedButtons = {50,75,90,100,110,120,150,175,200};
 	       for(auto speed:speedButtons)
 		{
 			std::string title = std::to_string(speed);
 			title += "%";
 			WPushButton *sbutton = new WPushButton(WString(title));
-			buttonbox->addWidget(sbutton);
+			buttonbox->addWidget(sbutton,0);
+	buttonbox->addStretch();
 			sbutton->clicked().connect(std::bind([=] ()
 			{
 				interact_zmq("input:speed:"+std::to_string(speed));
@@ -509,11 +510,13 @@ std::cout<<"Connecting the valueChanged"<<std::endl;
     }
  std::cout<<"Done making new sliders"<<std::endl;
     WContainerWidget *posContainer = new WContainerWidget();
-    posContainer->resize(width,Wt::WLength::Auto);
+    Wt::WVBoxLayout *posInputBox = new Wt::WVBoxLayout();
+    posContainer->setLayout(posInputBox);
     inputbox->addWidget(posContainer);
+//    posContainer->resize(width,Wt::WLength::Auto);
 //TODO add layout stuffs
 
-#ifdef PLOT //ifdef'd out as it crashes on all Debian versions of Wt
+#ifdef PLOT //ifdef'd out as it crashes on all Debian versions of Wt //TODO add to the boxes as well
     WContainerWidget *chartContainer = new WContainerWidget(inputContainer);
 	chartText = new  WText( "chart", chartContainer);
 std::cout<<"Charting"<<std::endl;
@@ -541,10 +544,36 @@ std::cout<< "Got a model"<<std::endl;
 	}));
 	waveformTimer->start();
 std::cout<<"Done charting "<<std::endl;
-#endif //Plot //Start here with adding to inputBox and stuff like that TODO
-    posSlider = new WSlider(posContainer);
-    WContainerWidget *posButtonContainer = new WContainerWidget(posContainer);
+#endif //Plot 
+std::cout<<"Making pos slider"<<std::endl;
+//Start here with adding to inputBox and stuff like that TODO
+	Wt::WHBoxLayout *posTextBox = new Wt::WHBoxLayout();
+	posInputBox->addLayout(posTextBox);
+	Wt::WText *posLabel = new Wt::WText("Position");
+	posTextBox->addWidget(posLabel,0);
+	TimeWidget *posText = new TimeWidget();
+	posTextBox->addWidget(posText,0);
+	posText->setTime(0);
+    posSlider = new WSlider();
+	posSlider->valueChanged().connect(std::bind([=] ()
+    {
+std::cout<<"interacting pos"<<std::endl;
+	interact_zmq("pos:"+posSlider->valueText());
+std::cout<<"interacted pos"<<std::endl;
+        posText->setTime(posSlider->value());
+    }));
 
+
+    posSlider->resize(width,50); 
+    posInputBox->addWidget(posSlider,1);
+
+
+std::cout<<"Making pos buttons"<<std::endl; 
+    WContainerWidget *posButtonContainer = new WContainerWidget();
+    posInputBox->addWidget(posButtonContainer);
+    Wt::WHBoxLayout *seekButtonBox = new Wt::WHBoxLayout();
+    posButtonContainer->setLayout(seekButtonBox);
+	seekButtonBox->addStretch();
     std::vector<int> seekButtons = {-10,-5,-1,1,5,10};
     for(auto seek:seekButtons)
     {
@@ -554,7 +583,9 @@ std::cout<<"Done charting "<<std::endl;
 		title = "+" + title;
 	}
 	title += "s";
-	WPushButton *sbutton = new WPushButton(WString(title),posButtonContainer);
+	WPushButton *sbutton = new WPushButton(WString(title));
+        seekButtonBox->addWidget(sbutton,0);
+	seekButtonBox->addStretch();
 	sbutton->clicked().connect(std::bind([=] ()
         {
 		interact_zmq("pos:"+std::to_string(current_track_time()+seek*1000));
@@ -564,17 +595,8 @@ std::cout<<"Done charting "<<std::endl;
 //    posSlider->resize(Wt::WLength(100,Wt::WLength::Percentage),50);
     posSlider->resize(width,50);
     posSlider->setTickInterval(60000); //One minute in ms
-    posSlider->setTickPosition(Wt::WSlider::TicksAbove);
-    TimeWidget *posText = new TimeWidget(posContainer);
-    posText->setTime(0);
-    posSlider->valueChanged().connect(std::bind([=] ()
-    {
-std::cout<<"interacting pos"<<std::endl;
-	interact_zmq("pos:"+posSlider->valueText());
-std::cout<<"interacted pos"<<std::endl;
-        posText->setTime(posSlider->value());
-    }));
-/*    posSlider->sliderMoved().connect(std::bind([=] (int v) //TODO:Implement this. I'm not sure why it does not currently work, as it looks like Wt casts the value to a static int. 
+    posSlider->setTickPosition(Wt::WSlider::TicksAbove);/*
+*    posSlider->sliderMoved().connect(std::bind([=] (int v) //TODO:Implement this. I'm not sure why it does not currently work, as it looks like Wt casts the value to a static int. 
 //Also TODO, use this to stop the slider from being moved by the udpating timer if someone is dragging it
     { 
 	posText->setTime(v); //So we can move and see where we'll end up before releasing
@@ -582,6 +604,7 @@ std::cout<<"interacted pos"<<std::endl;
 
     
 
+std::cout<<"Done making pos slider"<<std::endl;
 
   
     socket.disconnect("tcp://localhost:5555");
