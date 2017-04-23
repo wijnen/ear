@@ -256,9 +256,6 @@ std::map<std::string, Wt::WSlider*> inputSliders;
   WText *chartText;
   WSlider *posSlider;
   MyTreeTableNode *addNode(MyTreeTableNode *parent, WString name, const long start, const long stop );
-//  Wt::WStringListModel *get_trackmodel( zmq::socket_t &socket );
-//  Wt::WStringListModel *get_trackmodel( );
-//  Wt::WStringListModel *filter_trackmodel( WStringListModel *trackmodel, WContainerWidget *filterwidget );
 Json::Value saveFragments(MyTreeTableNode *root);
   int max_tags = 0;
   WPushButton *playPauseButton;
@@ -278,40 +275,6 @@ EarUI::EarUI(const WEnvironment& env)
 /*
 ZMQ should connect and disconnect after every set of actions to make room for another interface. Saves working on lots of listeners and the Python interface doesn't have to know who's talking
 */
-   /* Json::Object command_names; //
-    command_names = interact_zmq(socket,"events?");
-    std::set<std::string> names;
-    names = command_names.names();
-std::cout<<"Parsed names"<<std::endl;
-*/
-    
-  /*  Wt::WPanel *panel = new Wt::WPanel(root());
-    panel->setTitle("Control current track");
-    panel->setObjectName("trackpanel");
-    panel->addStyleClass("centered-example");
-    panel->setCollapsible(true);
-    Wt::WAnimation animation(Wt::WAnimation::SlideInFromTop,
-			 Wt::WAnimation::EaseOut,
-			 100);
-    panel->setAnimation(animation);
-    Wt::WContainerWidget *currentTrackContainer = new Wt::WContainerWidget();
-    panel->setCentralWidget(currentTrackContainer);
-    panel->setHidden(false);
-
-    for (auto name : names) 
-    {
-        WPushButton *button = new WPushButton(name ,root());     
-        button->setMargin(5, Left);                          
- 	button->clicked().connect(std::bind([=] ()
-	{
-   		interact_zmq("event:"+name);
-		updateInputs();
-	}));
-	currentTrackContainer->addWidget(button);
-
-
-    }
-   */
    
 
 
@@ -329,7 +292,6 @@ selectPanel->setTitle("Select new track");
 
 
 Wt::WContainerWidget *trackSearchContainer = new Wt::WContainerWidget(root()); 
-//trackSearchContainer->resize(Wt::WLength(100,Wt::WLength::Unit::Percentage),500);
 trackSearchContainer->resize(width,500);
 //Make this a GridLayout and add a second column showing the track settings TODO
 
@@ -337,7 +299,6 @@ Wt::WVBoxLayout *vbox = new Wt::WVBoxLayout();
 trackSearchContainer->setLayout(vbox);
 
 
-//selectPanel->setHidden(false);
 Wt::WLineEdit *searchBox = new Wt::WLineEdit(); 
 vbox->addWidget(searchBox);
 searchBox->setPlaceholderText("Type to search");
@@ -408,7 +369,6 @@ selectPanel->setCentralWidget(trackSearchContainer);
     Json::Object inputs;
     inputs = interact_zmq(socket,"inputs?");
     Wt::WContainerWidget *thisInputContainer;
-//    Wt::WContainerWidget *thisSliderContainer;
     Wt::WSlider *inputSlider;
     Json::Array inputSettings;
     Wt::WText *valueText; 
@@ -432,7 +392,7 @@ std::cout<<"It's in the box"<<std::endl;
 	textbox->addWidget(valueText,0);	
 	textbox->addStretch();
         inputTexts[input_name] = valueText;
-//	valueText->setObjectName("inputText:"+input_name); //Soo, setting this makes the widget disappear, or at least act up
+//	valueText->setObjectName("inputText:"+input_name); //Soo, setting this makes the widget disappear, or at least act up. Report?
 
 	inputSettings = inputs.get(input_name);
  	inputSlider = new Wt::WSlider(); 
@@ -450,8 +410,7 @@ std::cout<<"It's in the box"<<std::endl;
 	inputSlider->setTickInterval( (max-min)/6);
         inputSlider->setValue(inputSettings[2]); 
 	inputSlider->setTickPosition(Wt::WSlider::TicksAbove);
-//	thisInputBox->addWidget(thisSliderContainer,1);
-	thisInputBox->addWidget(inputSlider,1); //So, if we put it in iwthout a container it won't appear. If we put it in a container, it appears, but resizing is wierd. If we put a 100% the slider is there but the ticks and the min/max are all in one corner, if we put it 500px wide everything works except it's a hard limit. I'm debugging on a 4k screen and it should work on a phone. Now what? //Turns out, if you don't set the objectName, it all works as advertised. TODO: Make a minimal example and submit the bug
+	thisInputBox->addWidget(inputSlider,1); //So, if we put it in iwthout a container it won't appear if it has an objectName. If we put it in a container, it appears, but resizing is wierd. If we put a 100% the slider is there but the ticks and the min/max are all in one corner, if we put it 500px wide everything works except it's a hard limit. I'm debugging on a 4k screen and it should work on a phone. Now what? //Turns out, if you don't set the objectName, it all works as advertised. TODO: Make a minimal example and submit the bug
 	
 std::cout<<"Slider made"<<std::endl;	
 std::cout<<"Line"<<std::endl;
@@ -513,8 +472,6 @@ std::cout<<"Connecting the valueChanged"<<std::endl;
     Wt::WVBoxLayout *posInputBox = new Wt::WVBoxLayout();
     posContainer->setLayout(posInputBox);
     inputbox->addWidget(posContainer);
-//    posContainer->resize(width,Wt::WLength::Auto);
-//TODO add layout stuffs
 
 #ifdef PLOT //ifdef'd out as it crashes on all Debian versions of Wt //TODO add to the boxes as well
     WContainerWidget *chartContainer = new WContainerWidget(inputContainer);
@@ -531,7 +488,7 @@ std::cout<< "Got a model"<<std::endl;
  	Chart::WDataSeries *l = new Chart::WDataSeries(1, Wt::Chart::LineSeries);
     l->setShadow(WShadow(3, 3, WColor(0, 0, 0, 127), 3));
  waveformChart->addSeries(*l);
- /*Chart::WDataSeries *r = new Chart::WDataSeries(2, Wt::Chart::LineSeries);
+/*Chart::WDataSeries *r = new Chart::WDataSeries(2, Wt::Chart::LineSeries);
     r->setShadow(WShadow(3, 3, WColor(0, 0, 0, 127), 3));
    waveformChart->addSeries(*r);*/
    waveformChart->resize(width,100);
@@ -546,7 +503,6 @@ std::cout<< "Got a model"<<std::endl;
 std::cout<<"Done charting "<<std::endl;
 #endif //Plot 
 std::cout<<"Making pos slider"<<std::endl;
-//Start here with adding to inputBox and stuff like that TODO
 	Wt::WHBoxLayout *posTextBox = new Wt::WHBoxLayout();
 	posInputBox->addLayout(posTextBox);
 	Wt::WText *posLabel = new Wt::WText("Position");
@@ -592,7 +548,6 @@ std::cout<<"Making pos buttons"<<std::endl;
         } ));
 	
     }
-//    posSlider->resize(Wt::WLength(100,Wt::WLength::Percentage),50);
     posSlider->resize(width,50);
     posSlider->setTickInterval(60000); //One minute in ms
     posSlider->setTickPosition(Wt::WSlider::TicksAbove);/*
@@ -615,10 +570,10 @@ std::cout<<"Done making pos slider"<<std::endl;
     
     WTreeTable *markerTree = new WTreeTable();
     markerContainer->addWidget(markerTree);
-    markerTree->setObjectName("markertree"); //TODO: Still something wierd with the columns, they are sometimes offset
+    markerTree->setObjectName("markertree"); //TODO: Still something wierd with the columns, they are sometimes offset /TODO: Remove the setObjectName here as well
     markerTree->tree()->setSelectionMode(Wt::ExtendedSelection);
     markerTree->addColumn("Start time",100);
-    markerTree->addColumn("End time",100); //StartButton
+    markerTree->addColumn("End time",100); 
     markerTree->addColumn("Play from here",20); //StartButton
     playPauseButton = new WPushButton("Play",fragmentButtonsContainer);
     playPauseButton->clicked().connect(std::bind([=] ()
@@ -863,7 +818,6 @@ std::cout<<"Trying to delete a non-empty group"<<std::endl;
 	}));
 
     WPushButton *savebutton = new WPushButton("Save fragments", fragmentButtonsContainer);
-//    currentTrackContainer->addWidget(savebutton);
     savebutton->setMargin(5, Left);
     savebutton->clicked().connect(std::bind([=] ()
     {	
@@ -969,102 +923,6 @@ long EarUI::current_track_time( zmq::socket_t *socket )
 	
 }
 
-/*Wt::WStringListModel *EarUI::filter_trackmodel( WStringListModel *trackmodel, WContainerWidget *filterWidget )
-{ //TODO: Most of this should be removed soon as it has been translated into Python
-std::cout<<"Handling filter"<<std::endl;
-	std::set<WString> filters;
-	std::set<WString> tags;
-	Wt::WStringListModel *newtrackmodel = new Wt::WStringListModel();
-	int track_idx;
-	for(auto thisFilterContainerW:filterWidget->children())
-	{
-		WContainerWidget *thisFilterContainer = dynamic_cast<WContainerWidget*>(thisFilterContainerW);
-		WWidget *foo = thisFilterContainer->widget(0);
-		WText *filtertext = dynamic_cast<WText*>(foo);
-		filters.insert(filtertext->text());		
-	}
-std::cout<<"Made filter set"<<std::endl;
-	int i = 0; //Needed to look up the data as well as the set
-	int x = 0; //Needed to set new data
-	for (auto track:trackmodel->stringList())
-	{
-		tags = boost::any_cast<std::set<WString>> (trackmodel->data(trackmodel->index(i,1), Wt::UserRole+1)); 
-		track_idx = boost::any_cast<int> (trackmodel->data(trackmodel->index(i,0), Wt::UserRole)); 
-		std::set<WString> res_set;
-	 	set_intersection(filters.begin(), filters.end(), tags.begin(), tags.end(), std::inserter(res_set, res_set.end())); 
-		if( res_set.size() > 0) // if tag in filters  
-//Currently we are ORring our filters, we probably want to AND our filters. This should also be made optional I guess
-		{
-				newtrackmodel->addString(track);
-				newtrackmodel->setData(x,0,track_idx,Wt::UserRole);
-				newtrackmodel->setData(x,1,tags,Wt::UserRole+1);
-				x++; //RowIndex in new track model
-		}
-		i++;
-	 }
-    trackmodel->setFlags(x-1,0);
-    trackmodel->sort(0);
-	 
- return newtrackmodel;
-}
-*//*
-Wt::WStringListModel *EarUI::get_trackmodel( )
-{
-    zmq::context_t context (1);
-    zmq::socket_t socket (context, ZMQ_REQ);
-    socket.connect ("tcp://localhost:5555");
-	
-	WStringListModel *retval = get_trackmodel(socket);
-
-   socket.disconnect("tcp://localhost:5555");
-std::cout<<"Disonnected from ZMQ"<<std::endl;
-    return retval;
-}*/
-/*
-
-Wt::WStringListModel *EarUI::get_trackmodel(zmq::socket_t &socket )
-{
-    Wt::WStringListModel *trackmodel = new Wt::WStringListModel();
-    Json::Object json_tracks;
-    Json::Object response;
-    response = interact_zmq(socket,"tracks?");
-    json_tracks = response.get("tracks");
-    Json::Object track;
-    Json::Array json_tags;
-    Json::Value json_tag;
-    WString trackname;
-    WString tag;
-    int x = 0;
-    for(auto trackname:json_tracks.names())
-    {
-	trackmodel->addString(trackname);
-	json_tags = json_tracks.get(trackname);
-	std::set<WString> tags;
-	bool first =true;
-	for (auto json_tag:json_tags)
-	{
-		if (first)
-		{
-			int track_idx = json_tag;
-			trackmodel->setData(x,0,track_idx, Wt::UserRole); //First one is special, it's the track index
-			first = false;
-		}
-		else
-		{	
-			tag = json_tag;
-			tags.insert(tag);
-		}
-	}
-	trackmodel->setData(x,1,tags, Wt::UserRole+1); //Note, these need to be fetched in the same way. I have no idea what the second argument here actually does, UserRole+1 is the actual index
- 	x++;
-    }
-    max_tags = x;
-    trackmodel->setFlags(x-1,0);
-    trackmodel->sort(0);
-	return trackmodel;
-
-}
-*/
 Json::Value EarUI::saveFragments(MyTreeTableNode *root)
 {
 
@@ -1239,16 +1097,10 @@ void EarUI::updateInputs()
 	for(auto name:responses.names())
 	{
 		inputSettings = responses.get(name);
-//		sliderWidget = dynamic_cast<WSlider*> (findWidget("inputSlider:"+name));
 		sliderWidget = inputSliders[name];
- std::cout<<"Updating slider "<<name<<std::endl;
 		sliderWidget->setValue(inputSettings[2]);
- std::cout<<"Updated slider "<<name<<std::endl;
-//		textWidget = dynamic_cast<WText*> (findWidget("inputText:"+name));
 		textWidget = inputTexts[name];
- std::cout<<"Found text "<<name<<std::endl;
 		textWidget->setText(sliderWidget->valueText());
-//		textWidget->setText("BAR");
  std::cout<<"Updating texts"<<std::endl;
 
 	}
