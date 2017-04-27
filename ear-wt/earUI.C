@@ -39,7 +39,7 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include <Wt/WCompositeWidget>
 #include <Wt/WTreeTableNode>
-
+#include <Wt/WBootstrapTheme>
 #define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here. 
 char const *zmq_port;
 
@@ -243,6 +243,7 @@ private:
   void loadFragments();	
   void loadWaveform();
   WTimer *waveformTimer;
+  WTreeTable *markerTree;
   void updateInputs();
   void loadGroup(MyTreeTableNode *current_root, Json::Array fragments);
   void mark_current_fragment(long long track_time);
@@ -268,7 +269,8 @@ EarUI::EarUI(const WEnvironment& env)
   : WApplication(env)
 {
     setTitle("Ear test interface"); 
-
+//setCssTheme("polished"); //This fixes the columns of the treetable, soimehow
+setTheme(new WBootstrapTheme());
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
     socket.connect (zmq_port); //TODO: make host and port configurable
@@ -281,7 +283,7 @@ ZMQ should connect and disconnect after every set of actions to make room for an
     Wt::WPanel *selectPanel = new Wt::WPanel(root());
 selectPanel->setTitle("Select new track");
 	selectPanel->resize(width,Wt::WLength::Auto);
-    selectPanel->setObjectName("selectionPanel");
+//    selectPanel->setObjectName("selectionPanel");
     selectPanel->setCollapsible(true);
 //    Wt::WAnimation animation(Wt::WAnimation::SlideInFromTop,
 //			 Wt::WAnimation::EaseOut,
@@ -568,13 +570,22 @@ std::cout<<"Done making pos slider"<<std::endl;
     markerContainer->resize(width,Wt::WLength::Auto);
     Wt::WContainerWidget *fragmentButtonsContainer = new Wt::WContainerWidget(markerContainer);
     
-    WTreeTable *markerTree = new WTreeTable();
+    markerTree = new WTreeTable();
     markerContainer->addWidget(markerTree);
-    markerTree->setObjectName("markertree"); //TODO: Still something wierd with the columns, they are sometimes offset /TODO: Remove the setObjectName here as well
+//    markerTree->setObjectName("markertree"); //TODO: Still something wierd with the columns, they are sometimes offset /TODO: Remove the setObjectName here as well
     markerTree->tree()->setSelectionMode(Wt::ExtendedSelection);
-    markerTree->addColumn("Start time",100);
+/*    markerTree->addColumn("Start time",100);
     markerTree->addColumn("End time",100); 
     markerTree->addColumn("Play from here",20); //StartButton
+*/  markerTree->addColumn("",100);
+    markerTree->addColumn("",100); 
+    markerTree->addColumn("",20); //StartButton
+
+
+
+//    markerTree->headerWidget()->hide(); //<--"Crash"
+
+
     playPauseButton = new WPushButton("Play",fragmentButtonsContainer);
     playPauseButton->clicked().connect(std::bind([=] ()
     {
@@ -1055,7 +1066,8 @@ void EarUI::loadFragments(zmq::socket_t &socket)
 {
 
 	Wt::WTreeTable *treeTable; 
-	treeTable = dynamic_cast<WTreeTable*> (findWidget("markertree"));
+//	treeTable = dynamic_cast<WTreeTable*> (findWidget("markertree"));
+	treeTable = this->markerTree;
 	
 	Json::Object response;
 
