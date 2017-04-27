@@ -4,6 +4,7 @@
  * Code copyright Kasper Loopstra, 2017  
  */
 
+// Includes. {{{
 #include <Wt/WApplication>
 #include <Wt/WBreak>
 #include <Wt/WContainerWidget>
@@ -41,9 +42,12 @@
 #include <Wt/WTreeTableNode>
 #include <Wt/WBootstrapTheme>
 #define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here. 
+// }}}
+
+// Port to connect to zmq.  This is set from the environment variable ZMQ_PORT.
 char const *zmq_port;
 
-class FilteredStringModel : public Wt::WStringListModel
+class FilteredStringModel : public Wt::WStringListModel	// {{{
 {
  /*
 Class to make a stringlistmodel that filters itsself based on filters set previously. Uses zeroMQ to talk to the Python Ear implementation and let Python (fuzzywuzzy) do the actual heavy lifting
@@ -118,11 +122,9 @@ void FilteredStringModel::update()
 	}
 
 }
+// }}}
 
-
-
-
-class MyTreeTableNode : public Wt::WTreeTableNode
+class MyTreeTableNode : public Wt::WTreeTableNode // {{{
 {
 	public:
 		MyTreeTableNode(const Wt::WString& labelText, Wt::WIconPair *labelIcon = 0,  Wt::WTreeTableNode *parentNode = 0) :  
@@ -135,8 +137,10 @@ class MyTreeTableNode : public Wt::WTreeTableNode
 	Wt::WInPlaceEdit*  editWidget;
 
 };
+// }}}
 
-class TimeWidget : public Wt::WText //This explicitly does not use the Wt::WTime class, as we want to use milliseconds as our base unit, especially when communicating with the Python side of this project. The Wt::Wtime supports only already quite correctly formatted times, and we don't need that. Additionally, it's meant for clock times, not intervals
+//This explicitly does not use the Wt::WTime class, as we want to use milliseconds as our base unit, especially when communicating with the Python side of this project. The Wt::Wtime supports only already quite correctly formatted times, and we don't need that. Additionally, it's meant for clock times, not intervals
+class TimeWidget : public Wt::WText // {{{
 {
     public:
 	TimeWidget(Wt::WContainerWidget *parent = 0);
@@ -146,7 +150,6 @@ class TimeWidget : public Wt::WText //This explicitly does not use the Wt::WTime
     private:
 	long _time;
 };
-
 
 TimeWidget::TimeWidget(Wt::WContainerWidget *parent )
  : Wt::WText(parent)
@@ -183,11 +186,11 @@ bool TimeWidget::setTime(long time)
 	}
 	return true;
 }
-
+// }}}
 
 using namespace Wt;
 
-
+// TreeTable helpers. {{{
 std::vector<MyTreeTableNode*> children_as_vector(MyTreeTableNode *root)
 {
 	std::vector<MyTreeTableNode*> retval;
@@ -217,8 +220,9 @@ std::vector<MyTreeTableNode*> ancestors_as_vector(MyTreeTableNode *child)
 	}
 	return retval;
 }
+// }}}
 
-class EarUI : public WApplication
+class EarUI : public WApplication // {{{
 {
 public:
   EarUI(const WEnvironment& env);
@@ -235,7 +239,7 @@ public:
   static long start_track_time;
   static long stop_track_time;
   static long time_speed;
-private:
+private: // {{{
   Wt::WLength width = Wt::WLength::Auto; 
   std::vector<MyTreeTableNode*> fragment_set;
   void clicked(WPushButton* source );
@@ -260,12 +264,10 @@ private:
   Json::Value saveFragments(MyTreeTableNode *root);
   int max_tags = 0;
   WPushButton *playPauseButton;
+  // }}}
 };
 
-
-
-
-EarUI::EarUI(const WEnvironment& env)
+EarUI::EarUI(const WEnvironment& env) // {{{
   : WApplication(env)
 {
     setTitle("Ear test interface"); 
@@ -890,10 +892,10 @@ std::cout<<"Trying to delete a non-empty group"<<std::endl;
 
     timer->start();
     updateInputs();
-
-
 }
-void EarUI::mark_current_fragment(long long pos)
+// }}}
+
+void EarUI::mark_current_fragment(long long pos) // {{{
 {
 	for (auto fragmentTTN:this->fragment_set)
 	{
@@ -916,7 +918,9 @@ void EarUI::mark_current_fragment(long long pos)
 	
 	}
 }
-long EarUI::current_track_time( zmq::socket_t *socket )
+// }}}
+
+long EarUI::current_track_time( zmq::socket_t *socket ) // {{{
 {
 
 	Json::Object posj ;
@@ -933,8 +937,9 @@ long EarUI::current_track_time( zmq::socket_t *socket )
 	return pos;
 	
 }
+// }}}
 
-Json::Value EarUI::saveFragments(MyTreeTableNode *root)
+Json::Value EarUI::saveFragments(MyTreeTableNode *root) // {{{
 {
 
 	Json::Value retVal = Json::Value(Json::ArrayType);
@@ -968,7 +973,9 @@ Json::Value EarUI::saveFragments(MyTreeTableNode *root)
 	}
 return retVal;
 }
-void EarUI::loadGroup(MyTreeTableNode *current_root, Json::Array fragments)
+// }}}
+
+void EarUI::loadGroup(MyTreeTableNode *current_root, Json::Array fragments) // {{{
 { //Recursively add the fragments to the treetable
 std::cout<<"\n\nLoading fragments"<<std::endl;
 	for(auto fragmentValue:fragments)
@@ -994,10 +1001,10 @@ std::cout<<"Making a new group"<<std::endl;
 std::cout<<"Type not understood"<<std::endl;
 		}
 	}
-
-		
 }
-#ifdef PLOT
+// }}}
+
+#ifdef PLOT // {{{
 void EarUI::loadWaveform()
 {
 std::cout<<"Loading waveform"<<std::endl;
@@ -1046,10 +1053,9 @@ std::cout<<"Set a model"<<std::endl;
 }
 
 #endif
+// }}}
 
-
-
-void EarUI::loadFragments()
+void EarUI::loadFragments() // {{{
 {
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
@@ -1059,10 +1065,10 @@ void EarUI::loadFragments()
 #ifdef PLOT
 waveformTimer->start();
 #endif
-
 }
+// }}}
 
-void EarUI::loadFragments(zmq::socket_t &socket)
+void EarUI::loadFragments(zmq::socket_t &socket) // {{{
 {
 
 	Wt::WTreeTable *treeTable; 
@@ -1092,11 +1098,10 @@ void EarUI::loadFragments(zmq::socket_t &socket)
                 posSlider->setMaximum(lastW->time());
 	
 }
+// }}}
 
-
-
-void EarUI::updateInputs()
-{	
+void EarUI::updateInputs() // {{{
+{
  std::cout<<"Updating inpouts"<<std::endl;
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
@@ -1131,14 +1136,11 @@ ui_track_idx = server_track_idx;
 
 	
     socket.disconnect(zmq_port);
-		
 }
+// }}}
 
-
-
-
-
-MyTreeTableNode *EarUI::addNode(MyTreeTableNode *parent, WString name, const long start, const long stop ) {
+MyTreeTableNode *EarUI::addNode(MyTreeTableNode *parent, WString name, const long start, const long stop ) // {{{
+{
 	MyTreeTableNode *node = new MyTreeTableNode(name, 0, parent);
 	WContainerWidget *labelArea = node->labelArea();
 	WWidget *labelWidget = labelArea->widget(0); //See source of WTreeNode.
@@ -1183,17 +1185,10 @@ std::cout<<"Handlign a startbutton click from the markertree"<<std::endl;
 	node->setColumnWidget(2, stopWidget);
 	this->fragment_set.push_back(node);
 	return node;
-    }
+}
+// }}}
 
-
-
-
-
-
-
-/*
-
-ZeroMQ handling below.
+/* ZeroMQ handling. {{{
 An interact function can take a socket or not. If provided with a socket, it will be used. If not, one will be opened and closed for this interaction. 
 Send and recieve always need a socket.
 When sending more than one interaction, preferably create a socket and use that.
@@ -1201,13 +1196,14 @@ WStrings, strings are both handled
 */
 //TODO: Replace all the duplication below with some default values for socket pointers. See get_current_track_time as an example;
 
-Json::Object EarUI::interact_zmq(Wt::WString value)
+Json::Object EarUI::interact_zmq(Wt::WString value) // {{{
 {
 	return interact_zmq(value.narrow());
 }
+// }}}
 
-
-Json::Object EarUI::interact_zmq(Json::Object value)//Should use a function template 
+Json::Object EarUI::interact_zmq(Json::Object value) // {{{
+	//Should use a function template 
 {
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
@@ -1217,10 +1213,10 @@ Json::Object EarUI::interact_zmq(Json::Object value)//Should use a function temp
     socket.disconnect(zmq_port);
     return retval;
 }
+// }}}
 
-
-Json::Object EarUI::interact_zmq(std::string value)
-{   
+Json::Object EarUI::interact_zmq(std::string value) // {{{
+{
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
     socket.connect (zmq_port);
@@ -1229,20 +1225,24 @@ Json::Object EarUI::interact_zmq(std::string value)
     socket.disconnect(zmq_port);
     return retval;
 }
+// }}}
 
-Json::Object EarUI::interact_zmq(zmq::socket_t &socket,Json::Object value)
+Json::Object EarUI::interact_zmq(zmq::socket_t &socket,Json::Object value) // {{{
 {
 	return interact_zmq(socket, Json::serialize(value));
 }
+// }}}
 
-Json::Object EarUI::interact_zmq(zmq::socket_t &socket,std::string value)
+Json::Object EarUI::interact_zmq(zmq::socket_t &socket,std::string value) // {{{
 {
     send_zmq(socket,value);
     Json::Object retval;
     Json::parse(recv_zmq(socket),retval);
     return retval;
 }
-void EarUI::send_zmq(zmq::socket_t &socket, std::string value) 
+// }}}
+
+void EarUI::send_zmq(zmq::socket_t &socket, std::string value) // {{{
 {
     Json::Value msg_str;
     msg_str = WString( value);
@@ -1251,31 +1251,30 @@ void EarUI::send_zmq(zmq::socket_t &socket, std::string value)
     std::string data = Json::serialize(msg_arr);
     socket.send(data.c_str(),data.size());
 }
+// }}}
 
-
-std::string EarUI::recv_zmq(zmq::socket_t &socket) 
+std::string EarUI::recv_zmq(zmq::socket_t &socket) // {{{
 {
     char buffer[MAXSIZE];
     int nbytes = socket.recv(buffer, MAXSIZE);
     return std::string(buffer, nbytes);
 }
+// }}}
+// }}}
+// }}}
 
-
-WApplication *createApplication(const WEnvironment& env)
+WApplication *createApplication(const WEnvironment& env) // {{{
 {
   return new EarUI(env);
 }
+// }}}
 
-
-
-
-
-
-
-int main(int argc, char **argv)
+int main(int argc, char **argv) // {{{
 {
     zmq_port = getenv("ZMQ_PORT");
     WString::setDefaultEncoding(UTF8);
     return WRun(argc, argv, &createApplication);
 }
+// }}}
 
+// vim: set foldmethod=marker :
