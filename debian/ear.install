@@ -1,4 +1,5 @@
 ear usr/share/ear/
 media.py usr/share/ear/
 dbread.py usr/share/ear/
-ear-wt/earUI usr/share/ear/
+ear-wt/earUI usr/share/ear/ear-wt/
+ear-wt/wt_config.xml usr/share/ear/ear-wt/
