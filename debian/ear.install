@@ -1,6 +1,4 @@
 ear usr/share/ear/
-ear.gui /usr/share/ear/
-fileselector.py usr/share/ear/
-markers.py usr/share/ear/
 media.py usr/share/ear/
-script.py usr/share/ear/
+dbread.py usr/share/ear/
+ear-wt/earUI usr/share/ear/
