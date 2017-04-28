@@ -335,14 +335,23 @@ data['track']=db[-1]
 new_file()
 print(data['track'])
 print(data['media'])
+print ("importing gobject")
 from gi.repository import GObject
-GObject.io_add_watch(zmq_fd,GObject.IO_IN, zmq_callback, zmq_socket)
-
+import os
+windows = 'nt'in os.name
+if windows:
+    GLib.timeout_add(10,lambda _:zmq_callback(zmq_socket.fd,True,zmq_socket),None)
+else:
+    GObject.io_add_watch(zmq_socket.fd, GObject.IO_IN, zmq_callback, zmq_socket)
+print("Set watch")
+print("copying env")
 # Start the UI process with the zmq port.
 env = os.environ.copy()
 env['ZMQ_PORT'] = 'tcp://localhost:' + str(zmq_port)
 executable = fhs.read_data(os.path.join('ear-wt', 'earUI'), opened = False)
 wt_config = fhs.read_data(os.path.join('ear-wt', 'wt_config.xml'), opened = False)
+
+print(" opening subprocess " )
 try:
     UI = subprocess.Popen((executable,
 		'--docroot', config['Wt'],
@@ -350,9 +359,11 @@ try:
 		'--http-port=' + str(config['http-port']),
 		'-c', wt_config),
 	env = env)
+    print("Popened")
 except:
-    continue
-
+    print("No exe found!")
+    pass
+print("Running mainloop")
 GLib.MainLoop().run()
     
 #
