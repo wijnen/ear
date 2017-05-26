@@ -188,6 +188,29 @@ bool TimeWidget::setTime(long time)
 }
 // }}}
 
+class Slider : public Wt::WSlider // {{{
+{
+public:
+	// Public data members because accessor functions don't add anything.
+	double width;
+	std::vector markers;
+private:
+	void draw_markers();
+};
+
+void Slider::draw_markers() {
+	std::string cmds;
+	for (int i = 0; i < markers.size(); ++i) {
+		cmds += "c.arc(" + std::to_string(markers[i] / width) + " * canvas.width, canvas.height / 2, canvas.height / 4, 0, 2 * Math.PI, false);\n";
+	}
+	doJavaScript("var canvas = " + jsRef() + ".getElementsByTagName('canvas')[0];\n"
+		"var c = canvas.getContext('2d');\n"
+		"c.beginPath()\n" + cmds +
+		"c.fillStyle = 'red';\n"
+		"c.fill();\n");
+};
+// }}}
+
 using namespace Wt;
 
 // TreeTable helpers. {{{
@@ -235,7 +258,7 @@ public:
   static  Json::Object interact_zmq(Json::Object);
   static  Json::Object interact_zmq(zmq::socket_t &socket,std::string value);
   static  Json::Object interact_zmq(zmq::socket_t &socket,Json::Object value);
-  Wt::WSlider *beforeSlider;
+  Slider *beforeSlider;
   static long start_track_time;
   static long stop_track_time;
   static long time_speed;
@@ -253,13 +276,13 @@ private: // {{{
   void mark_current_fragment(long long track_time);
   long current_track_time( zmq::socket_t *socket  =0  );
   std::map<std::string, Wt::WText*> inputTexts;
-  std::map<std::string, Wt::WSlider*> inputSliders;
+  std::map<std::string, Slider*> inputSliders;
 
   int ui_track_idx = -1;
   WStandardItemModel *waveformModel;
   Chart::WCartesianChart *waveformChart;
   WText *chartText;
-  WSlider *posSlider;
+  Slider *posSlider;
   MyTreeTableNode *addNode(MyTreeTableNode *parent, WString name, const long start, const long stop );
   Json::Value saveFragments(MyTreeTableNode *root);
   int max_tags = 0;
@@ -373,7 +396,7 @@ selectPanel->setCentralWidget(trackSearchContainer);
     Json::Object inputs;
     inputs = interact_zmq(socket,"inputs?");
     Wt::WContainerWidget *thisInputContainer;
-    Wt::WSlider *inputSlider;
+    Slider *inputSlider;
     Json::Array inputSettings;
     Wt::WText *valueText; 
     Wt::WText *titleText;
@@ -399,7 +422,7 @@ std::cout<<"It's in the box"<<std::endl;
 //	valueText->setObjectName("inputText:"+input_name); //Soo, setting this makes the widget disappear, or at least act up. Report?
 
 	inputSettings = inputs.get(input_name);
- 	inputSlider = new Wt::WSlider(); 
+ 	inputSlider = new Slider(); 
 	thisSliderContainer->addWidget(inputSlider);
 	inputSlider->resize(width,50); 
 //	inputSlider->resize( Wt::WLength(100,Wt::WLength::Unit::Percentage) ,50); //This kind of works. We get a huge slider (which si good) but the ticks are all in 100px or something on one side, and so is the min/max
@@ -413,7 +436,7 @@ std::cout<<"It's in the box"<<std::endl;
         inputSlider->setMaximum(max); 
 	inputSlider->setTickInterval( (max-min)/6);
         inputSlider->setValue(inputSettings[2]); 
-	inputSlider->setTickPosition(Wt::WSlider::TicksAbove);
+	inputSlider->setTickPosition(Slider::TicksAbove);
 	thisInputBox->addWidget(inputSlider,1); //So, if we put it in iwthout a container it won't appear if it has an objectName. If we put it in a container, it appears, but resizing is wierd. If we put a 100% the slider is there but the ticks and the min/max are all in one corner, if we put it 500px wide everything works except it's a hard limit. I'm debugging on a 4k screen and it should work on a phone. Now what? //Turns out, if you don't set the objectName, it all works as advertised. TODO: Make a minimal example and submit the bug
 	
 std::cout<<"Slider made"<<std::endl;	
@@ -514,7 +537,7 @@ std::cout<<"Making pos slider"<<std::endl;
 	TimeWidget *posText = new TimeWidget();
 	posTextBox->addWidget(posText,0);
 	posText->setTime(0);
-    posSlider = new WSlider();
+    posSlider = Slider();
 	posSlider->valueChanged().connect(std::bind([=] ()
     {
 std::cout<<"interacting pos"<<std::endl;
@@ -554,7 +577,7 @@ std::cout<<"Making pos buttons"<<std::endl;
     }
     posSlider->resize(width,50);
     posSlider->setTickInterval(60000); //One minute in ms
-    posSlider->setTickPosition(Wt::WSlider::TicksAbove);/*
+    posSlider->setTickPosition(Slider::TicksAbove);/*
 *    posSlider->sliderMoved().connect(std::bind([=] (int v) //TODO:Implement this. I'm not sure why it does not currently work, as it looks like Wt casts the value to a static int. 
 //Also TODO, use this to stop the slider from being moved by the udpating timer if someone is dragging it
     { 
@@ -1109,7 +1132,7 @@ void EarUI::updateInputs() // {{{
 	Json::Object responses;
 	responses=interact_zmq(socket,std::string("inputs?"));
 	Json::Array inputSettings;
-	WSlider *sliderWidget;
+	Slider *sliderWidget;
 	WText *textWidget;
 	for(auto name:responses.names())
 	{
