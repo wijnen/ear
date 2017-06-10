@@ -2,9 +2,9 @@
 # vim: set foldmethod=marker :
 
 # Imports. {{{
-
+print("Ear started, starting imports")
 import fhs
-config = fhs.init({"webUI":True, 'gtkUI':False })
+config = fhs.init({'port': 0, 'http-port': 8082, 'Wt': '/usr/share/Wt'})
 
 from collections import OrderedDict
 import gi
@@ -17,15 +17,18 @@ import zmq
 import simplejson.scanner
 import subprocess
 import pprint #Debug
-#}}}
+print("Impports successfull")
+
 
 try:
     from fuzzywuzzy import process
     fuzzy = True
 except:
     fuzzy = False
+#}}}
+print("Imported fuzzywuzzy")
 
-def filtered(search,musts = [],mays = []):
+def filtered(search,musts = [],mays = []): # {{{
     tracks = OrderedDict()
     for i,track in enumerate(db):
         """if track['name'] in tracks.keys():
@@ -56,14 +59,16 @@ def filtered(search,musts = [],mays = []):
     #print(out.__repr__().encode('utf-8'))
    #print("toSend")
     return toSend 
+# }}}
 
-def file_new(dummy = None):
+def file_new(dummy = None): # {{{
     db.append(Track('', data['track'].dbname if data['track'] else fhs.write_data(os.path.join('db', 'default' + os.extsep + 'db'), opened = False)))
     g.update_files = True
     data['track'] = db[-1]
     new_file()
+# }}}
 
-def new_file():
+def new_file(): # {{{
     if len(data['track']['files']) > 0:
         data['media'].load(data['track'], 0)
         print("Loading track")
@@ -78,9 +83,10 @@ def new_file():
         set_pos(data['track']['files'][data['track']['media']][1])
     g.media_list = [x[0] for x in data['track']['files']]
     g.media = 0
+# }}}
 
 setting_pos = False
-def set_pos(pos):
+def set_pos(pos): # {{{
     global setting_pos
     g.status = media.mkmomentstr(pos)
     setting_pos = True
@@ -89,12 +95,14 @@ def set_pos(pos):
     if not data['track']:
         return
     return
+# }}}
 
-def stop(stopped):
+def stop(stopped): # {{{
     g.playing = not stopped
     data['media'].play(cb = None, start = 0) #Essential to clear the callback
     set_pos(0) 
     data['media'].pause(stopped)
+# }}}
 
 def save_all():
     global db
@@ -102,6 +110,7 @@ def save_all():
     print(db)
     dbread.write(db)
 
+print("Reading db")
 db = dbread.read()
 data = {
     'db': db,
@@ -112,8 +121,9 @@ data = {
     'position': lambda pos: setattr(g, 'position', pos),
     }
 data['media'].send_pixbuf = lambda pixbuf: setattr(g, 'image', pixbuf)
+# }}}
 
-def play_list(track, play_tuple):
+def play_list(track, play_tuple): # {{{
     print("Playing list, play_tuple {}".format(play_tuple))
     #track.play(cb = None) #Essential to clear the callback
     if len(play_tuple) < 1:
@@ -133,8 +143,9 @@ kwargs = { 'data' : data ,
             'continue': lambda x: stop(False), #Right now, this means play_from_start, and clicking pause again continues
         },
         }
+# }}}
 
-class State():
+class State(): # {{{
     def __init__(self,*args,**kwargs):
         self._add(**kwargs)
     def _add(self,**kwargs):
@@ -143,6 +154,7 @@ class State():
             self._add(self,v)
         else:
             setattr(self,k,v)
+# }}}
 
 
 g = State(kwargs) 
@@ -152,13 +164,18 @@ g.volume = 100
 g.before = 3
 #
        
-
+print("Starting zmq")
 zmqcontext=zmq.Context()
 zmq_socket=zmqcontext.socket(zmq.REP)
-zmq_socket.bind("tcp://*:5555")
+if config['port'] == 0:
+	zmq_port = zmq_socket.bind_to_random_port("tcp://*")
+else:
+	zmq_port = config['port']
+	zmq_socket.bind("tcp://*:" + str(zmq_port))
 zmq_fd=zmq_socket.getsockopt(zmq.FD)
+print("Zmq port: {}".format(zmq_port))
 g.before_active = True
-def zmq_callback(fd,condition,zmq_socket):
+def zmq_callback(fd,condition,zmq_socket): # {{{
     while zmq_socket.getsockopt(zmq.EVENTS) & zmq.POLLIN:
         wt = False
         try:
@@ -315,17 +332,42 @@ def zmq_callback(fd,condition,zmq_socket):
                 print ("Event not handled:{}".format(msg))
                 zmq_socket.send_json({"dummy":g.position})
     return True
+# }}}
 
 set_pos(0)
 data['track']=db[-1]    
 new_file()
 print(data['track'])
 print(data['media'])
+print ("importing gobject")
 from gi.repository import GObject
-GObject.io_add_watch(zmq_fd,GObject.IO_IN, zmq_callback, zmq_socket)
+import os
+windows = 'nt'in os.name
+if windows:
+    GLib.timeout_add(10,lambda _:zmq_callback(zmq_socket.fd,True,zmq_socket),None)
+else:
+    GObject.io_add_watch(zmq_socket.fd, GObject.IO_IN, zmq_callback, zmq_socket)
+print("Set watch")
+print("copying env")
+# Start the UI process with the zmq port.
+env = os.environ.copy()
+env['ZMQ_PORT'] = 'tcp://localhost:' + str(zmq_port)
+executable = fhs.read_data(os.path.join('ear-wt', 'earUI'), opened = False)
+wt_config = fhs.read_data(os.path.join('ear-wt', 'wt_config.xml'), opened = False)
 
-
-
+print(" opening subprocess " )
+try:
+    UI = subprocess.Popen((executable,
+		'--docroot', config['Wt'],
+		'--http-address=0.0.0.0',
+		'--http-port=' + str(config['http-port']),
+		'-c', wt_config),
+	env = env)
+    print("Popened")
+except:
+    print("No exe found!")
+    pass
+print("Running mainloop")
 GLib.MainLoop().run()
     
 #

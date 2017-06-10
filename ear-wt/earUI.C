@@ -39,9 +39,9 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include <Wt/WCompositeWidget>
 #include <Wt/WTreeTableNode>
-
+#include <Wt/WBootstrapTheme>
 #define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here. 
-
+char const *zmq_port;
 
 class FilteredStringModel : public Wt::WStringListModel
 {
@@ -97,14 +97,14 @@ void FilteredStringModel::update()
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
  
-    socket.connect ("tcp://localhost:5555");
+    socket.connect (zmq_port);
     Wt::Json::Object response;
 	socket.send(retval.c_str(),retval.size());	
 	char buffer[MAXSIZE];
     int nbytes = socket.recv(buffer, MAXSIZE);
       Wt::Json::parse(std::string(buffer, nbytes),response);
 	Wt::Json::Array options = response.get("options");
-    socket.disconnect("tcp://localhost:5555");
+    socket.disconnect(zmq_port);
 	int x=0;
 	removeRows(0,rowCount());
 	for(auto voption:options)
@@ -223,32 +223,33 @@ class EarUI : public WApplication
 public:
   EarUI(const WEnvironment& env);
 
-static  std::string recv_zmq(zmq::socket_t &socket);
-static  void send_zmq(zmq::socket_t &socket, std::string value);
-static  void send_zmq(std::string value);
-static  Json::Object interact_zmq(std::string value);
-static  Json::Object interact_zmq(Wt::WString value);
-static  Json::Object interact_zmq(Json::Object);
-static  Json::Object interact_zmq(zmq::socket_t &socket,std::string value);
-static  Json::Object interact_zmq(zmq::socket_t &socket,Json::Object value);
+  static  std::string recv_zmq(zmq::socket_t &socket);
+  static  void send_zmq(zmq::socket_t &socket, std::string value);
+  static  void send_zmq(std::string value);
+  static  Json::Object interact_zmq(std::string value);
+  static  Json::Object interact_zmq(Wt::WString value);
+  static  Json::Object interact_zmq(Json::Object);
+  static  Json::Object interact_zmq(zmq::socket_t &socket,std::string value);
+  static  Json::Object interact_zmq(zmq::socket_t &socket,Json::Object value);
   Wt::WSlider *beforeSlider;
-static long start_track_time;
-static long stop_track_time;
-static long time_speed;
+  static long start_track_time;
+  static long stop_track_time;
+  static long time_speed;
 private:
- Wt::WLength width = Wt::WLength::Auto; 
- std::vector<MyTreeTableNode*> fragment_set;
+  Wt::WLength width = Wt::WLength::Auto; 
+  std::vector<MyTreeTableNode*> fragment_set;
   void clicked(WPushButton* source );
   void loadFragments(zmq::socket_t &socket);
   void loadFragments();	
   void loadWaveform();
   WTimer *waveformTimer;
+  WTreeTable *markerTree;
   void updateInputs();
   void loadGroup(MyTreeTableNode *current_root, Json::Array fragments);
   void mark_current_fragment(long long track_time);
   long current_track_time( zmq::socket_t *socket  =0  );
-std::map<std::string, Wt::WText*> inputTexts;
-std::map<std::string, Wt::WSlider*> inputSliders;
+  std::map<std::string, Wt::WText*> inputTexts;
+  std::map<std::string, Wt::WSlider*> inputSliders;
 
   int ui_track_idx = -1;
   WStandardItemModel *waveformModel;
@@ -256,7 +257,7 @@ std::map<std::string, Wt::WSlider*> inputSliders;
   WText *chartText;
   WSlider *posSlider;
   MyTreeTableNode *addNode(MyTreeTableNode *parent, WString name, const long start, const long stop );
-Json::Value saveFragments(MyTreeTableNode *root);
+  Json::Value saveFragments(MyTreeTableNode *root);
   int max_tags = 0;
   WPushButton *playPauseButton;
 };
@@ -268,10 +269,11 @@ EarUI::EarUI(const WEnvironment& env)
   : WApplication(env)
 {
     setTitle("Ear test interface"); 
-
+//setCssTheme("polished"); //This fixes the columns of the treetable, soimehow
+setTheme(new WBootstrapTheme());
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
-    socket.connect ("tcp://localhost:5555"); //TODO: make host and port configurable
+    socket.connect (zmq_port); //TODO: make host and port configurable
 /*
 ZMQ should connect and disconnect after every set of actions to make room for another interface. Saves working on lots of listeners and the Python interface doesn't have to know who's talking
 */
@@ -281,7 +283,7 @@ ZMQ should connect and disconnect after every set of actions to make room for an
     Wt::WPanel *selectPanel = new Wt::WPanel(root());
 selectPanel->setTitle("Select new track");
 	selectPanel->resize(width,Wt::WLength::Auto);
-    selectPanel->setObjectName("selectionPanel");
+//    selectPanel->setObjectName("selectionPanel");
     selectPanel->setCollapsible(true);
 //    Wt::WAnimation animation(Wt::WAnimation::SlideInFromTop,
 //			 Wt::WAnimation::EaseOut,
@@ -562,19 +564,28 @@ std::cout<<"Making pos buttons"<<std::endl;
 std::cout<<"Done making pos slider"<<std::endl;
 
   
-    socket.disconnect("tcp://localhost:5555");
+    socket.disconnect(zmq_port);
 
     Wt::WContainerWidget *markerContainer = new Wt::WContainerWidget(root());
     markerContainer->resize(width,Wt::WLength::Auto);
     Wt::WContainerWidget *fragmentButtonsContainer = new Wt::WContainerWidget(markerContainer);
     
-    WTreeTable *markerTree = new WTreeTable();
+    markerTree = new WTreeTable();
     markerContainer->addWidget(markerTree);
-    markerTree->setObjectName("markertree"); //TODO: Still something wierd with the columns, they are sometimes offset /TODO: Remove the setObjectName here as well
+//    markerTree->setObjectName("markertree"); //TODO: Still something wierd with the columns, they are sometimes offset /TODO: Remove the setObjectName here as well
     markerTree->tree()->setSelectionMode(Wt::ExtendedSelection);
-    markerTree->addColumn("Start time",100);
+/*    markerTree->addColumn("Start time",100);
     markerTree->addColumn("End time",100); 
     markerTree->addColumn("Play from here",20); //StartButton
+*/  markerTree->addColumn("",100);
+    markerTree->addColumn("",100); 
+    markerTree->addColumn("",20); //StartButton
+
+
+
+//    markerTree->headerWidget()->hide(); //<--"Crash"
+
+
     playPauseButton = new WPushButton("Play",fragmentButtonsContainer);
     playPauseButton->clicked().connect(std::bind([=] ()
     {
@@ -632,10 +643,10 @@ std::cout<<"Done making pos slider"<<std::endl;
 std::cout<<ret<<std::endl;
 		   zmq::context_t context (1);
 		   zmq::socket_t socket (context, ZMQ_REQ);
-		   socket.connect ("tcp://localhost:5555");
+		   socket.connect (zmq_port);
 		   socket.send(ret.c_str(),ret.size());
 		   recv_zmq(socket); //Just dummy anyway
-		   socket.disconnect("tcp://localhost:5555");
+		   socket.disconnect(zmq_port);
 		
 
 	
@@ -827,10 +838,10 @@ std::cout<<"Trying to delete a non-empty group"<<std::endl;
 	fragstring = "{ \"fragments\" : "+fragstring + "}";
 			   zmq::context_t context (1);
 		   zmq::socket_t socket (context, ZMQ_REQ);
-		   socket.connect ("tcp://localhost:5555");
+		   socket.connect (zmq_port);
 		   socket.send(fragstring.c_str(),fragstring.size());
 		   recv_zmq(socket); //Just dummy anyway
-		   socket.disconnect("tcp://localhost:5555");
+		   socket.disconnect(zmq_port);
     }));	
 
 
@@ -848,7 +859,7 @@ std::cout<<"Trying to delete a non-empty group"<<std::endl;
    {
 	zmq::context_t context (1);
 	zmq::socket_t socket (context, ZMQ_REQ);
-	socket.connect ("tcp://localhost:5555");
+	socket.connect (zmq_port);
 
 	long long track_time = 	EarUI::current_track_time(&socket);
 	posSlider->setValue(track_time);
@@ -873,7 +884,7 @@ std::cout<<"Trying to delete a non-empty group"<<std::endl;
 			playPauseButton->setText("Play");
 		}
 	}
-        socket.disconnect("tcp://localhost:5555");
+        socket.disconnect(zmq_port);
         mark_current_fragment(track_time); 
    }));
 
@@ -1042,9 +1053,9 @@ void EarUI::loadFragments()
 {
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
-    socket.connect ("tcp://localhost:5555");
+    socket.connect (zmq_port);
 	loadFragments(socket);
-    socket.disconnect("tcp://localhost:5555");
+    socket.disconnect(zmq_port);
 #ifdef PLOT
 waveformTimer->start();
 #endif
@@ -1055,7 +1066,8 @@ void EarUI::loadFragments(zmq::socket_t &socket)
 {
 
 	Wt::WTreeTable *treeTable; 
-	treeTable = dynamic_cast<WTreeTable*> (findWidget("markertree"));
+//	treeTable = dynamic_cast<WTreeTable*> (findWidget("markertree"));
+	treeTable = this->markerTree;
 	
 	Json::Object response;
 
@@ -1088,7 +1100,7 @@ void EarUI::updateInputs()
  std::cout<<"Updating inpouts"<<std::endl;
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
-    socket.connect ("tcp://localhost:5555");
+    socket.connect (zmq_port);
 	Json::Object responses;
 	responses=interact_zmq(socket,std::string("inputs?"));
 	Json::Array inputSettings;
@@ -1118,7 +1130,7 @@ ui_track_idx = server_track_idx;
  std::cout<<"Updated"<<std::endl;
 
 	
-    socket.disconnect("tcp://localhost:5555");
+    socket.disconnect(zmq_port);
 		
 }
 
@@ -1199,10 +1211,10 @@ Json::Object EarUI::interact_zmq(Json::Object value)//Should use a function temp
 {
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
-    socket.connect ("tcp://localhost:5555");
+    socket.connect (zmq_port);
     Json::Object retval;
     retval = interact_zmq(socket,value);	
-    socket.disconnect("tcp://localhost:5555");
+    socket.disconnect(zmq_port);
     return retval;
 }
 
@@ -1211,10 +1223,10 @@ Json::Object EarUI::interact_zmq(std::string value)
 {   
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
-    socket.connect ("tcp://localhost:5555");
+    socket.connect (zmq_port);
     Json::Object retval;
     retval = interact_zmq(socket,value);	
-    socket.disconnect("tcp://localhost:5555");
+    socket.disconnect(zmq_port);
     return retval;
 }
 
@@ -1262,8 +1274,8 @@ WApplication *createApplication(const WEnvironment& env)
 
 int main(int argc, char **argv)
 {
-
+    zmq_port = getenv("ZMQ_PORT");
     WString::setDefaultEncoding(UTF8);
-  return WRun(argc, argv, &createApplication);
+    return WRun(argc, argv, &createApplication);
 }
 
