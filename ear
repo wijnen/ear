@@ -97,6 +97,9 @@ def stop(stopped):
     data['media'].pause(stopped)
 
 def save_all():
+    global db
+    print ("save us all!")
+    print(db)
     dbread.write(db)
 
 db = dbread.read()
