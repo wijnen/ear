@@ -237,7 +237,7 @@ def write(tracks):
     for target in output:
         # Write as binary and manually encode as utf-8, so line endings are not mangled.
         if output[target]['dirty']:
-            with open(target, 'wb') as f:
+            with open(target, 'wb') as f: #This should probably do a try-except or something or check for disk space
                 # To allow Microsoft to write these files as utf-8, start with a BOM.
                 f.write(('\ufeff' + output[target]['contents']).encode('utf-8'))
 # vim: set expandtab tabstop=4 shiftwidth=4 :
