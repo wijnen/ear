@@ -120,8 +120,6 @@ void FilteredStringModel::update()
 }
 
 
-
-
 class MyTreeTableNode : public Wt::WTreeTableNode
 {
 	public:
@@ -135,6 +133,9 @@ class MyTreeTableNode : public Wt::WTreeTableNode
 	Wt::WInPlaceEdit*  editWidget;
 
 };
+
+
+
 
 class TimeWidget : public Wt::WText //This explicitly does not use the Wt::WTime class, as we want to use milliseconds as our base unit, especially when communicating with the Python side of this project. The Wt::Wtime supports only already quite correctly formatted times, and we don't need that. Additionally, it's meant for clock times, not intervals
 {
@@ -185,6 +186,37 @@ bool TimeWidget::setTime(long time)
 }
 
 
+bool fragmentAbeforeB(Wt::WTreeNode* A, Wt::WTreeNode* B) //Needs renaming)
+{
+	
+		TimeWidget *startAt = dynamic_cast<TimeWidget*>( dynamic_cast<MyTreeTableNode*>(A)->columnWidget(1));
+		TimeWidget *stopAt = dynamic_cast<TimeWidget*>( dynamic_cast<MyTreeTableNode*>(A)->columnWidget(2));
+		long startA = startAt->time();
+		long stopA = stopAt->time();
+
+		TimeWidget *startBt = dynamic_cast<TimeWidget*>( dynamic_cast<MyTreeTableNode*>(B)->columnWidget(1));
+		TimeWidget *stopBt = dynamic_cast<TimeWidget*>(  dynamic_cast<MyTreeTableNode*>(B)->columnWidget(2));
+		long startB = startBt->time();
+		long stopB = stopBt->time();
+		//Strictly, this does not mean that A<B means that B>A, because of stuff. See what breaks? --KRL 11072017 FIXME
+std::cout<<" A:" << std::to_string(startA) << " " <<std::to_string(stopA) << std::endl;
+std::cout<<" B:" << std::to_string(startB) << " " <<std::to_string(stopB) << std::endl;
+	if(startA < startB)
+	{
+		if(stopA<stopB)
+		{
+std::cout<<" A before B"<<std::endl;
+			return true;
+		}
+	}
+std::cout<<" A not before B"<<std::endl;
+	return false;
+	
+
+
+}
+
+
 using namespace Wt;
 
 
@@ -194,7 +226,7 @@ std::vector<MyTreeTableNode*> children_as_vector(MyTreeTableNode *root)
 	std::vector<WTreeNode*> children = root->childNodes();
 	for(auto node:children)
 	{
-		retval.push_back(dynamic_cast<MyTreeTableNode*>(node));
+		retval.push_back(dynamic_cast<MyTreeTableNode*>(node)); //FIXME? How does this do the ordering of things. Is push_back the right function?
 		if(node->childNodes().size()>0)
 
 		{	std::vector<MyTreeTableNode*> grandchildren = children_as_vector(dynamic_cast<MyTreeTableNode*>(node));
@@ -654,13 +686,16 @@ std::cout<<ret<<std::endl;
 
 
 //TODO: Split out the tab and untab functions so we can call them with the keyboard
-    WPushButton *tabButton = new WPushButton("Group selection >>>>" ,fragmentButtonsContainer);     
+    WPushButton *tabButton = new WPushButton("Group selection >>>>" ,fragmentButtonsContainer);     //This randomises the order
     tabButton->setMargin(5, Left);
     tabButton->clicked().connect(std::bind([=] ()
     {
  	WTreeNode *parent;
 	WTreeNode *newNode;
-	std::set<WTreeNode*> selectedNodes =markerTree->tree()->selectedNodes();
+	std::set<WTreeNode*> unSortedselectedNodes =markerTree->tree()->selectedNodes();
+	std::vector<WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
+	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB);
+ 
 	std::vector< WTreeNode*> siblings;
  	
 	WTreeNode *firstNode = *selectedNodes.begin();
@@ -673,9 +708,8 @@ std::cout<<ret<<std::endl;
 	siblings = parent->childNodes();
 	int index = std::find(siblings.begin(), siblings.end(), firstNode) - siblings.begin();
 	parent->insertChildNode(index, newNode);
-		
-	for (auto node:selectedNodes)
-	{	
+	for(auto node:selectedNodes)
+	{
 		parent->removeChildNode(node);
 		newNode->addChildNode(node);
 	}
@@ -691,7 +725,10 @@ std::cout<<ret<<std::endl;
 	std::vector< WTreeNode*> uncles; //My parents siblings
 	int index = 0;
 
-	std::set<WTreeNode*> selectedNodes =markerTree->tree()->selectedNodes();
+	std::set<WTreeNode*> unSortedselectedNodes =markerTree->tree()->selectedNodes();
+	std::vector<WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
+	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB);
+ 
 	WTreeNode *firstNode = *selectedNodes.begin();
 	WTreeNode *lastNode = *selectedNodes.rbegin(); //Note, the reverse of the beginning is not the end
 	parent = firstNode->parentNode();
@@ -715,7 +752,7 @@ std::cout<<ret<<std::endl;
 	for (auto node:selectedNodes)
 	{
 		parent->removeChildNode(node);
-		index ++;
+		index++;
 		grandparent->insertChildNode(index,node);
 	}
     }));	
@@ -760,14 +797,17 @@ std::cout<<ret<<std::endl;
 		
 	}	
     }	));
-    WPushButton *joinButton = new WPushButton("Join selected fragments", fragmentButtonsContainer);
+    WPushButton *joinButton = new WPushButton("Join selected fragments", fragmentButtonsContainer); 
     joinButton->setMargin(5, Left);
     joinButton->clicked().connect(std::bind([=] ()
     {
 //Get selected nodes
 	long prevStop = -2;
 	std::string newname ="";
-	std::set<WTreeNode*> selectedNodes =markerTree->tree()->selectedNodes();
+	std::set<WTreeNode*> unSortedselectedNodes =markerTree->tree()->selectedNodes();
+	std::vector<WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
+	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB);
+ 
 	for (auto node:selectedNodes)	{
 	//tree returns a tree with tree nodes. We need treetable nodes!
 		MyTreeTableNode *fragmentTTN =  dynamic_cast<MyTreeTableNode*>(node);
@@ -946,8 +986,8 @@ Json::Value EarUI::saveFragments(MyTreeTableNode *root)
 		ret.push_back(Json::Value(WString("group")));
 		ret.push_back(Json::Value(name));
 		Json::Value out_children_value = Json::Value(Json::ArrayType);	
-		Json::Array& out_children = out_children_value;
-		for(auto mynode:root->childNodes())
+		Json::Array& out_children = out_children_value; //TODO FIXME Ordering?
+		for(auto mynode:root->childNodes()) //I wonder, what order do we get these in?
 		{
 			out_children.push_back(saveFragments(dynamic_cast<MyTreeTableNode*>(mynode)));
 		}
@@ -963,6 +1003,7 @@ Json::Value EarUI::saveFragments(MyTreeTableNode *root)
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(root->columnWidget(2));
 		long long start = startW->time();
 		long long stop = stopW->time();
+		std::cout<< "Saving fragment "<<std::to_string(start) << "  "<<std::to_string(stop)<<std::endl;
 		ret.push_back(Json::Value(start));
 		ret.push_back(Json::Value(stop));
 	}
