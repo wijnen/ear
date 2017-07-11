@@ -104,8 +104,12 @@ def stop(stopped): # {{{
     data['media'].pause(stopped)
 # }}}
 
-def save_all(): # {{{
+def save_all():
+    global db
+    print ("save us all!")
+    #print(db)
     dbread.write(db)
+
 print("Reading db")
 db = dbread.read()
 data = {
@@ -207,6 +211,7 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
                 data['track']['fragments'] = msg['fragments'][2] #In Wt, we need a single root. This is called 'fragments' and only has children. Children are stored in idx 2
                 data['track']['dirty'] = True
                 zmq_socket.send_json({'_':'_'})
+                save_all()
             if 'filteredTracks?' in msg.keys():
                 if type(msg['filteredTracks?'])== dict:
                     pprint.pprint(msg)

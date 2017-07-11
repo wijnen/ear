@@ -142,6 +142,7 @@ def read():
                 if os.path.splitext(filename)[1] not in exts:
                     continue
                 tracks.append(add_unfragmented_file(filename, root))
+                used.add(makepath(filename,root))
     tracks = load_test_tracks(tracks)
     return tracks
 
@@ -234,10 +235,12 @@ def write(tracks):
              output[target]['dirty'] = False
         output[target]['dirty'] += track['dirty']
 
-    for target in output:
+    for target in output.keys():
         # Write as binary and manually encode as utf-8, so line endings are not mangled.
+        print("Still clean.{}".format(target))
         if output[target]['dirty']:
             with open(target, 'wb') as f: #This should probably do a try-except or something or check for disk space
+                print("No, dirty.{}".format(target))
                 # To allow Microsoft to write these files as utf-8, start with a BOM.
                 f.write(('\ufeff' + output[target]['contents']).encode('utf-8'))
 # vim: set expandtab tabstop=4 shiftwidth=4 :
