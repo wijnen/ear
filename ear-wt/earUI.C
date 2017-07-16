@@ -119,6 +119,96 @@ void FilteredStringModel::update()
 
 }
 
+/*
+#include "Wt/WPaintDevice"
+#include "Wt/WPaintedWidget"
+#include "Wt/WPainter"
+#include "Wt/WSlider"
+#include "Wt/WApplication"
+#include "Wt/WContainerWidget"
+#include "Wt/WEnvironment"
+#include "Wt/WPaintDevice"
+#include "Wt/WPaintedWidget"
+#include "Wt/WPainter"
+#include "Wt/WSlider"
+#include "Wt/WStringStream"
+
+
+
+namespace Wt{
+class MySlider : public PaintedSlider
+{
+	public: 
+		void paintEvent(WPaintDevice *paintDevice);
+		void setTickPositions(std::vector<int>);
+	private:
+		std::vector<int> tickPositions_;
+};
+
+void MySlider::paintEvent(WPaintDevice *paintDevice)
+{
+
+  if(tickPositions_.size() < 1)
+  {
+
+  int tickInterval = slider_->tickInterval();
+  int r = range();
+
+  if (r == 0) {
+    // Empty range, don't paint anything
+    return;
+  }
+
+  if (tickInterval == 0)
+    tickInterval = r / 2;
+
+  int numTicks = tickInterval == 0 ? 2 : r / tickInterval + 1;
+  if (numTicks < 1)
+    return;
+  for (int i = 0; i < numTicks; ++i) {
+    int v = slider_->minimum() + i * tickInterval;
+  tickPositions_.push_back(v);
+
+  }
+  
+  int w = 0, h = 0;
+
+  switch (slider_->orientation()) {
+  case Horizontal:
+    w = (int)paintDevice->width().toPixels();
+    h = (int)paintDevice->height().toPixels();
+    break;
+  case Vertical:
+    w = (int)paintDevice->height().toPixels();
+    h = (int)paintDevice->width().toPixels();
+  }
+
+  double tickStep = ((double)w + 10 - slider_->handleWidth()) / (numTicks - 1);
+
+  WPainter painter(paintDevice);
+
+//  for (int i = 0; i < numTicks; ++i) {
+//    int v = slider_->minimum() + i * tickInterval;
+   for(auto v:tickPositions_)
+    int x = -5 + slider_->handleWidth()/2 + (int) (i * tickStep);
+
+    switch (slider_->orientation()) {
+    case Horizontal:
+      slider_->paintTick(painter, v, x, h/2);
+      break;
+    case Vertical:
+      slider_->paintTick(painter, v, h/2, w - x);
+    }
+  
+  }
+
+
+
+
+}
+}
+
+*/ //Slider attempt, will continue later. 
 
 class MyTreeTableNode : public Wt::WTreeTableNode
 {
@@ -345,6 +435,7 @@ searchBox->textInput().connect(std::bind([=] ()
 	std::cout<<"Updating model"<<std::endl;
 	trackModel->update();
 	trackSelectionBox->setModel(trackModel);
+	trackSelectionBox->setCurrentIndex(0);
 std::cout<<"Updated model"<<std::endl;
 }));
 trackModel->update();
