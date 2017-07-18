@@ -403,15 +403,16 @@ ZMQ should connect and disconnect after every set of actions to make room for an
 
 
     Wt::WPanel *selectPanel = new Wt::WPanel(root());
-selectPanel->setTitle("Select new track");
-	selectPanel->resize(width,Wt::WLength::Auto);
-//    selectPanel->setObjectName("selectionPanel");
+    selectPanel->setTitle("Select new track");
+    selectPanel->resize(width,Wt::WLength::Auto);
     selectPanel->setCollapsible(true);
+    selectPanel->setCollapsed(true); 
+
+//    selectPanel->setObjectName("selectionPanel");
 //    Wt::WAnimation animation(Wt::WAnimation::SlideInFromTop,
 //			 Wt::WAnimation::EaseOut,
 //			 100); //Animation breaks with a VBoxLayout. Maybe report?
  //   selectPanel->setAnimation(animation);
-    selectPanel->setCollapsed(true); 
 
 
 
@@ -483,11 +484,20 @@ vbox->addWidget(filterContainer);
     
 selectPanel->setCentralWidget(trackSearchContainer);
 
+    Wt::WPanel *sliderPanel = new Wt::WPanel(root());
+    sliderPanel->setTitle("Change settings");
+    sliderPanel->resize(width,Wt::WLength::Auto);
+    sliderPanel->setCollapsible(true);
+    sliderPanel->setCollapsed(true); 
+
 
 
 
     Wt::WContainerWidget *inputContainer = new Wt::WContainerWidget(root());
-    inputContainer->resize(width,Wt::WLength::Auto);
+   inputContainer->resize(width,500);
+
+
+    inputContainer->resize(width,Wt::WLength::Auto); //Auto does not work when in a collapsible box?
     Wt::WVBoxLayout *inputbox = new Wt::WVBoxLayout();
     inputContainer->setLayout(inputbox);
  
@@ -598,6 +608,8 @@ std::cout<<"Connecting the valueChanged"<<std::endl;
     posContainer->setLayout(posInputBox);
     inputbox->addWidget(posContainer);
 
+
+
 #ifdef PLOT //ifdef'd out as it crashes on all Debian versions of Wt //TODO add to the boxes as well
     WContainerWidget *chartContainer = new WContainerWidget(inputContainer);
 	chartText = new  WText( "chart", chartContainer);
@@ -688,6 +700,10 @@ std::cout<<"Done making pos slider"<<std::endl;
 
   
     socket.disconnect(zmq_port);
+
+
+sliderPanel->setCentralWidget(inputContainer);
+
 
     Wt::WContainerWidget *markerContainer = new Wt::WContainerWidget(root());
     markerContainer->resize(width,Wt::WLength::Auto);
