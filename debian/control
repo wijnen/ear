@@ -2,25 +2,18 @@ Source: ear
 Section: sound
 Priority: optional
 Maintainer: Bas Wijnen <wijnen@debian.org>
-Build-Depends: debhelper (>= 9), python3, ruby-ronn, xmlgen, witty-dev, libzmq3-dev
+Build-Depends: debhelper (>= 9), python3, ruby-ronn, witty-dev, libzmq3-dev
 Standards-Version: 3.9.6
 
 Package: ear
 Architecture: all
-Depends: ${misc:Depends}, python3, python3-gst-1.0, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, python3-fuzzywuzzy, python3-zmq, python3-simplejson
-Recommends: gstreamer1.0-plugins-ugly
+Depends: ${misc:Depends}, python3, python3-gst-1.0, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad,  python3-zmq, python3-simplejson, gir1.2-gstreamer-1.0, gir1.2-gst-plugins-base-1.0, gstreamer1.0-alsa
+Recommends: gstreamer1.0-plugins-ugly, python3-fuzzywuzzy
 Description: play audio and video with markers and at different speeds
  For choreography dancing rehearsal, it is often useful to be able to play the
  music at a lower or higher speed than normal.  This program allows that.  It
  also allows placing markers, so it is easy to start from a certain point in
  the file.
  .
- It allows lua scripts to program a sequence, such as repeating a part of the
- music at ever increasing speed.
+ It provides a web-based UI, allowing users to control the music via a smartphone.
  .
- All commands have keyboard shortcuts, to make it easy for an instructor to
- look at the dancers while starting or stopping the music.
- .
- The program can also be used for setting markers in a video, to easily skip to
- some part.  It does not support full screen video however, so it is not very
- useful for presentations.
