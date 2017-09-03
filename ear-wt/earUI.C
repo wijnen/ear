@@ -41,6 +41,7 @@
 #include <Wt/WTreeTableNode>
 #include <Wt/WBootstrapTheme>
 #define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here. 
+#define OLD_WT
 char const *zmq_port;
 
 class FilteredStringModel : public Wt::WStringListModel
@@ -430,6 +431,7 @@ searchBox->setPlaceholderText("Type to search");
 Wt::WSelectionBox *trackSelectionBox = new Wt::WSelectionBox();
 vbox->addWidget(trackSelectionBox,1);
 FilteredStringModel *trackModel = new FilteredStringModel();
+#ifndef OLD_WT
 searchBox->textInput().connect(std::bind([=] ()
 {
 	trackModel->searchString = searchBox->text();
@@ -439,6 +441,20 @@ searchBox->textInput().connect(std::bind([=] ()
 	trackSelectionBox->setCurrentIndex(0);
 std::cout<<"Updated model"<<std::endl;
 }));
+#endif
+#ifdef OLD_WT
+searchBox->keyPressed().connect(std::bind([=] ()
+{
+	trackModel->searchString = searchBox->text();
+	std::cout<<"Updating model"<<std::endl;
+	trackModel->update();
+	trackSelectionBox->setModel(trackModel);
+	trackSelectionBox->setCurrentIndex(0);
+std::cout<<"Updated model"<<std::endl;
+}));
+#
+#endif
+
 trackModel->update();
 trackSelectionBox->setModel(trackModel);
 trackSelectionBox->setSelectionMode(Wt::SingleSelection);
