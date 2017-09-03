@@ -23,10 +23,11 @@ print("Impports successfull")
 try:
     from fuzzywuzzy import process
     fuzzy = True
+    print("Imported fuzzywuzzy")
 except:
     fuzzy = False
+    print ("No fuzzywuzzy")
 #}}}
-print("Imported fuzzywuzzy")
 
 def filtered(search,musts = [],mays = []): # {{{
     tracks = OrderedDict()
@@ -52,9 +53,14 @@ def filtered(search,musts = [],mays = []): # {{{
         for k,v in tracks.items():
             toSend.append((k,v))     #ASCIIbetical filename ordering due to ordereddict used above. Basically, order by whatever happens in the fragments files, and then determistically random crud. Pretty close to what you'd expect anyway
         return toSend
-    out = process.extract(search,tracks.keys(),limit=len(tracks))
-    for res in out: #out = [("title", score)]
-         toSend.append( ( res[0],tracks[res[0]]))
+    if fuzzy:
+        out = process.extract(search,tracks.keys(),limit=len(tracks))
+        for res in out: #out = [("title", score)]
+             toSend.append( ( res[0],tracks[res[0]]))
+    else:
+        for track in tracks.keys():
+             if search in track:
+                  toSend.append((track,tracks[track]))
     #print("out")
     #print(out.__repr__().encode('utf-8'))
    #print("toSend")
@@ -334,6 +340,7 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
                 zmq_socket.send_json({"dummy":g.position})
     return True
 # }}}
+
 
 set_pos(0)
 data['track']=db[-1]    
