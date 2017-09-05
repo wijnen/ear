@@ -41,7 +41,7 @@
 #include <Wt/WTreeTableNode>
 #include <Wt/WBootstrapTheme>
 #define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here. 
-#define OLD_WT
+//#define OLD_WT
 char const *zmq_port;
 
 class FilteredStringModel : public Wt::WStringListModel
@@ -734,7 +734,7 @@ sliderPanel->setCentralWidget(inputContainer);
     markerTree->addColumn("Play from here",20); //StartButton
 */  markerTree->addColumn("",100);
     markerTree->addColumn("",100); 
-    markerTree->addColumn("",20); //StartButton
+    markerTree->addColumn("",50); //StartButton
 
 
 
