@@ -732,8 +732,8 @@ sliderPanel->setCentralWidget(inputContainer);
 /*    markerTree->addColumn("Start time",100);
     markerTree->addColumn("End time",100); 
     markerTree->addColumn("Play from here",20); //StartButton
-*/  markerTree->addColumn("",100);
-    markerTree->addColumn("",100); 
+*/  markerTree->addColumn("",100); //start
+    markerTree->addColumn("",100);  //end
     markerTree->addColumn("",20); //StartButton
 
 
