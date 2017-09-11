@@ -117,7 +117,9 @@ def save_all():
     dbread.write(db)
 
 print("Reading db")
+dbrefresh = True
 db = dbread.read()
+dbrefresh = False
 data = {
     'db': db,
     'track': None,
@@ -278,12 +280,20 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
                 else:
                     zmq_socket.send_json({"current":db.index(data['track'])})
             elif msg =="tracks?":
+                """Currently unused in Wt UI"""
                 out = OrderedDict()
                 for x,track in enumerate(db):
                     if len(track['tags']) == 0:
                         track['tags'].append("")
                     out[track['name']] = [x]+track['tags'] #track index is very much needed in the Wt UI!
                 zmq_socket.send_json({'tracks': out})
+            elif msg == "tracks_refresh?":
+                global db
+                newdb = dbread.read(use_cache = False) #May take a very long time!
+                db = newdb #Wierd, but due to the whole callback thing we're kind of multithreaded. This might save on semaphores?
+                data['track'] = db[-1]    
+                zmq_socket.send_json({"dummy":"dummy"})
+                
             elif msg.startswith('track:'):
                 select=msg[len('track:'):]
                 try:

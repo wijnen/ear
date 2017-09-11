@@ -443,6 +443,7 @@ std::cout<<"Updated model"<<std::endl;
 }));
 #endif
 #ifdef OLD_WT
+//<3.3.6 I think
 searchBox->keyPressed().connect(std::bind([=] ()
 {
 	trackModel->searchString = searchBox->text();
@@ -497,7 +498,12 @@ vbox->addWidget(filterContainer);
 	filterbox->setText("");
 	filterbox->setPlaceholderText("Filter"); //TODO: Autofill/autocomplete
      }));
-    
+WPushButton *refreshButton = new WPushButton("Refresh database");
+refreshButton->clicked().connect( std::bind([=] ()
+{
+	interact_zmq(WString("tracks_refresh?"));
+}));
+vbox->addWidget(refreshButton);
 selectPanel->setCentralWidget(trackSearchContainer);
 
     Wt::WPanel *sliderPanel = new Wt::WPanel(root());
