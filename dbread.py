@@ -113,7 +113,7 @@ def add_unfragmented_file(filename, root):
     out['fragments'].append(["fragment",filename,0])
     return out
 
-def read():
+def read(clear_cache = False):
     '''Read all db files from all fhs data directories (and pwd)
     Return list of tracks.'''
     # db = list of tracks. 
@@ -122,7 +122,14 @@ def read():
     # group = ( 'group', name, list of fragments and groups )
     tracks = []
     basedirs = fhs.read_data('db', dir = True, opened = False, multiple = True)
-    
+    try:
+        import pickle
+        tracks = pickle.load(open(os.path.join(basedirs[0],"cache.pickle"),'rb'))
+    except Exception as e:
+        print("Cache not found")
+        print(e)
+    if len(tracks) > 1:
+        return tracks
     # Parse all fragments files.
     used = set()
     for dirname in basedirs:
@@ -144,6 +151,13 @@ def read():
                 tracks.append(add_unfragmented_file(filename, root))
                 used.add(makepath(filename,root))
     tracks = load_test_tracks(tracks)
+    try:
+        import pickle
+        print ("Writing cache")
+        pickle.dump(tracks,open(os.path.join(basedirs[0],"cache.pickle"),'wb'))
+    except Exception as e:
+        print ("Writing cache failed")
+        print(e)
     return tracks
 
 def get_times(fragments):
