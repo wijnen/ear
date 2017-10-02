@@ -17,85 +17,92 @@ def parse_fragments(root, tracks, used):
     Note: this does not add the 'end' marker to the tracks.'''
     with open(os.path.join(root, FRAGMENTS), 'r',encoding = 'utf-8') as f:
         state = 'TRACK' #What are we looking for? A TRACK, VALUES, or FRAGMENTS?
-        for line in f.readlines():
-            # Remove ending whitespace and starting BOM.
-            line = line.lstrip('\ufeff').rstrip()
-            # Empty lines and lines with # as the first character are ignored.
-            # Note that while this allows for comments in the file, they are
-            # not written back.
-            # Also note that fragment and group names can start with #, because
-            # their first character is always indentation.
-            if line.strip() == '' or line.startswith('#'):
-                continue
-            if ':' in line:
-                key, value = line.split(':', 1)
-                value = value.strip()
-            else:
-                key, value = None, None
-            if state == 'FRAGMENTS':
-                # Read fragments.
-                indent = len(line) - len(line.lstrip())
-                while indent < istack[-1]:
-                    stack.pop()
-                    istack.pop()
-                if indent > istack[-1]:
-                    if need_indent:
-                        istack.append(indent)
-                    else:
-                        raise NotImplementedError('Annotations are not currently supported')
-                elif need_indent:
-                    raise ValueError('Expected indent')
-                need_indent = False
-                if indent == 0:
-                    # Fragments are done, read next track.
-                    state = 'TRACK'
+        
+        for linenumber,line in enumerate(f.readlines()):
+            try:
+                # Remove ending whitespace and starting BOM.
+                line = line.lstrip('\ufeff').rstrip()
+                # Empty lines and lines with # as the first character are ignored.
+                # Note that while this allows for comments in the file, they are
+                # not written back.
+                # Also note that fragment and group names can start with #, because
+                # their first character is always indentation.
+                if line.strip() == '' or line.startswith('#'):
+                    continue
+                if ':' in line:
+                    key, value = line.split(':', 1)
+                    value = value.strip()
                 else:
-                    if line[-1] == ':': 
-                        # New group. If we're in a group, this is a group in a group, so a child group.
+                    key, value = None, None
+                if state == 'FRAGMENTS':
+                    # Read fragments.
+                    indent = len(line) - len(line.lstrip())
+                    while indent < istack[-1]:
+                        stack.pop()
+                        istack.pop()
+                    if indent > istack[-1]:
+                        if need_indent:
+                            istack.append(indent)
+                        else:
+                            raise NotImplementedError('Annotations are not currently supported')
+                    elif need_indent:
+                        raise ValueError('Expected indent')
+                    need_indent = False
+                    if indent == 0:
+                        # Fragments are done, read next track.
+                        state = 'TRACK'
+                    else:
+                        if line[-1] == ':': 
+                            # New group. If we're in a group, this is a group in a group, so a child group.
+                            need_indent = True
+                            new_group = ['group', line[:-1].strip(), []]
+                            stack[-1].append(new_group)
+                            stack.append(new_group[2])  # Add the children of the new group to the stack, because that is now the active group.
+                        else:
+                            name, start = line.rsplit(None, 1)
+                            name = name.strip()
+                            try:
+                                start = int(start)
+                            except:
+                                start = int(float(start))
+                            stack[-1].append(['fragment', name, start])
+                if state == 'TRACK':
+                    if key != 'Track':
+                        raise ValueError('New track expected; got: ' + line)
+                    state = 'VALUES'
+                if state in ('VALUES', 'TRACK'):
+                    if key == 'Track':
+                        current = { 'root': root, 'name': value, 'files': [], 'fragments': [], 'tags' : [], 'dirty' : False }
+                        tracks.append(current) #We're appending here, but because it's a dict, and dicts are mutable, we can still write to it and get the changes through. No return needed
+                        tags = autotag(value, root) 
+                        if len(tags)>0:
+                            current['tags'].extend(tags)
+                    elif key == 'Tags':
+                        current['tags'].append(value.split(';'))
+                        if "no-auto" in value:
+                            current['tags'] = value.split(';')
+                    elif key == 'File':
+                        parts = value.split(';')
+                        filename = parts[0].strip()
+                        fileargs = [x.split('=') for x in parts[1:]]
+                        offsets = [x[1] for x in fileargs if x[0] == 'offset'] 
+                        if len(offsets) == 1:
+                            offset = int(offsets[0])
+                        else:
+                            offset = 0
+                        current['files'].append((filename, offset))
+                        used.add(makepath(root, filename))
+                    elif key == 'Fragments':
                         need_indent = True
-                        new_group = ['group', line[:-1].strip(), []]
-                        stack[-1].append(new_group)
-                        stack.append(new_group[2])  # Add the children of the new group to the stack, because that is now the active group.
-                    else:
-                        name, start = line.rsplit(None, 1)
-                        name = name.strip()
-                        try:
-                            start = int(start)
-                        except:
-                            start = int(float(start))
-                        stack[-1].append(['fragment', name, start])
-            if state == 'TRACK':
-                if key != 'Track':
-                    raise ValueError('New track expected; got: ' + line)
-                state = 'VALUES'
-            if state in ('VALUES', 'TRACK'):
-                if key == 'Track':
-                    current = { 'root': root, 'name': value, 'files': [], 'fragments': [], 'tags' : [], 'dirty' : False }
-                    tracks.append(current) #We're appending here, but because it's a dict, and dicts are mutable, we can still write to it and get the changes through. No return needed
-                    tags = autotag(value, root) 
-                    if len(tags)>0:
-                        current['tags'].extend(tags)
-                elif key == 'Tags':
-                    current['tags'].append(value.split(';'))
-                    if "no-auto" in value:
-                        current['tags'] = value.split(';')
-                elif key == 'File':
-                    parts = value.split(';')
-                    filename = parts[0].strip()
-                    fileargs = [x.split('=') for x in parts[1:]]
-                    offsets = [x[1] for x in fileargs if x[0] == 'offset'] 
-                    if len(offsets) == 1:
-                        offset = int(offsets[0])
-                    else:
-                        offset = 0
-                    current['files'].append((filename, offset))
-                    used.add(makepath(root, filename))
-                elif key == 'Fragments':
-                    need_indent = True
-                    stack = [current['fragments']]
-                    istack = [0]
-                    state = 'FRAGMENTS'
-                    current['tags'].append("has fragments")
+                        stack = [current['fragments']]
+                        istack = [0]
+                        state = 'FRAGMENTS'
+                        current['tags'].append("has fragments")
+            except Exception as e:
+                   print("Exception raised while parsing file {}, line  {}".format(os.path.join(root, FRAGMENTS),linenumber))
+                   print("Exception: {}".format(e))
+                   print("Original line: {}".format(line))
+
 def autotag(trackname, root):
     """Function to automagically add some tags based on filenames. Contents are up for discussion"""
     #TODO Mark these tags as autotags so we don't write them and end up with repeat tags
@@ -125,6 +132,7 @@ def read(use_cache = True):
     if use_cache:
         try:
             import pickle
+            print ("Trying to use cache from {}".format(os.path.join(basedirs[0],"cache.pickle")))
             tracks = pickle.load(open(os.path.join(basedirs[0],"cache.pickle"),'rb'))
         except Exception as e:
             print("Cache not found")
