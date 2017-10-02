@@ -747,7 +747,7 @@ sliderPanel->setCentralWidget(inputContainer);
 //    markerTree->headerWidget()->hide(); //<--"Crash"
 
 
-    playPauseButton = new WPushButton("Play",fragmentButtonsContainer);
+    playPauseButton = new WPushButton("Play from start",fragmentButtonsContainer);
     playPauseButton->clicked().connect(std::bind([=] ()
     {
 	interact_zmq(std::string("event:pause"));
@@ -1050,7 +1050,7 @@ std::cout<<"Trying to delete a non-empty group"<<std::endl;
 		}
 		else
 		{
-			playPauseButton->setText("Play");
+			playPauseButton->setText("Play from start");
 		}
 	}
         socket.disconnect(zmq_port);
