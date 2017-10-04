@@ -116,12 +116,12 @@ def autotag(trackname, root):
         if path in parts:
             break #The check has to be made in the middle in of the loop (between splitting and setting the new vars. That's why we have a while true and a break. Of course, it could be recursive... 
         path = parts[0]
-        tags.add(parts[1])
+        tags.add(parts[1].lower())
 
     for tag, options in names.items():
         for option in options:
             if option in trackname.lower():
-                tags.add(tag)
+                tags.add(tag.lower())
                 break
     return list(tags)
 

@@ -37,7 +37,7 @@ def filtered(search,musts = [],mays = []): # {{{
              print(track['name'].encode('utf-8'), track['files'].__repr__().encode('utf-8'))
              double = db[tracks[track['name']]]
              print(double['name'].encode('utf-8'), double['files'].__repr__().encode('utf-8'))"""
-        if not all([(must in track['tags']) for must in musts]) and len(musts)>0:
+        if not all([(must.lower() in track['tags']) for must in musts]) and len(musts)>0:
               print("Removing something because of a filter")
               continue
         if len(mays)>0:
