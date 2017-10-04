@@ -108,6 +108,16 @@ def autotag(trackname, root):
     #TODO Mark these tags as autotags so we don't write them and end up with repeat tags
     names = {"wals": ["wals","waltz","valse"], "polka":["polka"]}
     tags = set()
+    parts = [root]
+    path = root
+    
+    while True:
+        parts = os.path.split(path)
+        if path in parts:
+            break #The check has to be made in the middle in of the loop (between splitting and setting the new vars. That's why we have a while true and a break. Of course, it could be recursive... 
+        path = parts[0]
+        tags.add(parts[1])
+
     for tag, options in names.items():
         for option in options:
             if option in trackname.lower():
