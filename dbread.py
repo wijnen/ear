@@ -202,6 +202,7 @@ def add_end_times(group,times):
 
 def load_test_tracks(tracks):
     """Opens all media files to insert end markers. Does not just do a single end marker, but also handles all fragments to give start and end times. This duplicates info, but makes it all a lot easier to handle"""
+    outtracks=[]
     for track in tracks:
         durations = []
         for filename,offset in track['files']:
@@ -209,13 +210,18 @@ def load_test_tracks(tracks):
             durations.append( media.Media.get_duration(fullpath) + offset)
         times = []
         end = int(max(durations))
+        #print(end, track['name'])
+        if end <10 and '.mp3' not in track['name']: #Length determination for mp3 is broken
+            print("removing {} from db because of length {}".format(track['name'],end))
+            continue
         times = sorted(list(get_times(track['fragments'])))
         if times[0] > 0: 
             track['fragments'].insert(0, ["fragment", "Intro", 0] )
             times = sorted(list(get_times(track['fragments'])))
         times.append(end)
         track['fragments'] = add_end_times(track['fragments'],times)
-    return tracks
+        outtracks.append(track)
+    return outtracks
 
 
 def write_group(group, indent):
