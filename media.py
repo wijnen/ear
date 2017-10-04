@@ -114,6 +114,8 @@ class Media:
         cls.prober.set_property('uri', 'file://' + os.path.realpath(filename))
         cls.probe_pipeline.set_state(Gst.State.PAUSED)
         cls.probe_pipeline.get_state(Gst.CLOCK_TIME_NONE)
+        if any([bugged in filename for bugged in ["mp3","wav","m4a"]]):
+            time.sleep (0.125) #https://www.ruby-forum.com/topic/1232772
         try:
             ret = cls.probe_pipeline.query_duration(Gst.Format(Gst.Format.TIME))[1] / Gst.MSECOND
         except:
@@ -201,9 +203,11 @@ class Media:
             self.pause()
             self.pipeline.get_state(Gst.CLOCK_TIME_NONE)
             if end is not None and (start is None or end > start):
-                self.pipeline.seek(1.0, Gst.Format(Gst.Format.TIME), Gst.SeekFlags.ACCURATE | Gst.SeekFlags.FLUSH, Gst.SeekType.SET, start * Gst.MSECOND, Gst.SeekType.SET, end * Gst.MSECOND)
+                ret = self.pipeline.seek(1.0, Gst.Format(Gst.Format.TIME), Gst.SeekFlags.ACCURATE | Gst.SeekFlags.FLUSH, Gst.SeekType.SET, start * Gst.MSECOND, Gst.SeekType.SET, end * Gst.MSECOND)
             else:
-                self.pipeline.seek(1.0, Gst.Format(Gst.Format.TIME), Gst.SeekFlags.ACCURATE | Gst.SeekFlags.FLUSH, Gst.SeekType.SET, start * Gst.MSECOND, Gst.SeekType.END, 0)
+                ret = self.pipeline.seek(1.0, Gst.Format(Gst.Format.TIME), Gst.SeekFlags.ACCURATE | Gst.SeekFlags.FLUSH, Gst.SeekType.SET, start * Gst.MSECOND, Gst.SeekType.END, 0)
+            if not ret:
+                print("Seeking not allowed by gstreamer")
         if play:
             self.pause(False)
         if timed:

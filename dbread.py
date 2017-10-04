@@ -211,8 +211,9 @@ def load_test_tracks(tracks):
         times = []
         end = int(max(durations))
         #print(end, track['name'])
-        if end <10 and '.mp3' not in track['name']: #Length determination for mp3 is broken
+        if end <10:
             print("removing {} from db because of length {}".format(track['name'],end))
+            print("durations: {}".format(durations))
             continue
         times = sorted(list(get_times(track['fragments'])))
         if times[0] > 0: 
