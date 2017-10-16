@@ -51,7 +51,7 @@ def filtered(search,musts = [],mays = []): # {{{
     toSend = []
     if len(search)<1:
         if len(musts)==0 and len(mays)==0:
-              logging.info(len(tracks), len(db) ) #Why do we get so much doubes?
+              logging.info((len(tracks), len(db)) ) #Why do we get so much doubes?
         for k,v in tracks.items():
             toSend.append((k,v))     #ASCIIbetical filename ordering due to ordereddict used above. Basically, order by whatever happens in the fragments files, and then determistically random crud. Pretty close to what you'd expect anyway
         return toSend
