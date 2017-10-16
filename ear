@@ -19,7 +19,6 @@ import zmq
 import simplejson.scanner
 import subprocess
 
-import pprint #Debug
 logging.info("Imports successfull")
 
 
@@ -196,11 +195,6 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
         except Exception as e:
             logging.exception('Msg: {} \n Type: {}\n Exception: {}'.format(msg,type(msg),e))
             continue
-        """print(type(msg))
-        pprint.pprint(msg)
-        print("data:")
-        print(data.keys())
-        print(data['track'])"""
         if type(msg) == dict:
             if 'play' in msg.keys() and type(msg['play'])==list:
                 inp = msg['play']
@@ -221,7 +215,6 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
                 save_all()
             if 'filteredTracks?' in msg.keys():
                 if type(msg['filteredTracks?'])== dict:
-                    pprint.pprint(msg)
                     query = msg['filteredTracks?']
                     zmq_socket.send_json({"options":filtered(query['searchString'],query['musts'],[])}) 
                 else:

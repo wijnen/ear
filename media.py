@@ -194,7 +194,7 @@ class Media:
             self.timeout = GLib.timeout_add(wait, lambda _: self.play(start = start, end=end, cb=cb,play=play, timed = True), None)
             self.countdown_end = time.time() + wait/1000.
             return True
-        logging.debug("start, offset, duration, ",start, self.offset, self.media_duration)
+        logging.debug("start {}, offset {}, duration {} ".format(start, self.offset, self.media_duration))
         if start is not None and start < self.offset + self.media_duration:
             logging.debug("Actually playing because startis not none")
             start -= self.offset
