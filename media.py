@@ -1,4 +1,5 @@
 import datetime
+import logging
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst
@@ -86,7 +87,7 @@ class Media:
         self.countdown_end = None
         self.waveform = [(None,None,None)]
     def volume(self,volume = None):
-        print("Setting volume {}".format(volume))
+        logging.debug("Setting volume {}".format(volume))
         if volume != None:
             self.gstvolume.set_property("volume",volume)
         return self.gstvolume.get_property("volume")
@@ -121,7 +122,7 @@ class Media:
         except:
             #import traceback
             #traceback.print_exc()
-            print('Not using file "%s"' % os.path.realpath(filename))
+            logging.warning('Not using file "%s"' % os.path.realpath(filename))
             ret = None
         cls.probe_pipeline.set_state(Gst.State.NULL)
         return ret
@@ -193,9 +194,9 @@ class Media:
             self.timeout = GLib.timeout_add(wait, lambda _: self.play(start = start, end=end, cb=cb,play=play, timed = True), None)
             self.countdown_end = time.time() + wait/1000.
             return True
-        print("start, offset, duration, ",start, self.offset, self.media_duration)
+        logging.debug("start, offset, duration, ",start, self.offset, self.media_duration)
         if start is not None and start < self.offset + self.media_duration:
-            print("Actually playing because startis not none")
+            logging.debug("Actually playing because startis not none")
             start -= self.offset
             start /= self.speed
             if end is not None:
@@ -207,7 +208,7 @@ class Media:
             else:
                 ret = self.pipeline.seek(1.0, Gst.Format(Gst.Format.TIME), Gst.SeekFlags.ACCURATE | Gst.SeekFlags.FLUSH, Gst.SeekType.SET, start * Gst.MSECOND, Gst.SeekType.END, 0)
             if not ret:
-                print("Seeking not allowed by gstreamer")
+                logging.warning("Seeking not allowed by gstreamer")
         if play:
             self.pause(False)
         if timed:
@@ -221,12 +222,12 @@ class Media:
                 self.cb = None
                 cb()
         else:
-            print("Ending without a callback")
+            logging.debug("Ending without a callback")
             if (self.get_pos()+1000 < self.media_duration):
-                print("But wait, there's more!")
+                logging.debug("But wait, there's more!")
                 self.play(start=self.get_pos(),end=self.media_duration,play=False)
             else:
-                print("That's all folks")
+                logging.debug("That's all folks")
                 self.play(start=0,play=False)
             
             #Do not change the position but make sure the playing state is off, and allow us to continue where we left off

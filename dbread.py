@@ -1,4 +1,5 @@
 # Database read and write support.
+import logging
 import fhs
 import os
 import media
@@ -99,9 +100,9 @@ def parse_fragments(root, tracks, used):
                         state = 'FRAGMENTS'
                         current['tags'].append("has fragments")
             except Exception as e:
-                   print("Exception raised while parsing file {}, line  {}".format(os.path.join(root, FRAGMENTS),linenumber))
-                   print("Exception: {}".format(e))
-                   print("Original line: {}".format(line))
+                   logging.warning("Exception raised while parsing file {}, line  {}".format(os.path.join(root, FRAGMENTS),linenumber))
+                   logging.exception(e)
+
 
 def autotag(trackname, root):
     """Function to automagically add some tags based on filenames. Contents are up for discussion"""
@@ -142,11 +143,10 @@ def read(use_cache = True):
     if use_cache:
         try:
             import pickle
-            print ("Trying to use cache from {}".format(os.path.join(basedirs[0],"cache.pickle")))
+            logging.info ("Trying to use cache from {}".format(os.path.join(basedirs[0],"cache.pickle")))
             tracks = pickle.load(open(os.path.join(basedirs[0],"cache.pickle"),'rb'))
         except Exception as e:
-            print("Cache not found")
-            print(e)
+            logging.info("Cache not found")
         if len(tracks) > 1:
             return tracks
     # Parse all fragments files.
@@ -172,11 +172,11 @@ def read(use_cache = True):
     tracks = load_test_tracks(tracks)
     try:
         import pickle
-        print ("Writing cache")
+        logging.info ("Writing cache")
         pickle.dump(tracks,open(os.path.join(basedirs[0],"cache.pickle"),'wb'))
     except Exception as e:
-        print ("Writing cache failed")
-        print(e)
+        logging.warning ("Writing cache failed")
+        logging.exception (e)
     return tracks
 
 def get_times(fragments):
@@ -212,8 +212,8 @@ def load_test_tracks(tracks):
         end = int(max(durations))
         #print(end, track['name'])
         if end <10:
-            print("removing {} from db because of length {}".format(track['name'],end))
-            print("durations: {}".format(durations))
+            logging.info("removing {} from db because of length {}".format(track['name'],end))
+            logging.info("durations: {}".format(durations))
             continue
         times = sorted(list(get_times(track['fragments'])))
         if times[0] > 0: 
@@ -277,10 +277,8 @@ def write(tracks):
 
     for target in output.keys():
         # Write as binary and manually encode as utf-8, so line endings are not mangled.
-        print("Still clean.{}".format(target))
         if output[target]['dirty']:
             with open(target, 'wb') as f: #This should probably do a try-except or something or check for disk space
-                print("No, dirty.{}".format(target))
                 # To allow Microsoft to write these files as utf-8, start with a BOM.
                 f.write(('\ufeff' + output[target]['contents']).encode('utf-8'))
 # vim: set expandtab tabstop=4 shiftwidth=4 :

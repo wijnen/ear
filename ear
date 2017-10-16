@@ -2,7 +2,9 @@
 # vim: set foldmethod=marker :
 
 # Imports. {{{
-print("Ear started, starting imports")
+import logging
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+logging.info("Ear started, starting imports")
 import fhs
 config = fhs.init({'port': 0, 'http-port': 8082, 'Wt': '/usr/share/Wt'})
 
@@ -16,17 +18,18 @@ import dbread
 import zmq
 import simplejson.scanner
 import subprocess
+
 import pprint #Debug
-print("Impports successfull")
+logging.info("Imports successfull")
 
 
 try:
     from fuzzywuzzy import process
     fuzzy = True
-    print("Imported fuzzywuzzy")
+    logging.info("Imported fuzzywuzzy")
 except:
     fuzzy = False
-    print ("No fuzzywuzzy")
+    logging.warning ("No fuzzywuzzy")
 #}}}
 
 def filtered(search,musts = [],mays = []): # {{{
@@ -38,7 +41,7 @@ def filtered(search,musts = [],mays = []): # {{{
              double = db[tracks[track['name']]]
              print(double['name'].encode('utf-8'), double['files'].__repr__().encode('utf-8'))"""
         if not all([(must.lower() in track['tags']) for must in musts]) and len(musts)>0:
-              print("Removing something because of a filter")
+              logging.info("Removing something because of a filter")
               continue
         if len(mays)>0:
             for tag in track['tags']:
@@ -49,7 +52,7 @@ def filtered(search,musts = [],mays = []): # {{{
     toSend = []
     if len(search)<1:
         if len(musts)==0 and len(mays)==0:
-              print(len(tracks), len(db)) #Why do we get so much doubes?
+              logging.info(len(tracks), len(db) ) #Why do we get so much doubes?
         for k,v in tracks.items():
             toSend.append((k,v))     #ASCIIbetical filename ordering due to ordereddict used above. Basically, order by whatever happens in the fragments files, and then determistically random crud. Pretty close to what you'd expect anyway
         return toSend
@@ -61,9 +64,6 @@ def filtered(search,musts = [],mays = []): # {{{
         for track in tracks.keys():
              if search in track:
                   toSend.append((track,tracks[track]))
-    #print("out")
-    #print(out.__repr__().encode('utf-8'))
-   #print("toSend")
     return toSend 
 # }}}
 
@@ -77,9 +77,9 @@ def file_new(dummy = None): # {{{
 def new_file(): # {{{
     if len(data['track']['files']) > 0:
         data['media'].load(data['track'], 0)
-        print("Loading track")
+        logging.info("Loading track {}".format(data['track']))
     else:
-        print("Empty track")
+        logging.warning("Empty track")
         data['media'].load(data['track'], None)
         g.length = (0, 1)
     g.position = 0
@@ -112,14 +112,15 @@ def stop(stopped): # {{{
 
 def save_all():
     global db
-    print ("save us all!")
+    logging.info("Saving entire database")
     #print(db)
     dbread.write(db)
 
-print("Reading db")
+logging.info("Reading db")
 dbrefresh = True
 db = dbread.read()
-dbrefresh = False
+logging.info("db read")
+dbrefresh = False #TODO: Is this still needed?
 data = {
     'db': db,
     'track': None,
@@ -132,7 +133,7 @@ data['media'].send_pixbuf = lambda pixbuf: setattr(g, 'image', pixbuf)
 # }}}
 
 def play_list(track, play_tuple): # {{{
-    print("Playing list, play_tuple {}".format(play_tuple))
+    logging.debug("Playing list, play_tuple {}".format(play_tuple))
     #track.play(cb = None) #Essential to clear the callback
     if len(play_tuple) < 1:
         return
@@ -171,8 +172,8 @@ g.speed = 100
 g.volume = 100
 g.before = 3
 #
-       
-print("Starting zmq")
+
+logging.info("Starting zmq")
 zmqcontext=zmq.Context()
 zmq_socket=zmqcontext.socket(zmq.REP)
 if config['port'] == 0:
@@ -181,7 +182,7 @@ else:
 	zmq_port = config['port']
 	zmq_socket.bind("tcp://*:" + str(zmq_port))
 zmq_fd=zmq_socket.getsockopt(zmq.FD)
-print("Zmq port: {}".format(zmq_port))
+logging.info("Zmq port: {}".format(zmq_port))
 g.before_active = True
 def zmq_callback(fd,condition,zmq_socket): # {{{
     while zmq_socket.getsockopt(zmq.EVENTS) & zmq.POLLIN:
@@ -189,12 +190,11 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
         try:
             msg = zmq_socket.recv_json()
         except simplejson.scanner.JSONDecodeError as e:
-            print(e)
+            logging.warning(e)
             zmq_socket.send_string("something recieved, please send json")
             continue
         except Exception as e:
-            print(msg)
-            print(e)
+            logging.exception('Msg: {} \n Type: {}\n Exception: {}'.format(msg,type(msg),e))
             continue
         """print(type(msg))
         pprint.pprint(msg)
@@ -212,7 +212,6 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
                     else:
                         out[-1][1] = stop #the previous stop
                     ostop = stop
-                print(inp,out)
                 play_list(data['media'], out)
                 zmq_socket.send_json({"dummy":"dummy"})
             if 'fragments' in msg.keys() and type(msg['fragments'])==list:
@@ -223,7 +222,6 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
             if 'filteredTracks?' in msg.keys():
                 if type(msg['filteredTracks?'])== dict:
                     pprint.pprint(msg)
-                    print(msg['filteredTracks?'])
                     query = msg['filteredTracks?']
                     zmq_socket.send_json({"options":filtered(query['searchString'],query['musts'],[])}) 
                 else:
@@ -239,7 +237,6 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
                 zmq_socket.send_json(events)
             elif msg.startswith('event:'):
                 event=msg[len('event:'):]
-                print ("Event:{}".format(event))
                 if event in kwargs['events'].keys():
                     try:
                         ret=kwargs['events'][event]("foo")
@@ -254,9 +251,9 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
                     zmq_socket.send_json({"state":g.playing}) 
                 else:
                     zmq_socket.send_json("No such event")
-                    print("No such event")
+                    logging.warning("No such event: {}".format(event))
             elif msg =="inputs?":
-                inputs = {"speed":[50,200],"before":[0,10],"volume":[0,200]} #Needs volume as well at some point (min,max)
+                inputs = {"speed":[50,200],"before":[0,10],"volume":[0,200]}
                 for inp in inputs.keys():
                     inputs[inp].append(getattr(g,inp))
                 zmq_socket.send_json(inputs)
@@ -265,7 +262,7 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
                 try:
                     val=float(val)
                 except ValueError as e:
-                    print(e)
+                    logging.exception(e)
                     continue
                 setattr(g,inp,val)
                 if inp == "speed":
@@ -299,7 +296,7 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
                 try:
                     sel = int(select)
                 except ValueError as e:
-                    print (e)
+                    logging.exception(e)
                     continue
                 data['track']=db[sel]    
                 new_file()
@@ -322,7 +319,7 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
                     startTime=float(msg[len("play:"):])
                 except Exception as e:
                     zmq_socket.send_json({"dummy":"dummy"})
-                    print(e)
+                    logging.exception(e)
                     continue
                 zmq_socket.send_json({"dummy":"dummy"})
                 data['media'].play(startTime, play = True)
@@ -332,7 +329,7 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
                 try:
                     npos = int(msg[len("pos:"):])
                 except ValueError as e:
-                    print(e)
+                    logging.exception(e)
                     continue
                 set_pos(npos) 
                 data['media'].play(g.position, play = None)
@@ -346,7 +343,7 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
             elif msg.startswith("title?"):
                 zmq_socket.send_json({"title":data['track']['name']})
             else:
-                print ("Event not handled:{}".format(msg))
+                logging.exception ("Event not handled:{}".format(msg))
                 zmq_socket.send_json({"dummy":g.position})
     return True
 # }}}
@@ -355,25 +352,23 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
 set_pos(0)
 data['track']=db[-1]    
 new_file()
-print(data['track'])
-print(data['media'])
-print ("importing gobject")
+logging.info("Track: {}. Media:{}".format(data['track'],data['media']))
+logging.info ("importing gobject")
 from gi.repository import GObject
 import os
 windows = 'nt'in os.name
 if windows:
+    logging.info("Trying to run on windows!")
     GLib.timeout_add(10,lambda _:zmq_callback(zmq_socket.fd,True,zmq_socket),None)
 else:
     GObject.io_add_watch(zmq_socket.fd, GObject.IO_IN, zmq_callback, zmq_socket)
-print("Set watch")
-print("copying env")
 # Start the UI process with the zmq port.
 env = os.environ.copy()
 env['ZMQ_PORT'] = 'tcp://localhost:' + str(zmq_port)
 executable = fhs.read_data(os.path.join('ear-wt', 'earUI'), opened = False)
 wt_config = fhs.read_data(os.path.join('ear-wt', 'wt_config.xml'), opened = False)
 
-print(" opening subprocess " )
+logging.info(" opening subprocess " )
 try:
     UI = subprocess.Popen((executable,
 		'--docroot', config['Wt'],
@@ -381,11 +376,11 @@ try:
 		'--http-port=' + str(config['http-port']),
 		'-c', wt_config),
 	env = env)
-    print("Popened")
+    logging.info("Popened")
 except:
-    print("No exe found!")
+    logging.warning("No exe found!")
     pass
-print("Running mainloop")
+logging.info("Running mainloop")
 GLib.MainLoop().run()
     
 #
