@@ -40,6 +40,14 @@
 #include <Wt/WCompositeWidget>
 #include <Wt/WTreeTableNode>
 #include <Wt/WBootstrapTheme>
+
+#include <Wt/WLogger>
+/*
+
+this->log("notice") << "Notice test"; 
+       this->log("error") << "error test"; 
+	#Info is used by the library for the access log, so we won't use it bnecause we filter it out anyway. Notice and error should to the trick
+*/
 #define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here. 
 //#define OLD_WT
 char const *zmq_port;
@@ -290,17 +298,13 @@ bool fragmentAbeforeB(Wt::WTreeNode* A, Wt::WTreeNode* B) //Needs renaming)
 		long startB = startBt->time();
 		long stopB = stopBt->time();
 		//Strictly, this does not mean that A<B means that B>A, because of stuff. See what breaks? --KRL 11072017 FIXME
-std::cout<<" A:" << std::to_string(startA) << " " <<std::to_string(stopA) << std::endl;
-std::cout<<" B:" << std::to_string(startB) << " " <<std::to_string(stopB) << std::endl;
 	if(startA < startB)
 	{
 		if(stopA<stopB)
 		{
-std::cout<<" A before B"<<std::endl;
 			return true;
 		}
 	}
-std::cout<<" A not before B"<<std::endl;
 	return false;
 	
 
@@ -435,11 +439,11 @@ FilteredStringModel *trackModel = new FilteredStringModel();
 searchBox->textInput().connect(std::bind([=] ()
 {
 	trackModel->searchString = searchBox->text();
-	std::cout<<"Updating model"<<std::endl;
+	this->log("notice")<<"Updating track search model";
 	trackModel->update();
 	trackSelectionBox->setModel(trackModel);
 	trackSelectionBox->setCurrentIndex(0);
-std::cout<<"Updated model"<<std::endl;
+	this->log("notice")<<"Updated track search model";
 }));
 #endif
 #ifdef OLD_WT
@@ -447,11 +451,9 @@ std::cout<<"Updated model"<<std::endl;
 searchBox->keyPressed().connect(std::bind([=] ()
 {
 	trackModel->searchString = searchBox->text();
-	std::cout<<"Updating model"<<std::endl;
 	trackModel->update();
 	trackSelectionBox->setModel(trackModel);
 	trackSelectionBox->setCurrentIndex(0);
-std::cout<<"Updated model"<<std::endl;
 }));
 #
 #endif
@@ -531,10 +533,10 @@ selectPanel->setCentralWidget(trackSearchContainer);
     Wt::WText *valueText; 
     Wt::WText *titleText;
     WContainerWidget *inputButtonContainer;
-std::cout<<"Making input boxes for "<<std::endl;
+this->log("notice")<<"Making input boxes";
     for(auto input_name:inputs.names())   
     {
-std::cout<<"Making input box for "<<input_name<<std::endl;
+this->log("notice")<<"Making input box for "<<input_name;
 	thisInputContainer = new Wt::WContainerWidget();
         inputbox->addWidget(thisInputContainer);
 	Wt::WVBoxLayout *thisInputBox = new Wt::WVBoxLayout();
@@ -542,7 +544,6 @@ std::cout<<"Making input box for "<<input_name<<std::endl;
 	Wt::WHBoxLayout *textbox = new Wt::WHBoxLayout(); //Todo, make sure we pad the buttons and not expand them
 	WContainerWidget *thisSliderContainer = new WContainerWidget();
        	thisInputBox->addLayout(textbox);	
-std::cout<<"It's in the box"<<std::endl;	
 	titleText = new Wt::WText(input_name);
 	textbox->addWidget(titleText,0);
 	valueText = new Wt::WText("");
@@ -569,17 +570,14 @@ std::cout<<"It's in the box"<<std::endl;
 	inputSlider->setTickPosition(Wt::WSlider::TicksAbove);
 	thisInputBox->addWidget(inputSlider,1); //So, if we put it in iwthout a container it won't appear if it has an objectName. If we put it in a container, it appears, but resizing is wierd. If we put a 100% the slider is there but the ticks and the min/max are all in one corner, if we put it 500px wide everything works except it's a hard limit. I'm debugging on a 4k screen and it should work on a phone. Now what? //Turns out, if you don't set the objectName, it all works as advertised. TODO: Make a minimal example and submit the bug
 	
-std::cout<<"Slider made"<<std::endl;	
-std::cout<<"Line"<<std::endl;
 	inputButtonContainer = new WContainerWidget();
 	thisInputBox->addWidget(inputButtonContainer);
 	WHBoxLayout *buttonbox = new Wt::WHBoxLayout();
 	buttonbox->addStretch();
         inputButtonContainer->setLayout(buttonbox);
-std::cout<<"Who's special?"<<std::endl;
+this->log("info")<<"Handling special sliders";
 	if (input_name == "before")
 	{
-std::cout<<" Before is special"<<std::endl;
 		std::vector<int> beforeButtons = {0,3,6,10};
 	       for(auto before:beforeButtons)
 		{
@@ -614,7 +612,6 @@ std::cout<<" Before is special"<<std::endl;
     	        }
 	  
 	}
-std::cout<<"Connecting the valueChanged"<<std::endl;
 	inputSlider->valueChanged().connect(std::bind([=] ()
         {
         	interact_zmq("input:"+input_name+":"+inputSlider->valueText());
@@ -624,7 +621,6 @@ std::cout<<"Connecting the valueChanged"<<std::endl;
 
 
     }
- std::cout<<"Done making new sliders"<<std::endl;
     WContainerWidget *posContainer = new WContainerWidget();
     Wt::WVBoxLayout *posInputBox = new Wt::WVBoxLayout();
     posContainer->setLayout(posInputBox);
@@ -635,12 +631,11 @@ std::cout<<"Connecting the valueChanged"<<std::endl;
 #ifdef PLOT //ifdef'd out as it crashes on all Debian versions of Wt //TODO add to the boxes as well
     WContainerWidget *chartContainer = new WContainerWidget(inputContainer);
 	chartText = new  WText( "chart", chartContainer);
-std::cout<<"Charting"<<std::endl;
+this->log("info")<<"Charting";
  waveformChart = new Chart::WCartesianChart(chartContainer);
  waveformModel = new WStandardItemModel(0,3);
  loadWaveform();
  waveformChart->setModel(waveformModel);        // set the model
-std::cout<< "Got a model"<<std::endl;
  waveformChart->setXSeriesColumn(0);    // set the column that holds the categorie
  waveformChart->setType(Wt::Chart::ScatterPlot);
  waveformChart->setAutoLayoutEnabled(true);
@@ -659,9 +654,8 @@ std::cout<< "Got a model"<<std::endl;
 		loadWaveform();
 	}));
 	waveformTimer->start();
-std::cout<<"Done charting "<<std::endl;
 #endif //Plot 
-std::cout<<"Making pos slider"<<std::endl;
+this->log("info")<<"Making pos slider";
 	Wt::WHBoxLayout *posTextBox = new Wt::WHBoxLayout();
 	posInputBox->addLayout(posTextBox);
 	Wt::WText *posLabel = new Wt::WText("Position");
@@ -672,9 +666,8 @@ std::cout<<"Making pos slider"<<std::endl;
     posSlider = new WSlider();
 	posSlider->valueChanged().connect(std::bind([=] ()
     {
-std::cout<<"interacting pos"<<std::endl;
+this->log("info")<<"Updating pos because posSlider valueChanged";
 	interact_zmq("pos:"+posSlider->valueText());
-std::cout<<"interacted pos"<<std::endl;
         posText->setTime(posSlider->value());
     }));
 
@@ -683,7 +676,6 @@ std::cout<<"interacted pos"<<std::endl;
     posInputBox->addWidget(posSlider,1);
 
 
-std::cout<<"Making pos buttons"<<std::endl; 
     WContainerWidget *posButtonContainer = new WContainerWidget();
     posInputBox->addWidget(posButtonContainer);
     Wt::WHBoxLayout *seekButtonBox = new Wt::WHBoxLayout();
@@ -718,7 +710,6 @@ std::cout<<"Making pos buttons"<<std::endl;
 
     
 
-std::cout<<"Done making pos slider"<<std::endl;
 
   
     socket.disconnect(zmq_port);
@@ -803,7 +794,6 @@ sliderPanel->setCentralWidget(inputContainer);
 		}
 	}
 	ret+="]}";
-std::cout<<ret<<std::endl;
 		   zmq::context_t context (1);
 		   zmq::socket_t socket (context, ZMQ_REQ);
 		   socket.connect (zmq_port);
@@ -919,7 +909,7 @@ std::cout<<ret<<std::endl;
 			}
 			if (index ==-1)
 			{
-				std::cout<<"Can't find myself when splitting a fragment"<<std::endl;
+				this->log("warn")<<"Can't find myself when splitting a fragment";
 				return;
 			}
 			MyTreeTableNode *newFragmentTTN = addNode(0,"New node", pos, stop);
@@ -986,12 +976,12 @@ std::cout<<ret<<std::endl;
 		long stop = stopW->time(); 
 		if (start != -1  or stop !=-1)
 		{
-std::cout<<"TRying to delete a none-group"<<std::endl;
+this->log("info")<<"Trying to delete a none-group";
 			return;
 		}
 		if(node->childNodes().size()>0)
 		{
-std::cout<<"Trying to delete a non-empty group"<<std::endl;
+this->log("info")<<"Trying to delete a non-empty group";
 			return;
 		}
 		node->parentNode()->removeChildNode(node);
@@ -1020,7 +1010,7 @@ std::cout<<"Trying to delete a non-empty group"<<std::endl;
    inputtimer->setInterval(2500);
    inputtimer->timeout().connect(std::bind([=] ()
    {
-	updateInputs();
+       updateInputs();
    }));
    inputtimer->start();
 
@@ -1134,7 +1124,7 @@ Json::Value EarUI::saveFragments(MyTreeTableNode *root)
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(root->columnWidget(2));
 		long long start = startW->time();
 		long long stop = stopW->time();
-		std::cout<< "Saving fragment "<<std::to_string(start) << "  "<<std::to_string(stop)<<std::endl;
+		this->log("info")<< "Saving fragment "<<std::to_string(start) << "  "<<std::to_string(stop);
 		ret.push_back(Json::Value(start));
 		ret.push_back(Json::Value(stop));
 	}
@@ -1142,16 +1132,15 @@ return retVal;
 }
 void EarUI::loadGroup(MyTreeTableNode *current_root, Json::Array fragments)
 { //Recursively add the fragments to the treetable
-std::cout<<"\n\nLoading fragments"<<std::endl;
+this->log("info") <<"Loading fragments";
 	for(auto fragmentValue:fragments)
 	{
 		const Json::Array& fragment = fragmentValue;
 		std::string type = fragment[0];
 		WString name = fragment[1];
-std::cout<<"Loading fragment "<<name<<" of type "<<type<<std::endl;
+this->log("debug") <<"Loading fragment "<<name<<" of type "<<type;
 		if (type == "group")
 		{
-std::cout<<"Making a new group"<<std::endl;
 			
 			loadGroup( addNode(current_root,name,-1,-1) ,fragment[2]);	
 		}
@@ -1163,7 +1152,7 @@ std::cout<<"Making a new group"<<std::endl;
 		}
 		else
 		{
-std::cout<<"Type not understood"<<std::endl;
+this->log("warn")<<"Node type not understood";
 		}
 	}
 
@@ -1172,17 +1161,13 @@ std::cout<<"Type not understood"<<std::endl;
 #ifdef PLOT
 void EarUI::loadWaveform()
 {
-std::cout<<"Loading waveform"<<std::endl;
 	Json::Object ret = interact_zmq(std::string("waveform?"));
-std::cout<<"Extravting waveform"<<std::endl;
 	Json::Array waveform = ret.get("waveform");
 chartText->setText(WString(std::to_string(waveform.size())));
-std::cout<<"Got a waveform"<<std::endl;
 	waveformModel->removeRows(0,waveformModel->rowCount());
 	waveformModel->insertRows(0,waveform.size());
 	if(waveform.size() < 10)
 	{
-std::cout<<"WAves too short"<<std::endl;
 	waveformModel->insertRows(0,10);
 		waveformTimer->start();
 		for(int i=0;i<10+1;i++)
@@ -1191,30 +1176,25 @@ std::cout<<"WAves too short"<<std::endl;
 			waveformModel->setData(i,1,i);
 			waveformModel->setData(i,2,i);
 		}
-std::cout<<"Added dummy data"<<std::endl;
 		return;
 	}
 	int i=0;
-std::cout<<"Filling model"<<std::endl;
 	for(auto item: waveform)
 	{
 		Json::Array foo = item;
 		double timestamp = foo[0];
 		double l = foo[1];
 		double r = foo[2];
-std::cout<<std::to_string(i) <<" "<< std::to_string(timestamp) <<" "<< std::to_string(l) <<std::endl;
 		waveformModel->setData(i,0,timestamp);
 		waveformModel->setData(i,1,l);
 		waveformModel->setData(i,2,r);
 		i++;
 	}
-std::cout<<"Done filling model"<<std::endl;
 	
   //waveformChart->setModel(waveformModel);        // set the model
  waveformChart->resize(500,50); //This is needed to render the modlel, but causes a crash on my laptop. This is because of some font issues with libharu. Retry on more recent OS's first to see if that fixes things.
 //https://sourceforge.net/p/witty/mailman/message/30272114/ //Won't work on Debian for now
 //http://witty-interest.narkive.com/1FcaBlfE/wt-interest-wpdfimage-error-102b
-std::cout<<"Set a model"<<std::endl;
 }
 
 #endif
@@ -1269,7 +1249,7 @@ void EarUI::loadFragments(zmq::socket_t &socket)
 
 void EarUI::updateInputs()
 {	
- std::cout<<"Updating inpouts"<<std::endl;
+his->log("debug")<<"Updating inputs";
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
     socket.connect (zmq_port);
@@ -1285,7 +1265,6 @@ void EarUI::updateInputs()
 		sliderWidget->setValue(inputSettings[2]);
 		textWidget = inputTexts[name];
 		textWidget->setText(sliderWidget->valueText());
- std::cout<<"Updating texts"<<std::endl;
 
 	}
 	Json::Object response;
@@ -1294,12 +1273,10 @@ void EarUI::updateInputs()
 	int server_track_idx = response.get("current");
 	if(ui_track_idx != server_track_idx)
 	{
-std::cout<<"UI track "<<ui_track_idx<<" server track "<<server_track_idx<<std::endl;
 		loadFragments(socket);
 ui_track_idx = server_track_idx;
 	}	
 
- std::cout<<"Updated"<<std::endl;
 
 	
     socket.disconnect(zmq_port);
@@ -1328,7 +1305,7 @@ MyTreeTableNode *EarUI::addNode(MyTreeTableNode *parent, WString name, const lon
 //todo: add doubleclick trick to allow modal edit
 	Wt::WPushButton *startButton = new WPushButton("|>");
 	startButton->clicked().connect(std::bind([=]() {
-std::cout<<"Handlign a startbutton click from the markertree"<<std::endl;
+this->log("debug")<<"Handlign a startbutton click from the markertree";
 		long mystart = start;	
 		if(start == -1)
 		{ 
