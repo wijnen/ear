@@ -367,7 +367,8 @@ try:
 		'--docroot', config['Wt'],
 		'--http-address=0.0.0.0',
 		'--http-port=' + str(config['http-port']),
-		'-c', wt_config),
+		'-c', wt_config,
+        '--accesslog','-'),
 	env = env)
     logging.info("Popened")
 except:
