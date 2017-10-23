@@ -45,7 +45,7 @@ def parse_fragments(root, tracks, used):
                         if need_indent:
                             istack.append(indent)
                         else:
-                            raise NotImplementedError('Annotations are not currently supported')
+                            raise NotImplementedError('Annotations are not currently supported: {}:{}\n {}'.format(root,linenumber,line))
                     elif need_indent:
                         raise ValueError('Expected indent')
                     need_indent = False
