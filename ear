@@ -230,13 +230,12 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
                 zmq_socket.send_json(events)
             elif msg.startswith('event:'):
                 event=msg[len('event:'):]
+                logging.debug("Event from UI:{}".format(event))
                 if event in kwargs['events'].keys():
                     try:
                         ret=kwargs['events'][event]("foo")
                     except TypeError:
                         ret=kwargs['events'][event]()
-                    if ret ==None:
-                        ret=="None"
                     zmq_socket.send_json({"ret":ret})   
                 elif event == "play":
                     g.playing = True
@@ -261,7 +260,7 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
                 if inp == "speed":
                     data['media'].set_speed(val / 100.)
                 if inp == "volume":
-                    print("Setting volume")
+                    logging.debug("Setting volume")
                     g.volume = data['media'].volume(val/100.)*100
                 zmq_socket.send_json({"dummy":"dummy"})
             elif msg =="track?":
