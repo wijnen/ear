@@ -225,7 +225,7 @@ class Media:
             logging.debug("Ending without a callback")
             if (self.get_pos()+1000 < self.media_duration):
                 logging.debug("But wait, there's more!")
-                self.play(start=self.get_pos(),end=self.media_duration,play=None) #changed from False to None in order to maybe stop the random-pausing bug (#28)
+                self.play(start=self.get_pos(),end=self.media_duration,play=False) #changed from False to None in order to maybe stop the random-pausing bug (#28). This however breaks stopping that the end of fragments, so it's changed back
             else:
                 logging.debug("That's all folks")
                 self.play(start=0,play=False)
