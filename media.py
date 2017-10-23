@@ -194,9 +194,9 @@ class Media:
             self.timeout = GLib.timeout_add(wait, lambda _: self.play(start = start, end=end, cb=cb,play=play, timed = True), None)
             self.countdown_end = time.time() + wait/1000.
             return True
-        logging.debug("start {}, offset {}, duration {} ".format(start, self.offset, self.media_duration))
+        logging.debug("start {}, offset {}, duration {}, play {}".format(start, self.offset, self.media_duration, play))
         if start is not None and start < self.offset + self.media_duration:
-            logging.debug("Actually playing because startis not none")
+            logging.debug("Actually playing because start is not none")
             start -= self.offset
             start /= self.speed
             if end is not None:
@@ -222,12 +222,12 @@ class Media:
                 self.cb = None
                 cb()
         else:
-            logging.debug("Ending without a callback")
+            logging.debug("Ending without a callback") #That means our current playing is probably done
             if (self.get_pos()+1000 < self.media_duration):
-                logging.debug("But wait, there's more!")
-                self.play(start=self.get_pos(),end=self.media_duration,play=False) #changed from False to None in order to maybe stop the random-pausing bug (#28). This however breaks stopping that the end of fragments, so it's changed back
+                logging.debug("But wait, there's more track than that we've played!")
+                self.play(start=self.get_pos(),end=self.media_duration,play=False) #So pause it, because if we let it run we play more than we wanted.
             else:
-                logging.debug("That's all folks")
+                logging.debug("Stopping because end of track reached, and resetting position to start of track.")
                 self.play(start=0,play=False)
             
             #Do not change the position but make sure the playing state is off, and allow us to continue where we left off
@@ -236,6 +236,7 @@ class Media:
     def seek(self, delta):
         self.play(self.get_pos() + delta, play = None)
     def pause(self, pausing = True):
+        logging.debug("Pause in media, {}".format(pausing))
         if pausing:
             self.pipeline.set_state(Gst.State.PAUSED)
             if self.updater:
