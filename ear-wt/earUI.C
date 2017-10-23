@@ -1249,7 +1249,7 @@ void EarUI::loadFragments(zmq::socket_t &socket)
 
 void EarUI::updateInputs()
 {	
-this->log("debug")<<"Updating inputs";
+//this->log("debug")<<"Updating inputs";
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
     socket.connect (zmq_port);
