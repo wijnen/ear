@@ -6,7 +6,7 @@ import logging
 logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=logging.DEBUG)
 logging.info("Ear started, starting imports")
 import fhs
-config = fhs.init({'port': 0, 'http-port': 8082, 'Wt': '/usr/share/Wt'})
+config = fhs.init({'port': 0, 'http-port': 8082, 'Wt': '/usr/share/Wt', "webUI" : True})
 
 from collections import OrderedDict
 import gi
@@ -357,22 +357,24 @@ else:
 # Start the UI process with the zmq port.
 env = os.environ.copy()
 env['ZMQ_PORT'] = 'tcp://localhost:' + str(zmq_port)
-executable = fhs.read_data(os.path.join('ear-wt', 'earUI'), opened = False)
-wt_config = fhs.read_data(os.path.join('ear-wt', 'wt_config.xml'), opened = False)
+print(env['ZMQ_PORT'])
+if config['webUI']:
+    executable = fhs.read_data(os.path.join('ear-wt', 'earUI'), opened = False)
+    wt_config = fhs.read_data(os.path.join('ear-wt', 'wt_config.xml'), opened = False)
 
-logging.info(" opening subprocess " )
-try:
-    UI = subprocess.Popen((executable,
-		'--docroot', config['Wt'],
-		'--http-address=0.0.0.0',
-		'--http-port=' + str(config['http-port']),
-		'-c', wt_config,
-        '--accesslog','-'),
-	env = env)
-    logging.info("Popened")
-except:
-    logging.warning("No exe found!")
-    pass
+    logging.info(" opening subprocess " )
+    try:
+        UI = subprocess.Popen((executable,
+            '--docroot', config['Wt'],
+            '--http-address=0.0.0.0',
+            '--http-port=' + str(config['http-port']),
+            '-c', wt_config,
+            '--accesslog','-'),
+        env = env)
+        logging.info("Popened")
+    except:
+        logging.warning("No exe found!")
+        pass
 logging.info("Running mainloop")
 GLib.MainLoop().run()
     
