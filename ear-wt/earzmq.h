@@ -23,7 +23,7 @@ WStrings, strings are both handled
 namespace zmq_conn
 {
   zmq::socket_t* connect();
-  void disconnect(  zmq::socket_t *socket = 0);
+  void disconnect(  zmq::socket_t *socket );
   Wt::Json::Object interact(const char value[], zmq::socket_t *socket = 0    );
   Wt::Json::Object interact(std::string value, zmq::socket_t *socket = 0    );
   Wt::Json::Object interact(Wt::Json::Object value, zmq::socket_t *socket = 0);

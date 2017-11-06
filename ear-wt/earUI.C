@@ -517,11 +517,10 @@ selectPanel->setCentralWidget(trackSearchContainer);
     Wt::WVBoxLayout *inputbox = new Wt::WVBoxLayout();
     inputContainer->setLayout(inputbox);
  
-    zmq::socket_t *socket = zmq_conn::connect();
 
 
     Json::Object inputs;
-    inputs = zmq_conn::interact("inputs?",socket);
+    inputs = zmq_conn::interact("inputs?");
     Wt::WContainerWidget *thisInputContainer;
     Wt::WSlider *inputSlider;
     Json::Array inputSettings;
@@ -706,7 +705,6 @@ this->log("info")<<"Updating pos because posSlider valueChanged";
     
 
 
-  zmq_conn::disconnect();
 //    socket->disconnect(zmq_port);
 
 
@@ -1021,14 +1019,15 @@ this->log("info")<<"Trying to delete a non-empty group";
 	zmq::socket_t socket (context, ZMQ_REQ);
 	socket.connect (zmq_port);*/
 	zmq::socket_t *socket = zmq_conn::connect();
-
-	long long track_time = 	EarUI::current_track_time(socket);
-	posSlider->setValue(track_time);
-	posText->setTime(track_time);
-	Json::Object playingj;
 	bool playing;
+	Json::Object playingj;
+	long long track_time = 	current_track_time(socket);
 	playingj = zmq_conn::interact(std::string("playing?"),socket);
 
+	zmq_conn::disconnect(socket);
+	posSlider->setValue(track_time);
+	posText->setTime(track_time);
+	
 	playing = playingj.get("playing");
 	if (playing)
 	{
@@ -1046,9 +1045,9 @@ this->log("info")<<"Trying to delete a non-empty group";
 		}
 	}
 //        socket.disconnect(zmq_port);
-zmq_conn::disconnect();
         mark_current_fragment(track_time); 
    }));
+
 
     timer->start();
     updateInputs();
@@ -1199,10 +1198,11 @@ void EarUI::loadFragments(zmq::socket_t *socket)
 #ifdef PLOT
 waveformTimer->start();
 #endif
-
+bool disconnect = false;
 	if (socket == 0)
 	{
 		socket = zmq_conn::connect();
+		disconnect = true;
 	}
 		Wt::WTreeTable *treeTable; 
 //	treeTable = dynamic_cast<WTreeTable*> (findWidget("markertree"));
@@ -1225,12 +1225,14 @@ waveformTimer->start();
 	
 	root->expand();
 
-                TimeWidget *firstW = dynamic_cast<TimeWidget*>((*fragment_set.begin())->columnWidget(1));
-                TimeWidget *lastW = dynamic_cast<TimeWidget*>((*fragment_set.rbegin())->columnWidget(2));
-                posSlider->setMinimum(firstW->time());
-                posSlider->setMaximum(lastW->time());
-	zmq_conn::disconnect(socket);
-	
+        TimeWidget *firstW = dynamic_cast<TimeWidget*>((*fragment_set.begin())->columnWidget(1));
+        TimeWidget *lastW = dynamic_cast<TimeWidget*>((*fragment_set.rbegin())->columnWidget(2));
+        posSlider->setMinimum(firstW->time());
+        posSlider->setMaximum(lastW->time());
+	if (disconnect)
+	{
+		zmq_conn::disconnect(socket);
+	}	
 }
 
 
