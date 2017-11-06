@@ -43,6 +43,7 @@
 
 #include "earzmq.h"
 #include "filteredStringModel.h"
+#include "TimeWidget.h"
 #include <Wt/WLogger>
 
 
@@ -61,57 +62,6 @@ class MyTreeTableNode : public Wt::WTreeTableNode
 	Wt::WInPlaceEdit*  editWidget;
 
 };
-
-
-
-
-class TimeWidget : public Wt::WText //This explicitly does not use the Wt::WTime class, as we want to use milliseconds as our base unit, especially when communicating with the Python side of this project. The Wt::Wtime supports only already quite correctly formatted times, and we don't need that. Additionally, it's meant for clock times, not intervals
-{
-    public:
-	TimeWidget(Wt::WContainerWidget *parent = 0);
-//  TimeWidget(double time, WContainerWidget *parent = 0);
-	long long time();
-	bool setTime(long time);
-    private:
-	long _time;
-};
-
-
-TimeWidget::TimeWidget(Wt::WContainerWidget *parent )
- : Wt::WText(parent)
-{  }  
-
-long long TimeWidget::time()
-{
-	return this->_time;
-}
-
-bool TimeWidget::setTime(long time)
-{
-		this->_time = time; //Just moved this outside the if. NEEDS TESTING! --30-3-2017
-	if(time != -1)
-	{
-		bool negative = false;
-		if (time < 0)
-		{
-			negative = true;
-			time *= -1; 
-		}
-		int minutes, seconds, milliseconds;
-		seconds =  ((time / 1000) % 60) ;
-		minutes =  ((time / (1000*60)) % 60);
-		milliseconds = time - seconds*1000 - minutes*60*1000; 
-		if (negative)
-		{
-			this->setText(Wt::WString("- {1}:{2}:{3}").arg(minutes).arg(seconds).arg(milliseconds)); //TODO: zero-pad this string
-		}
-		else
-		{
-			this->setText(Wt::WString("{1}:{2}:{3}").arg(minutes).arg(seconds).arg(milliseconds)); //TODO: zero-pad this string
-		}
-	}
-	return true;
-}
 
 
 bool fragmentAbeforeB(Wt::WTreeNode* A, Wt::WTreeNode* B) //Needs renaming)
