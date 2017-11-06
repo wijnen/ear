@@ -42,93 +42,18 @@
 #include <Wt/WBootstrapTheme>
 
 #include "earzmq.h"
-
+#include "filteredStringModel.h"
 #include <Wt/WLogger>
+
+
+
+//#define OLD_WT
 /*
 
 this->log("notice") << "Notice test"; 
        this->log("error") << "error test"; 
 	#Info is used by the library for the access log, so we won't use it bnecause we filter it out anyway. Notice and error should to the trick
 */
-//#define OLD_WT
-
-class FilteredStringModel : public Wt::WStringListModel
-{
- /*
-Class to make a stringlistmodel that filters itsself based on filters set previously. Uses zeroMQ to talk to the Python Ear implementation and let Python (fuzzywuzzy) do the actual heavy lifting
-*/
-    public:
-	FilteredStringModel(std::string zmqString = std::string("filteredTracks?"), WObject *parent=0) : Wt::WStringListModel(parent)
-{
-searchString = "";
-this->zmqString = zmqString;
-};
-	std::vector<Wt::WString> musts;
-	std::vector<Wt::WString> mays;
-	Wt::WString searchString;
-	void update();
-	Wt::WStringListModel(parent);
-    private:
-	Wt::WString zmqString;
-
-};
-void FilteredStringModel::update()
-{
-
-
-	std::string retval = "{";
-	retval += "\""+zmqString.narrow()+"\" : {";
- 	retval += "\"searchString\" : \""+searchString.narrow()+"\", ";
-	retval += "\"musts\" : [";
-	for (auto filter:musts)
-	{
-		retval += "\""+filter.narrow()+ "\" , ";
-	}
-	if(musts.size()>0)
-	{
-		retval = retval.substr(0,retval.length() -3); //Remove comma
-	}
-	retval += "], ";
-	retval += "\"mays\" : [";
-	for (auto filter:mays)
-	{
-		retval += "\""+filter.narrow()+ "\" , ";
-	}
-	if(mays.size()>0)
-	{
-		retval = retval.substr(0,retval.length() -3); //Remove comma
-	}
-	retval += "] ";
-	retval +="}}";
-
-
-/*
-    zmq::context_t context (1);
-    zmq::socket_t socket (context, ZMQ_REQ);
- 
-    socket.connect (zmq_port);
-    Wt::Json::Object response;
-	socket.send(retval.c_str(),retval.size());	
-	char buffer[MAXSIZE];
-    int nbytes = socket.recv(buffer, MAXSIZE);
-      Wt::Json::parse(std::string(buffer, nbytes),response);
-	Wt::Json::Array options = response.get("options");
-    socket.disconnect(zmq_port); KRLZMQ*/
-        Wt::Json::Object ooptions = zmq_conn::interact(retval, true);
-        Wt::Json::Array options = ooptions.get("options");
-	int x=0;
-	removeRows(0,rowCount());
-	for(auto voption:options)
-	{
-	Wt::Json::Array option = voption;
-	std::string name = option[0];
-	int idx = option[1];
-	        addString(name);
-		setData(x,0,idx,Wt::UserRole);
-		x++;
-	}
-
-}
 
 /*
 #include "Wt/WPaintDevice"
