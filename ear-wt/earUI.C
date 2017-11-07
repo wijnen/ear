@@ -139,25 +139,30 @@ private:
   std::vector<MyTreeTableNode*> fragment_set;
   void clicked(WPushButton* source );
   void loadFragments(zmq::socket_t *socket = 0);
-  void loadWaveform();
-  WTimer *waveformTimer;
-  WTreeTable *markerTree;
-  void updateInputs();
   void loadGroup(MyTreeTableNode *current_root, Json::Array fragments);
+   WTreeTable *markerTree;
+  MyTreeTableNode *addNode(MyTreeTableNode *parent, WString name, const long start, const long stop );
+  Json::Value saveFragments(MyTreeTableNode *root);
   void mark_current_fragment(long long track_time);
-  long current_track_time( zmq::socket_t *socket  =0  );
+  
+  WPushButton *playPauseButton;
+
+  void updateInputs();
   std::map<std::string, Wt::WText*> inputTexts;
   std::map<std::string, Wt::WSlider*> inputSliders;
+  long current_track_time( zmq::socket_t *socket  =0  );
+  WSlider *posSlider;
 
-  int ui_track_idx = -1;
+  #ifdef  PLOT
+  void loadWaveform();
   WStandardItemModel *waveformModel;
   Chart::WCartesianChart *waveformChart;
   WText *chartText;
-  WSlider *posSlider;
-  MyTreeTableNode *addNode(MyTreeTableNode *parent, WString name, const long start, const long stop );
-  Json::Value saveFragments(MyTreeTableNode *root);
+  WTimer *waveformTimer;
+  #endif
+
+  int ui_track_idx = -1;
   int max_tags = 0;
-  WPushButton *playPauseButton;
 };
 
 
