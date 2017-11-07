@@ -79,13 +79,6 @@ EarUI::EarUI(const Wt::WEnvironment& env) : Wt::WApplication(env)
     setTitle("Ear interface"); 
 //setCssTheme("polished"); //This fixes the columns of the treetable, soimehow
     setTheme(new Wt::WBootstrapTheme());
-//    zmq_conn zmq_port = zmq_port;
-/*    zmq::context_t context (1);
-    zmq::socket_t socket (context, ZMQ_REQ);
-    socket.connect (zmq_port);*/ 
-/*
-ZMQ should connect and disconnect after every set of actions to make room for another interface. Saves working on lots of listeners and the Python interface doesn't have to know who's talking
-*/
    
     Wt::WPanel *selectPanel = new Wt::WPanel(root());
     selectPanel->setTitle("Select new track");
@@ -99,94 +92,13 @@ ZMQ should connect and disconnect after every set of actions to make room for an
 //			 100); //Animation breaks with a VBoxLayout. Maybe report?
  //   selectPanel->setAnimation(animation);
 
+TrackSearchContainer *trackSearchContainer = new TrackSearchContainer(this);
 
-
-Wt::WContainerWidget *trackSearchContainer = new Wt::WContainerWidget(root()); 
-trackSearchContainer->resize(width,500);
-//Make this a GridLayout and add a second column showing the track settings TODO
-
-Wt::WVBoxLayout *vbox = new Wt::WVBoxLayout();
-trackSearchContainer->setLayout(vbox);
-
-
-Wt::WLineEdit *searchBox = new Wt::WLineEdit(); 
-vbox->addWidget(searchBox);
-searchBox->setPlaceholderText("Type to search");
-Wt::WSelectionBox *trackSelectionBox = new Wt::WSelectionBox();
-vbox->addWidget(trackSelectionBox,1);
-FilteredStringModel *trackModel = new FilteredStringModel();
-#ifndef OLD_WT
-searchBox->textInput().connect(std::bind([=] ()
-{
-	trackModel->searchString = searchBox->text();
-	this->log("notice")<<"Updating track search model";
-	trackModel->update();
-	trackSelectionBox->setModel(trackModel);
-	trackSelectionBox->setCurrentIndex(0);
-	this->log("notice")<<"Updated track search model";
-}));
-#endif
-#ifdef OLD_WT
-//<3.3.6 I think
-searchBox->keyPressed().connect(std::bind([=] ()
-{
-	trackModel->searchString = searchBox->text();
-	trackModel->update();
-	trackSelectionBox->setModel(trackModel);
-	trackSelectionBox->setCurrentIndex(0);
-}));
-#
-#endif
-
-trackModel->update();
-trackSelectionBox->setModel(trackModel);
-trackSelectionBox->setSelectionMode(Wt::SingleSelection);
-Wt::WPushButton *selectButton = new Wt::WPushButton("Select track");
-vbox->addWidget(selectButton);
-selectButton->clicked().connect(std::bind([=] ()
-{
-	int row = trackSelectionBox->currentIndex();
-	int tracknumber = boost::any_cast<int>(trackModel->data(trackModel->index(row,0),Wt::UserRole));
-	zmq_conn::interact(Wt::WString("track:"+std::to_string(tracknumber)));
-	updateInputs();
-}));
-
-    Wt::WContainerWidget *filterContainer = new Wt::WContainerWidget(trackSearchContainer);
-vbox->addWidget(filterContainer);
-    Wt::WContainerWidget *searchContainer = new Wt::WContainerWidget(filterContainer);
-    Wt::WContainerWidget *filtersContainer = new Wt::WContainerWidget(filterContainer);
-    Wt::WLineEdit *filterbox = new Wt::WLineEdit(searchContainer);
-    filterbox->setPlaceholderText("Filter"); 
-    Wt::WPushButton *addFilter = new Wt::WPushButton("Add",searchContainer);
-    addFilter->clicked().connect(std::bind([=] ()
-    {
-	Wt::WContainerWidget *thisFilter = new Wt::WContainerWidget(filtersContainer); 
-	Wt::WString filterName = filterbox->text();
-	new Wt::WText(filterName,thisFilter);
-	Wt::WPushButton *removeButton = new Wt::WPushButton("X",thisFilter);
-		removeButton->clicked().connect(std::bind([=] ()
-		{
-			filtersContainer->removeWidget(thisFilter);
-			thisFilter->clear();
-			std::vector<Wt::WString>::iterator pos = std::find(trackModel->musts.begin(), trackModel->musts.end(), filterName);
-			if(pos!=trackModel->musts.end())
-			{
-				trackModel->musts.erase(pos);
-				trackModel->update();
-			}
-		}));
-        trackModel->musts.push_back(filterName);  
-				trackModel->update();
-	filterbox->setText("");
-	filterbox->setPlaceholderText("Filter"); //TODO: Autofill/autocomplete
-     }));
-Wt::WPushButton *refreshButton = new Wt::WPushButton("Refresh database");
-refreshButton->clicked().connect( std::bind([=] ()
-{
-	zmq_conn::interact("tracks_refresh?");
-}));
-vbox->addWidget(refreshButton);
 selectPanel->setCentralWidget(trackSearchContainer);
+
+
+
+
 
     Wt::WPanel *sliderPanel = new Wt::WPanel(root());
     sliderPanel->setTitle("Change settings");

@@ -65,6 +65,7 @@ public:
   static long start_track_time;
   static long stop_track_time;
   static long time_speed;
+  void updateInputs();
 private:
   Wt::WLength width = Wt::WLength::Auto; 
   std::vector<MyTreeTableNode*> fragment_set;
@@ -78,7 +79,6 @@ private:
   
   Wt::WPushButton *playPauseButton;
 
-  void updateInputs();
   std::map<std::string, Wt::WText*> inputTexts;
   std::map<std::string, Wt::WSlider*> inputSliders;
   long current_track_time( zmq::socket_t *socket  =0  );
@@ -99,5 +99,6 @@ private:
 
 
 
+#include "trackSearchContainer.h" //Include after class definition because it uses the class
 
 #endif
