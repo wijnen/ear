@@ -5,19 +5,10 @@
  */
 #include "earUI.h"
 
-class MyTreeTableNode : public Wt::WTreeTableNode
+MyTreeTableNode::MyTreeTableNode(const Wt::WString& labelText, Wt::WIconPair *labelIcon,  Wt::WTreeTableNode *parentNode) :  Wt::WTreeTableNode( labelText,  labelIcon , parentNode )
 {
-	public:
-		MyTreeTableNode(const Wt::WString& labelText, Wt::WIconPair *labelIcon = 0,  Wt::WTreeTableNode *parentNode = 0) :  
-		Wt::WTreeTableNode( labelText,  labelIcon , parentNode )
-		{
-			
-		}
-	using Wt::WTreeTableNode::labelArea;
-	Wt::WString text;		
-	Wt::WInPlaceEdit*  editWidget;
 
-};
+}
 
 
 bool fragmentAbeforeB(Wt::WTreeNode* A, Wt::WTreeNode* B) //Needs renaming)
@@ -80,51 +71,11 @@ std::vector<MyTreeTableNode*> ancestors_as_vector(MyTreeTableNode *child)
 }
 
 
-class EarUI : public Wt::WApplication
-{
-public:
-  EarUI(const Wt::WEnvironment& env);
-
-  static long start_track_time;
-  static long stop_track_time;
-  static long time_speed;
-private:
-  Wt::WLength width = Wt::WLength::Auto; 
-  std::vector<MyTreeTableNode*> fragment_set;
-  void clicked(Wt::WPushButton* source );
-  void loadFragments(zmq::socket_t *socket = 0);
-  void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments);
-  Wt::WTreeTable *markerTree;
-  MyTreeTableNode *addNode(MyTreeTableNode *parent, Wt::WString name, const long start, const long stop );
-  Wt::Json::Value saveFragments(MyTreeTableNode *root);
-  void mark_current_fragment(long long track_time);
-  
-  Wt::WPushButton *playPauseButton;
-
-  void updateInputs();
-  std::map<std::string, Wt::WText*> inputTexts;
-  std::map<std::string, Wt::WSlider*> inputSliders;
-  long current_track_time( zmq::socket_t *socket  =0  );
-  Wt::WSlider *posSlider;
-  Wt::WSlider *beforeSlider;
-
-  #ifdef  PLOT
-  void loadWaveform();
-  Wt::WStandardItemModel *waveformModel;
-  Chart::WCartesianChart *waveformChart;
-  Wt::WText *chartText;
-  Wt::WTimer *waveformTimer;
-  #endif
-
-  int ui_track_idx = -1;
-  int max_tags = 0;
-};
-
-
-
 
 EarUI::EarUI(const Wt::WEnvironment& env) : Wt::WApplication(env)
 {
+  ui_track_idx = -1;
+  max_tags = 0;
     setTitle("Ear interface"); 
 //setCssTheme("polished"); //This fixes the columns of the treetable, soimehow
     setTheme(new Wt::WBootstrapTheme());

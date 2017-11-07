@@ -46,4 +46,58 @@
 //#define OLD_WT
 
 
+class MyTreeTableNode : public Wt::WTreeTableNode
+{
+	public:
+		MyTreeTableNode(const Wt::WString& labelText, Wt::WIconPair *labelIcon = 0,  Wt::WTreeTableNode *parentNode = 0) ;
+	using Wt::WTreeTableNode::labelArea;
+	Wt::WString text;		
+	Wt::WInPlaceEdit*  editWidget;
+
+};
+
+
+class EarUI : public Wt::WApplication
+{
+public:
+  EarUI(const Wt::WEnvironment& env);
+
+  static long start_track_time;
+  static long stop_track_time;
+  static long time_speed;
+private:
+  Wt::WLength width = Wt::WLength::Auto; 
+  std::vector<MyTreeTableNode*> fragment_set;
+  void clicked(Wt::WPushButton* source );
+  void loadFragments(zmq::socket_t *socket = 0);
+  void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments);
+  Wt::WTreeTable *markerTree;
+  MyTreeTableNode *addNode(MyTreeTableNode *parent, Wt::WString name, const long start, const long stop );
+  Wt::Json::Value saveFragments(MyTreeTableNode *root);
+  void mark_current_fragment(long long track_time);
+  
+  Wt::WPushButton *playPauseButton;
+
+  void updateInputs();
+  std::map<std::string, Wt::WText*> inputTexts;
+  std::map<std::string, Wt::WSlider*> inputSliders;
+  long current_track_time( zmq::socket_t *socket  =0  );
+  Wt::WSlider *posSlider;
+  Wt::WSlider *beforeSlider;
+
+  #ifdef  PLOT
+  void loadWaveform();
+  Wt::WStandardItemModel *waveformModel;
+  Chart::WCartesianChart *waveformChart;
+  Wt::WText *chartText;
+  Wt::WTimer *waveformTimer;
+  #endif
+
+  int ui_track_idx;
+  int max_tags;
+};
+
+
+
+
 #endif
