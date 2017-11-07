@@ -317,20 +317,13 @@ sliderPanel->setCentralWidget(inputContainer);
     
     markerTree = new Wt::WTreeTable();
     markerContainer->addWidget(markerTree);
-//    markerTree->setObjectName("markertree"); //TODO: Still something wierd with the columns, they are sometimes offset /TODO: Remove the setObjectName here as well
+//    markerTree->setObjectName("markertree"); //TODO: Still something wierd with the columns, they are sometimes offset
     markerTree->tree()->setSelectionMode(Wt::ExtendedSelection);
-/*    markerTree->addColumn("Start time",100);
-    markerTree->addColumn("End time",100); 
-    markerTree->addColumn("Play from here",20); //StartButton
-*/  markerTree->addColumn("",100);
+    markerTree->addColumn("",100);
     markerTree->addColumn("",100); 
     markerTree->addColumn("",100); //start
     markerTree->addColumn("",100);  //end
     markerTree->addColumn("",50); //StartButton
-
-
-
-//    markerTree->headerWidget()->hide(); //<--"Crash"
 
 
     playPauseButton = new Wt::WPushButton("Play from start",fragmentButtonsContainer);
@@ -354,7 +347,7 @@ sliderPanel->setCentralWidget(inputContainer);
 	for(auto node:children_as_vector(dynamic_cast<MyTreeTableNode*>(markerTree->tree()->treeRoot())))
 	{
 		TimeWidget *startW = dynamic_cast<TimeWidget*>(node->columnWidget(1));
-		TimeWidget *stopW = dynamic_cast<TimeWidget*>(node->columnWidget(2));
+		TimeWidget *stopW = dynamic_cast<TimeWidget*>(node->columnWidget(2)); //Todo: Find a way to make this more flexible to re-ordering
 		long start = startW->time();
 		long stop = stopW->time();
 		bool selected = markerTree->tree()->isSelected(node);
@@ -389,16 +382,6 @@ sliderPanel->setCentralWidget(inputContainer);
 	ret+="]}";
 		
 zmq_conn::send(ret);
-/*
-		   zmq::context_t context (1);
-		   zmq::socket_t socket (context, ZMQ_REQ);
-		   socket.connect (zmq_port);
-		   socket.send(ret.c_str(),ret.size());
-		   recv_zmq(socket); //Just dummy anyway
-		   socket.disconnect(zmq_port);
-		
-*/
-	
     }));
 
 
@@ -529,7 +512,7 @@ zmq_conn::send(ret);
 	//tree returns a tree with tree nodes. We need treetable nodes!
 		MyTreeTableNode *fragmentTTN =  dynamic_cast<MyTreeTableNode*>(node);
 		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
-		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
+		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2)); //TODO: Make this more flexible and not so dependant on orders. Maybe witch to a node object?
 		long start = startW->time();
 		long stop = stopW->time();
 		if (prevStop !=-2)
@@ -544,10 +527,10 @@ zmq_conn::send(ret);
 	}
 //Change the first node
 	MyTreeTableNode *firstNode = dynamic_cast<MyTreeTableNode*>(*selectedNodes.begin());
-        firstNode->editWidget->setText(newname) ;//Will this work? //It doesn't.. The one below does though
+        firstNode->editWidget->setText(newname);
 	dynamic_cast<TimeWidget*>(firstNode->columnWidget(2))->setTime(prevStop);
 	bool first=true;
-//Dlete all others
+//Dwlete all others
 	for (auto node:selectedNodes)	
 	{
 		if (not first)
@@ -593,13 +576,7 @@ this->log("info")<<"Trying to delete a non-empty group";
 	Wt::Json::Array& fragments = fragmentsval; 
 	std::string fragstring = Wt::Json::serialize(fragments);
 	fragstring = "{ \"fragments\" : "+fragstring + "}";
-/*			   zmq::context_t context (1);
-		   zmq::socket_t socket (context, ZMQ_REQ);
-		   socket.connect (zmq_port);
-		   socket.send(fragstring.c_str(),fragstring.size());
-		   recv_zmq(socket); //Just dummy anyway
-		   socket.disconnect(zmq_port);*/
-		zmq_conn::interact(fragstring);
+	zmq_conn::interact(fragstring);
     }));	
 
 
@@ -615,9 +592,6 @@ this->log("info")<<"Trying to delete a non-empty group";
    timer->setInterval(100);
    timer->timeout().connect(std::bind([=] ()
    {
-/*	zmq::context_t context (1);
-	zmq::socket_t socket (context, ZMQ_REQ);
-	socket.connect (zmq_port);*/
 	zmq::socket_t *socket = zmq_conn::connect();
 	bool playing;
 	Wt::Json::Object playingj;
@@ -644,7 +618,6 @@ this->log("info")<<"Trying to delete a non-empty group";
 			playPauseButton->setText("Play from start");
 		}
 	}
-//        socket.disconnect(zmq_port);
         mark_current_fragment(track_time); 
    }));
 
@@ -805,7 +778,6 @@ bool disconnect = false;
 		disconnect = true;
 	}
 		Wt::WTreeTable *treeTable; 
-//	treeTable = dynamic_cast<WTreeTable*> (findWidget("markertree"));
 	treeTable = this->markerTree;
 	
 	Wt::Json::Object response;
