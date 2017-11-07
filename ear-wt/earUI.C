@@ -125,40 +125,40 @@ std::vector<MyTreeTableNode*> ancestors_as_vector(MyTreeTableNode *child)
 }
 
 
-class EarUI : public WApplication
+class EarUI : public Wt::WApplication
 {
 public:
-  EarUI(const WEnvironment& env);
+  EarUI(const Wt::WEnvironment& env);
 
-Wt::WSlider *beforeSlider;
   static long start_track_time;
   static long stop_track_time;
   static long time_speed;
 private:
   Wt::WLength width = Wt::WLength::Auto; 
   std::vector<MyTreeTableNode*> fragment_set;
-  void clicked(WPushButton* source );
+  void clicked(Wt::WPushButton* source );
   void loadFragments(zmq::socket_t *socket = 0);
-  void loadGroup(MyTreeTableNode *current_root, Json::Array fragments);
-   WTreeTable *markerTree;
-  MyTreeTableNode *addNode(MyTreeTableNode *parent, WString name, const long start, const long stop );
-  Json::Value saveFragments(MyTreeTableNode *root);
+  void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments);
+  Wt::WTreeTable *markerTree;
+  MyTreeTableNode *addNode(MyTreeTableNode *parent, Wt::WString name, const long start, const long stop );
+  Wt::Json::Value saveFragments(MyTreeTableNode *root);
   void mark_current_fragment(long long track_time);
   
-  WPushButton *playPauseButton;
+  Wt::WPushButton *playPauseButton;
 
   void updateInputs();
   std::map<std::string, Wt::WText*> inputTexts;
   std::map<std::string, Wt::WSlider*> inputSliders;
   long current_track_time( zmq::socket_t *socket  =0  );
-  WSlider *posSlider;
+  Wt::WSlider *posSlider;
+  Wt::WSlider *beforeSlider;
 
   #ifdef  PLOT
   void loadWaveform();
-  WStandardItemModel *waveformModel;
+  Wt::WStandardItemModel *waveformModel;
   Chart::WCartesianChart *waveformChart;
-  WText *chartText;
-  WTimer *waveformTimer;
+  Wt::WText *chartText;
+  Wt::WTimer *waveformTimer;
   #endif
 
   int ui_track_idx = -1;
@@ -168,11 +168,11 @@ private:
 
 
 
-EarUI::EarUI(const WEnvironment& env) : WApplication(env)
+EarUI::EarUI(const Wt::WEnvironment& env) : Wt::WApplication(env)
 {
     setTitle("Ear interface"); 
 //setCssTheme("polished"); //This fixes the columns of the treetable, soimehow
-    setTheme(new WBootstrapTheme());
+    setTheme(new Wt::WBootstrapTheme());
 //    zmq_conn zmq_port = zmq_port;
 /*    zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
