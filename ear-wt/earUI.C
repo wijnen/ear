@@ -91,13 +91,12 @@ bool fragmentAbeforeB(Wt::WTreeNode* A, Wt::WTreeNode* B) //Needs renaming)
 }
 
 
-using namespace Wt;
 
 
 std::vector<MyTreeTableNode*> children_as_vector(MyTreeTableNode *root)
 {
 	std::vector<MyTreeTableNode*> retval;
-	std::vector<WTreeNode*> children = root->childNodes();
+	std::vector<Wt::WTreeNode*> children = root->childNodes();
 	for(auto node:children)
 	{
 		retval.push_back(dynamic_cast<MyTreeTableNode*>(node)); //FIXME? How does this do the ordering of things. Is push_back the right function?
@@ -125,10 +124,10 @@ std::vector<MyTreeTableNode*> ancestors_as_vector(MyTreeTableNode *child)
 }
 
 
-class EarUI : public WApplication
+class EarUI : public Wt::WApplication
 {
 public:
-  EarUI(const WEnvironment& env);
+  EarUI(const Wt::WEnvironment& env);
 
 Wt::WSlider *beforeSlider;
   static long start_track_time;
@@ -137,37 +136,37 @@ Wt::WSlider *beforeSlider;
 private:
   Wt::WLength width = Wt::WLength::Auto; 
   std::vector<MyTreeTableNode*> fragment_set;
-  void clicked(WPushButton* source );
+  void clicked(Wt::WPushButton* source );
   void loadFragments(zmq::socket_t *socket = 0);
   void loadWaveform();
-  WTimer *waveformTimer;
-  WTreeTable *markerTree;
+  Wt::WTimer *waveformTimer;
+  Wt::WTreeTable *markerTree;
   void updateInputs();
-  void loadGroup(MyTreeTableNode *current_root, Json::Array fragments);
+  void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments);
   void mark_current_fragment(long long track_time);
   long current_track_time( zmq::socket_t *socket  =0  );
   std::map<std::string, Wt::WText*> inputTexts;
   std::map<std::string, Wt::WSlider*> inputSliders;
 
   int ui_track_idx = -1;
-  WStandardItemModel *waveformModel;
-  Chart::WCartesianChart *waveformChart;
-  WText *chartText;
-  WSlider *posSlider;
-  MyTreeTableNode *addNode(MyTreeTableNode *parent, WString name, const long start, const long stop );
-  Json::Value saveFragments(MyTreeTableNode *root);
+  Wt::WStandardItemModel *waveformModel;
+  Wt::Chart::WCartesianChart *waveformChart;
+  Wt::WText *chartText;
+  Wt::WSlider *posSlider;
+  MyTreeTableNode *addNode(MyTreeTableNode *parent, Wt::WString name, const long start, const long stop );
+  Wt::Json::Value saveFragments(MyTreeTableNode *root);
   int max_tags = 0;
-  WPushButton *playPauseButton;
+  Wt::WPushButton *playPauseButton;
 };
 
 
 
 
-EarUI::EarUI(const WEnvironment& env) : WApplication(env)
+EarUI::EarUI(const Wt::WEnvironment& env) : Wt::WApplication(env)
 {
     setTitle("Ear interface"); 
 //setCssTheme("polished"); //This fixes the columns of the treetable, soimehow
-    setTheme(new WBootstrapTheme());
+    setTheme(new Wt::WBootstrapTheme());
 //    zmq_conn zmq_port = zmq_port;
 /*    zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
@@ -236,28 +235,28 @@ selectButton->clicked().connect(std::bind([=] ()
 {
 	int row = trackSelectionBox->currentIndex();
 	int tracknumber = boost::any_cast<int>(trackModel->data(trackModel->index(row,0),Wt::UserRole));
-	zmq_conn::interact(WString("track:"+std::to_string(tracknumber)));
+	zmq_conn::interact(Wt::WString("track:"+std::to_string(tracknumber)));
 	updateInputs();
 }));
 
-    Wt::WContainerWidget *filterContainer = new WContainerWidget(trackSearchContainer);
+    Wt::WContainerWidget *filterContainer = new Wt::WContainerWidget(trackSearchContainer);
 vbox->addWidget(filterContainer);
-    Wt::WContainerWidget *searchContainer = new WContainerWidget(filterContainer);
-    Wt::WContainerWidget *filtersContainer = new WContainerWidget(filterContainer);
+    Wt::WContainerWidget *searchContainer = new Wt::WContainerWidget(filterContainer);
+    Wt::WContainerWidget *filtersContainer = new Wt::WContainerWidget(filterContainer);
     Wt::WLineEdit *filterbox = new Wt::WLineEdit(searchContainer);
     filterbox->setPlaceholderText("Filter"); 
     Wt::WPushButton *addFilter = new Wt::WPushButton("Add",searchContainer);
     addFilter->clicked().connect(std::bind([=] ()
     {
 	Wt::WContainerWidget *thisFilter = new Wt::WContainerWidget(filtersContainer); 
-	WString filterName = filterbox->text();
-	new WText(filterName,thisFilter);
-	Wt::WPushButton *removeButton = new WPushButton("X",thisFilter);
+	Wt::WString filterName = filterbox->text();
+	new Wt::WText(filterName,thisFilter);
+	Wt::WPushButton *removeButton = new Wt::WPushButton("X",thisFilter);
 		removeButton->clicked().connect(std::bind([=] ()
 		{
 			filtersContainer->removeWidget(thisFilter);
 			thisFilter->clear();
-			std::vector<WString>::iterator pos = std::find(trackModel->musts.begin(), trackModel->musts.end(), filterName);
+			std::vector<Wt::WString>::iterator pos = std::find(trackModel->musts.begin(), trackModel->musts.end(), filterName);
 			if(pos!=trackModel->musts.end())
 			{
 				trackModel->musts.erase(pos);
@@ -269,7 +268,7 @@ vbox->addWidget(filterContainer);
 	filterbox->setText("");
 	filterbox->setPlaceholderText("Filter"); //TODO: Autofill/autocomplete
      }));
-WPushButton *refreshButton = new WPushButton("Refresh database");
+Wt::WPushButton *refreshButton = new Wt::WPushButton("Refresh database");
 refreshButton->clicked().connect( std::bind([=] ()
 {
 	zmq_conn::interact("tracks_refresh?");
@@ -296,14 +295,14 @@ selectPanel->setCentralWidget(trackSearchContainer);
  
 
 
-    Json::Object inputs;
+    Wt::Json::Object inputs;
     inputs = zmq_conn::interact("inputs?");
     Wt::WContainerWidget *thisInputContainer;
     Wt::WSlider *inputSlider;
-    Json::Array inputSettings;
+    Wt::Json::Array inputSettings;
     Wt::WText *valueText; 
     Wt::WText *titleText;
-    WContainerWidget *inputButtonContainer;
+    Wt::WContainerWidget *inputButtonContainer;
 this->log("notice")<<"Making input boxes";
     for(auto input_name:inputs.names())   
     {
@@ -313,7 +312,7 @@ this->log("notice")<<"Making input box for "<<input_name;
 	Wt::WVBoxLayout *thisInputBox = new Wt::WVBoxLayout();
 	thisInputContainer->setLayout(thisInputBox);
 	Wt::WHBoxLayout *textbox = new Wt::WHBoxLayout(); //Todo, make sure we pad the buttons and not expand them
-	WContainerWidget *thisSliderContainer = new WContainerWidget();
+	Wt::WContainerWidget *thisSliderContainer = new Wt::WContainerWidget();
        	thisInputBox->addLayout(textbox);	
 	titleText = new Wt::WText(input_name);
 	textbox->addWidget(titleText,0);
@@ -341,20 +340,20 @@ this->log("notice")<<"Making input box for "<<input_name;
 	inputSlider->setTickPosition(Wt::WSlider::TicksAbove);
 	thisInputBox->addWidget(inputSlider,1); //So, if we put it in iwthout a container it won't appear if it has an objectName. If we put it in a container, it appears, but resizing is wierd. If we put a 100% the slider is there but the ticks and the min/max are all in one corner, if we put it 500px wide everything works except it's a hard limit. I'm debugging on a 4k screen and it should work on a phone. Now what? //Turns out, if you don't set the objectName, it all works as advertised. TODO: Make a minimal example and submit the bug
 	
-	inputButtonContainer = new WContainerWidget();
+	inputButtonContainer = new Wt::WContainerWidget();
 	thisInputBox->addWidget(inputButtonContainer);
-	WHBoxLayout *buttonbox = new Wt::WHBoxLayout();
+	Wt::WHBoxLayout *buttonbox = new Wt::WHBoxLayout();
 	buttonbox->addStretch();
         inputButtonContainer->setLayout(buttonbox);
 this->log("info")<<"Handling special sliders";
 	if (input_name == "before")
 	{
 		std::vector<int> beforeButtons = {0,3,6,10};
-	       for(auto before:beforeButtons)
+	        for(auto before:beforeButtons)
 		{
-			WPushButton *bbutton = new WPushButton(WString(std::to_string(before)));
+			Wt::WPushButton *bbutton = new Wt::WPushButton(Wt::WString(std::to_string(before)));
 			buttonbox->addWidget(bbutton,0);
-	buttonbox->addStretch();
+			buttonbox->addStretch();
 			bbutton->clicked().connect(std::bind([=] ()
 			{
 				zmq_conn::interact("input:before:"+std::to_string(before));
@@ -367,13 +366,13 @@ this->log("info")<<"Handling special sliders";
 	if (input_name =="speed")
 	{
 		std::vector<int> speedButtons = {50,75,90,100,110,120,150,175,200};
-	       for(auto speed:speedButtons)
-		{
+	        for(auto speed:speedButtons)
+ 		{
 			std::string title = std::to_string(speed);
 			title += "%";
-			WPushButton *sbutton = new WPushButton(WString(title));
+			Wt::WPushButton *sbutton = new Wt::WPushButton(Wt::WString(title));
 			buttonbox->addWidget(sbutton,0);
-	buttonbox->addStretch();
+			buttonbox->addStretch();
 			sbutton->clicked().connect(std::bind([=] ()
 			{
 				zmq_conn::interact("input:speed:"+std::to_string(speed));
@@ -392,7 +391,7 @@ this->log("info")<<"Handling special sliders";
 
 
     }
-    WContainerWidget *posContainer = new WContainerWidget();
+    Wt::WContainerWidget *posContainer = new Wt::WContainerWidget();
     Wt::WVBoxLayout *posInputBox = new Wt::WVBoxLayout();
     posContainer->setLayout(posInputBox);
     inputbox->addWidget(posContainer);
@@ -400,17 +399,17 @@ this->log("info")<<"Handling special sliders";
 
 
 #ifdef PLOT //ifdef'd out as it crashes on all Debian versions of Wt //TODO add to the boxes as well
-    WContainerWidget *chartContainer = new WContainerWidget(inputContainer);
-	chartText = new  WText( "chart", chartContainer);
+    Wt::WContainerWidget *chartContainer = new Wt::WContainerWidget(inputContainer);
+	chartText = new  Wt::WText( "chart", chartContainer);
 this->log("info")<<"Charting";
- waveformChart = new Chart::WCartesianChart(chartContainer);
- waveformModel = new WStandardItemModel(0,3);
+ waveformChart = new Wt::Chart::WCartesianChart(chartContainer);
+ waveformModel = new Wt::WStandardItemModel(0,3);
  loadWaveform();
  waveformChart->setModel(waveformModel);        // set the model
  waveformChart->setXSeriesColumn(0);    // set the column that holds the categorie
  waveformChart->setType(Wt::Chart::ScatterPlot);
  waveformChart->setAutoLayoutEnabled(true);
- 	Chart::WDataSeries *l = new Chart::WDataSeries(1, Wt::Chart::LineSeries);
+ 	Wt::Chart::WDataSeries *l = new Wt::Chart::WDataSeries(1, Wt::Chart::LineSeries);
     l->setShadow(WShadow(3, 3, WColor(0, 0, 0, 127), 3));
  waveformChart->addSeries(*l);
 /*Chart::WDataSeries *r = new Chart::WDataSeries(2, Wt::Chart::LineSeries);
@@ -434,7 +433,7 @@ this->log("info")<<"Making pos slider";
 	TimeWidget *posText = new TimeWidget();
 	posTextBox->addWidget(posText,0);
 	posText->setTime(0);
-    posSlider = new WSlider();
+    posSlider = new Wt::WSlider();
 	posSlider->valueChanged().connect(std::bind([=] ()
     {
 this->log("info")<<"Updating pos because posSlider valueChanged";
@@ -447,7 +446,7 @@ this->log("info")<<"Updating pos because posSlider valueChanged";
     posInputBox->addWidget(posSlider,1);
 
 
-    WContainerWidget *posButtonContainer = new WContainerWidget();
+    Wt::WContainerWidget *posButtonContainer = new Wt::WContainerWidget();
     posInputBox->addWidget(posButtonContainer);
     Wt::WHBoxLayout *seekButtonBox = new Wt::WHBoxLayout();
     posButtonContainer->setLayout(seekButtonBox);
@@ -461,7 +460,7 @@ this->log("info")<<"Updating pos because posSlider valueChanged";
 		title = "+" + title;
 	}
 	title += "s";
-	WPushButton *sbutton = new WPushButton(WString(title));
+	Wt::WPushButton *sbutton = new Wt::WPushButton(Wt::WString(title));
         seekButtonBox->addWidget(sbutton,0);
 	seekButtonBox->addStretch();
 	sbutton->clicked().connect(std::bind([=] ()
@@ -492,7 +491,7 @@ sliderPanel->setCentralWidget(inputContainer);
     markerContainer->resize(width,Wt::WLength::Auto);
     Wt::WContainerWidget *fragmentButtonsContainer = new Wt::WContainerWidget(markerContainer);
     
-    markerTree = new WTreeTable();
+    markerTree = new Wt::WTreeTable();
     markerContainer->addWidget(markerTree);
 //    markerTree->setObjectName("markertree"); //TODO: Still something wierd with the columns, they are sometimes offset /TODO: Remove the setObjectName here as well
     markerTree->tree()->setSelectionMode(Wt::ExtendedSelection);
@@ -510,20 +509,20 @@ sliderPanel->setCentralWidget(inputContainer);
 //    markerTree->headerWidget()->hide(); //<--"Crash"
 
 
-    playPauseButton = new WPushButton("Play from start",fragmentButtonsContainer);
+    playPauseButton = new Wt::WPushButton("Play from start",fragmentButtonsContainer);
     playPauseButton->clicked().connect(std::bind([=] ()
     {
 	zmq_conn::interact(std::string("event:pause"));
     }));
-    WPushButton *stopButton = new WPushButton("Stop",fragmentButtonsContainer); 
+    Wt::WPushButton *stopButton = new Wt::WPushButton("Stop",fragmentButtonsContainer); 
     stopButton->clicked().connect(std::bind([=] ()
     {
 	zmq_conn::interact(std::string("event:stop"));
     }));
-    stopButton->setMargin(5, Left);
+    stopButton->setMargin(5, Wt::Left);
  
-    WPushButton *playSelectionButton = new WPushButton("Play selection" ,fragmentButtonsContainer);     
-    playSelectionButton->setMargin(5, Left);
+    Wt::WPushButton *playSelectionButton = new Wt::WPushButton("Play selection" ,fragmentButtonsContainer);     
+    playSelectionButton->setMargin(5, Wt::Left);
     playSelectionButton->clicked().connect(std::bind([=] ()
     {	
 	std::string ret = "{\"play\": [";	
@@ -580,19 +579,19 @@ zmq_conn::send(ret);
 
 
 //TODO: Split out the tab and untab functions so we can call them with the keyboard
-    WPushButton *tabButton = new WPushButton("Group selection >>>>" ,fragmentButtonsContainer);     //This randomises the order
-    tabButton->setMargin(5, Left);
+    Wt::WPushButton *tabButton = new Wt::WPushButton("Group selection >>>>" ,fragmentButtonsContainer);     //This randomises the order
+    tabButton->setMargin(5, Wt::Left);
     tabButton->clicked().connect(std::bind([=] ()
     {
- 	WTreeNode *parent;
-	WTreeNode *newNode;
-	std::set<WTreeNode*> unSortedselectedNodes =markerTree->tree()->selectedNodes();
-	std::vector<WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
+ 	Wt::WTreeNode *parent;
+	Wt::WTreeNode *newNode;
+	std::set<Wt::WTreeNode*> unSortedselectedNodes =markerTree->tree()->selectedNodes();
+	std::vector<Wt::WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
 	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB);
  
-	std::vector< WTreeNode*> siblings;
+	std::vector< Wt::WTreeNode*> siblings;
  	
-	WTreeNode *firstNode = *selectedNodes.begin();
+	Wt::WTreeNode *firstNode = *selectedNodes.begin();
 	if(firstNode == markerTree->tree()->treeRoot())
 	{
 		return;
@@ -609,22 +608,22 @@ zmq_conn::send(ret);
 	}
     }));	
     
-    WPushButton *untabButton = new WPushButton("Ungroup selection <<<<<" ,fragmentButtonsContainer);     
-    untabButton->setMargin(5, Left);
+    Wt::WPushButton *untabButton = new Wt::WPushButton("Ungroup selection <<<<<" ,fragmentButtonsContainer);     
+    untabButton->setMargin(5, Wt::Left);
     untabButton->clicked().connect(std::bind([=] ()
     {
-	std::vector< WTreeNode*> siblings;
-	WTreeNode *parent;
-	WTreeNode *grandparent;
-	std::vector< WTreeNode*> uncles; //My parents siblings
+	std::vector< Wt::WTreeNode*> siblings;
+	Wt::WTreeNode *parent;
+	Wt::WTreeNode *grandparent;
+	std::vector< Wt::WTreeNode*> uncles; //My parents siblings
 	int index = 0;
 
-	std::set<WTreeNode*> unSortedselectedNodes =markerTree->tree()->selectedNodes();
-	std::vector<WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
+	std::set<Wt::WTreeNode*> unSortedselectedNodes = markerTree->tree()->selectedNodes();
+	std::vector<Wt::WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
 	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB);
  
-	WTreeNode *firstNode = *selectedNodes.begin();
-	WTreeNode *lastNode = *selectedNodes.rbegin(); //Note, the reverse of the beginning is not the end
+	Wt::WTreeNode *firstNode = *selectedNodes.begin();
+	Wt::WTreeNode *lastNode = *selectedNodes.rbegin(); //Note, the reverse of the beginning is not the end
 	parent = firstNode->parentNode();
 	if(parent == markerTree->tree()->treeRoot())
 	{
@@ -655,8 +654,8 @@ zmq_conn::send(ret);
 
 
 
-    WPushButton *splitButton = new WPushButton("Split fragment here", fragmentButtonsContainer);
-    splitButton->setMargin(5, Left);
+    Wt::WPushButton *splitButton = new Wt::WPushButton("Split fragment here", fragmentButtonsContainer);
+    splitButton->setMargin(5, Wt::Left);
     splitButton->clicked().connect(std::bind([=] ()
     {	
 	long pos = current_track_time();	
@@ -670,8 +669,8 @@ zmq_conn::send(ret);
 		{
 			//Fragment to split
 			stopW->setTime(pos);
-			WTreeNode *my_parent = fragmentTTN->parentNode();
-			const std::vector< WTreeNode * > siblings = my_parent->childNodes();
+			Wt::WTreeNode *my_parent = fragmentTTN->parentNode();
+			const std::vector< Wt::WTreeNode * > siblings = my_parent->childNodes();
 			int index = -1;
 			for(unsigned int i=0;i<siblings.size()+1;i++) //There is insert, and insertBefore, but no insertAfter. So first, determine the index of the widget we're splitting, and then insert at that index.
 			{
@@ -691,15 +690,15 @@ zmq_conn::send(ret);
 		
 	}	
     }	));
-    WPushButton *joinButton = new WPushButton("Join selected fragments", fragmentButtonsContainer); 
-    joinButton->setMargin(5, Left);
+    Wt::WPushButton *joinButton = new Wt::WPushButton("Join selected fragments", fragmentButtonsContainer); 
+    joinButton->setMargin(5, Wt::Left);
     joinButton->clicked().connect(std::bind([=] ()
     {
 //Get selected nodes
 	long prevStop = -2;
 	std::string newname ="";
-	std::set<WTreeNode*> unSortedselectedNodes =markerTree->tree()->selectedNodes();
-	std::vector<WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
+	std::set<Wt::WTreeNode*> unSortedselectedNodes =markerTree->tree()->selectedNodes();
+	std::vector<Wt::WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
 	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB);
  
 	for (auto node:selectedNodes)	{
@@ -735,14 +734,14 @@ zmq_conn::send(ret);
 	}
      }));
  
-    WPushButton *delgrpButton = new WPushButton("Delete empty group", fragmentButtonsContainer);
-    delgrpButton->setMargin(5, Left);
+    Wt::WPushButton *delgrpButton = new Wt::WPushButton("Delete empty group", fragmentButtonsContainer);
+    delgrpButton->setMargin(5, Wt::Left);
     delgrpButton->clicked().connect(std::bind([=] ()
     {	
-	std::set<WTreeNode*> selectedNodes =markerTree->tree()->selectedNodes();
+	std::set<Wt::WTreeNode*> selectedNodes = markerTree->tree()->selectedNodes();
 	for (auto node:selectedNodes)	
 	{
-		MyTreeTableNode *fragmentTTN =  dynamic_cast<MyTreeTableNode*>(node);
+		MyTreeTableNode *fragmentTTN = dynamic_cast<MyTreeTableNode*>(node);
 		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
 		long start = startW->time();
@@ -762,13 +761,13 @@ this->log("info")<<"Trying to delete a non-empty group";
 		
 	}));
 
-    WPushButton *savebutton = new WPushButton("Save fragments", fragmentButtonsContainer);
-    savebutton->setMargin(5, Left);
+    Wt::WPushButton *savebutton = new Wt::WPushButton("Save fragments", fragmentButtonsContainer);
+    savebutton->setMargin(5, Wt::Left);
     savebutton->clicked().connect(std::bind([=] ()
     {	
-	Json::Value fragmentsval = saveFragments(dynamic_cast<MyTreeTableNode*>(markerTree->tree()->treeRoot() ));
-	Json::Array& fragments = fragmentsval; 
-	std::string fragstring = Json::serialize(fragments);
+	Wt::Json::Value fragmentsval = saveFragments(dynamic_cast<MyTreeTableNode*>(markerTree->tree()->treeRoot() ));
+	Wt::Json::Array& fragments = fragmentsval; 
+	std::string fragstring = Wt::Json::serialize(fragments);
 	fragstring = "{ \"fragments\" : "+fragstring + "}";
 /*			   zmq::context_t context (1);
 		   zmq::socket_t socket (context, ZMQ_REQ);
@@ -797,7 +796,7 @@ this->log("info")<<"Trying to delete a non-empty group";
 	socket.connect (zmq_port);*/
 	zmq::socket_t *socket = zmq_conn::connect();
 	bool playing;
-	Json::Object playingj;
+	Wt::Json::Object playingj;
 	long long track_time = 	current_track_time(socket);
 	playingj = zmq_conn::interact(std::string("playing?"),socket);
 
@@ -841,14 +840,14 @@ void EarUI::mark_current_fragment(long long pos)
 		long stop = stopW->time();
 		if(pos > start and pos < stop)
 		{ 
-			fragmentTTN->decorationStyle().setBackgroundColor(WColor(255,0,0)); //TODO: ?Make a proper style, and enlarge the font or something
+			fragmentTTN->decorationStyle().setBackgroundColor(Wt::WColor(255,0,0)); //TODO: ?Make a proper style, and enlarge the font or something
 //TODO: Maybe get the parents too, if the current widget is not shown			
 
 		}
 		else
 		{
 
-		fragmentTTN->decorationStyle().setBackgroundColor(WColor(255,255,255)); //TODO: Properly remove the previously added style
+		fragmentTTN->decorationStyle().setBackgroundColor(Wt::WColor(255,255,255)); //TODO: Properly remove the previously added style
 
 		}
 	
@@ -857,27 +856,27 @@ void EarUI::mark_current_fragment(long long pos)
 long EarUI::current_track_time( zmq::socket_t *socket )
 {
 
-	Json::Object posj ;
+	Wt::Json::Object posj ;
 	posj = zmq_conn::interact(std::string("pos?"),socket);
-	Json::Value posjv = posj.get("pos");	
+	Wt::Json::Value posjv = posj.get("pos");	
 	const long long pos = posjv;
 	return pos;
 	
 }
 
-Json::Value EarUI::saveFragments(MyTreeTableNode *root)
+Wt::Json::Value EarUI::saveFragments(MyTreeTableNode *root)
 {
 
-	Json::Value retVal = Json::Value(Json::ArrayType);
-	Json::Array& ret = retVal; 
-	WString name;
+	Wt::Json::Value retVal = Wt::Json::Value(Wt::Json::ArrayType);
+	Wt::Json::Array& ret = retVal; 
+	Wt::WString name;
 	name = root->text;	
 	if(root->childNodes().size()>0)
 	{
-		ret.push_back(Json::Value(WString("group")));
-		ret.push_back(Json::Value(name));
-		Json::Value out_children_value = Json::Value(Json::ArrayType);	
-		Json::Array& out_children = out_children_value; //TODO FIXME Ordering?
+		ret.push_back(Wt::Json::Value(Wt::WString("group")));
+		ret.push_back(Wt::Json::Value(name));
+		Wt::Json::Value out_children_value = Wt::Json::Value(Wt::Json::ArrayType);	
+		Wt::Json::Array& out_children = out_children_value; //TODO FIXME Ordering?
 		for(auto mynode:root->childNodes()) //I wonder, what order do we get these in?
 		{
 			out_children.push_back(saveFragments(dynamic_cast<MyTreeTableNode*>(mynode)));
@@ -888,26 +887,26 @@ Json::Value EarUI::saveFragments(MyTreeTableNode *root)
 	}
 	else //TODO add room for annotations
 	{
-		ret.push_back(Json::Value(WString("fragment")));
-		ret.push_back(Json::Value(name));
+		ret.push_back(Wt::Json::Value(Wt::WString("fragment")));
+		ret.push_back(Wt::Json::Value(name));
 		TimeWidget *startW = dynamic_cast<TimeWidget*>(root->columnWidget(1));
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(root->columnWidget(2));
 		long long start = startW->time();
 		long long stop = stopW->time();
 		this->log("info")<< "Saving fragment "<<std::to_string(start) << "  "<<std::to_string(stop);
-		ret.push_back(Json::Value(start));
-		ret.push_back(Json::Value(stop));
+		ret.push_back(Wt::Json::Value(start));
+		ret.push_back(Wt::Json::Value(stop));
 	}
 return retVal;
 }
-void EarUI::loadGroup(MyTreeTableNode *current_root, Json::Array fragments)
+void EarUI::loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments)
 { //Recursively add the fragments to the treetable
 this->log("info") <<"Loading fragments";
 	for(auto fragmentValue:fragments)
 	{
-		const Json::Array& fragment = fragmentValue;
+		const Wt::Json::Array& fragment = fragmentValue;
 		std::string type = fragment[0];
-		WString name = fragment[1];
+		Wt::WString name = fragment[1];
 this->log("debug") <<"Loading fragment "<<name<<" of type "<<type;
 		if (type == "group")
 		{
@@ -931,8 +930,8 @@ this->log("warn")<<"Node type not understood";
 #ifdef PLOT
 void EarUI::loadWaveform()
 {
-	Json::Object ret = zmq_conn::interact(std::string("waveform?"));
-	Json::Array waveform = ret.get("waveform");
+	Wt::Json::Object ret = zmq_conn::interact(std::string("waveform?"));
+	Wt::Json::Array waveform = ret.get("waveform");
 chartText->setText(WString(std::to_string(waveform.size())));
 	waveformModel->removeRows(0,waveformModel->rowCount());
 	waveformModel->insertRows(0,waveform.size());
@@ -985,17 +984,17 @@ bool disconnect = false;
 //	treeTable = dynamic_cast<WTreeTable*> (findWidget("markertree"));
 	treeTable = this->markerTree;
 	
-	Json::Object response;
+	Wt::Json::Object response;
 
 	response = zmq_conn::interact("title?",socket);
 
-	WString trackname = response.get("title"); 
+	Wt::WString trackname = response.get("title"); 
 	MyTreeTableNode *root = new MyTreeTableNode(trackname);
 	treeTable->setTreeRoot(root,trackname); 
 	MyTreeTableNode *current_root = root;
 	this->fragment_set.clear();
 	response = zmq_conn::interact("fragments?",socket);
-	Json::Array fragments;
+	Wt::Json::Array fragments;
 	fragments = response.get("fragments");
 
 	loadGroup(current_root,fragments);
@@ -1018,11 +1017,11 @@ void EarUI::updateInputs()
 {	
 //this->log("debug")<<"Updating inputs";
     zmq::socket_t *socket = zmq_conn::connect();
-	Json::Object responses;
+	Wt::Json::Object responses;
 	responses=zmq_conn::interact(std::string("inputs?"),socket);
-	Json::Array inputSettings;
-	WSlider *sliderWidget;
-	WText *textWidget;
+	Wt::Json::Array inputSettings;
+	Wt::WSlider *sliderWidget;
+	Wt::WText *textWidget;
 	for(auto name:responses.names())
 	{
 		inputSettings = responses.get(name);
@@ -1032,7 +1031,7 @@ void EarUI::updateInputs()
 		textWidget->setText(sliderWidget->valueText());
 
 	}
-	Json::Object response;
+	Wt::Json::Object response;
 	response=zmq_conn::interact("track?",socket);
 	
 	int server_track_idx = response.get("current");
@@ -1051,12 +1050,12 @@ zmq_conn::disconnect(socket);
 
 
 
-MyTreeTableNode *EarUI::addNode(MyTreeTableNode *parent, WString name, const long start, const long stop ) {
+MyTreeTableNode *EarUI::addNode(MyTreeTableNode *parent, Wt::WString name, const long start, const long stop ) {
 	MyTreeTableNode *node = new MyTreeTableNode(name, 0, parent);
-	WContainerWidget *labelArea = node->labelArea();
-	WWidget *labelWidget = labelArea->widget(0); //See source of WTreeNode.
+	Wt::WContainerWidget *labelArea = node->labelArea();
+	Wt::WWidget *labelWidget = labelArea->widget(0); //See source of WTreeNode.
 	labelArea->removeWidget(labelWidget);
-	node->editWidget = new WInPlaceEdit(name);
+	node->editWidget = new Wt::WInPlaceEdit(name);
 	
 	node->editWidget->valueChanged().connect(std::bind([=]() {
 		node->text = node->editWidget->text();
@@ -1067,7 +1066,7 @@ MyTreeTableNode *EarUI::addNode(MyTreeTableNode *parent, WString name, const lon
 	startWidget->setTime(start);
 	node->setColumnWidget(1, startWidget); 
 //todo: add doubleclick trick to allow modal edit
-	Wt::WPushButton *startButton = new WPushButton("|>");
+	Wt::WPushButton *startButton = new Wt::WPushButton("|>");
 	startButton->clicked().connect(std::bind([=]() {
 this->log("debug")<<"Handlign a startbutton click from the markertree";
 		long mystart = start;	
@@ -1084,9 +1083,9 @@ this->log("debug")<<"Handlign a startbutton click from the markertree";
 			}
 		}
 		long startBefore = mystart - beforeSlider->value()*1000;
-		zmq_conn::interact(WString("event:stop")); //Probably needed to help stop the track from stopping the middle of a play
+		zmq_conn::interact(Wt::WString("event:stop")); //Probably needed to help stop the track from stopping the middle of a play
 
-		WString command="play:"+std::to_string(startBefore); 
+		Wt::WString command="play:"+std::to_string(startBefore); 
 		zmq_conn::interact(command);
 	}));
 	node->setColumnWidget(3, startButton);
@@ -1101,7 +1100,7 @@ this->log("debug")<<"Handlign a startbutton click from the markertree";
 
 
 
-WApplication *createApplication(const WEnvironment& env)
+Wt::WApplication *createApplication(const Wt::WEnvironment& env)
 {
   return new EarUI(env);
 }
@@ -1112,7 +1111,7 @@ WApplication *createApplication(const WEnvironment& env)
 
 int main(int argc, char **argv)
 {
-    WString::setDefaultEncoding(UTF8);
-    return WRun(argc, argv, &createApplication);
+    Wt::WString::setDefaultEncoding(Wt::UTF8);
+    return Wt::WRun(argc, argv, &createApplication);
 }
 
