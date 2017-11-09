@@ -19,7 +19,6 @@
 #include <Wt/WPanel>
 #include <Wt/WSlider>
 #include <Wt/WTimer>
-#include <Wt/WInPlaceEdit>
 #include <Wt/Json/Array>
 #include <Wt/Json/Parser>
 #include <Wt/Json/Object>

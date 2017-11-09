@@ -247,17 +247,6 @@ sliderPanel->setCentralWidget(inputContainer);
     markerContainer->resize(width,Wt::WLength::Auto);
     Wt::WContainerWidget *fragmentButtonsContainer = new Wt::WContainerWidget(markerContainer);
     
-    markerTree = new Wt::WTreeTable();
-    markerContainer->addWidget(markerTree);
-//    markerTree->setObjectName("markertree"); //TODO: Still something wierd with the columns, they are sometimes offset
-    markerTree->tree()->setSelectionMode(Wt::ExtendedSelection);
-    markerTree->addColumn("",100);
-    markerTree->addColumn("",100); 
-    markerTree->addColumn("",100); //start
-    markerTree->addColumn("",100);  //end
-    markerTree->addColumn("",50); //StartButton
-
-
     playPauseButton = new Wt::WPushButton("Play from start",fragmentButtonsContainer);
     playPauseButton->clicked().connect(std::bind([=] ()
     {
@@ -269,6 +258,20 @@ sliderPanel->setCentralWidget(inputContainer);
 	zmq_conn::interact(std::string("event:stop"));
     }));
     stopButton->setMargin(5, Wt::Left);
+
+
+
+
+    markerTree = new Wt::WTreeTable();
+    markerContainer->addWidget(markerTree);
+//    markerTree->setObjectName("markertree"); //TODO: Still something wierd with the columns, they are sometimes offset
+    markerTree->tree()->setSelectionMode(Wt::ExtendedSelection);
+    markerTree->addColumn("",100);
+    markerTree->addColumn("",100); 
+    markerTree->addColumn("",100); //start
+    markerTree->addColumn("",100);  //end
+    markerTree->addColumn("",50); //StartButton
+
  
     Wt::WPushButton *playSelectionButton = new Wt::WPushButton("Play selection" ,fragmentButtonsContainer);     
     playSelectionButton->setMargin(5, Wt::Left);
@@ -321,7 +324,7 @@ zmq_conn::send(ret);
     Wt::WPushButton *tabButton = new Wt::WPushButton("Group selection >>>>" ,fragmentButtonsContainer);     //This randomises the order
     tabButton->setMargin(5, Wt::Left);
     tabButton->clicked().connect(std::bind([=] ()
-    {
+    { //def group(markerTree):
  	Wt::WTreeNode *parent;
 	Wt::WTreeNode *newNode;
 	std::set<Wt::WTreeNode*> unSortedselectedNodes =markerTree->tree()->selectedNodes();
@@ -336,7 +339,7 @@ zmq_conn::send(ret);
 		return;
 	}
 	parent = firstNode->parentNode();
-	newNode = addNode(0 ,"Group" ,-1,-1);
+	newNode = MyTreeTableNode::addNode(0 ,"Group" ,-1,-1);
 	siblings = parent->childNodes();
 	int index = std::find(siblings.begin(), siblings.end(), firstNode) - siblings.begin();
 	parent->insertChildNode(index, newNode);
@@ -351,6 +354,7 @@ zmq_conn::send(ret);
     untabButton->setMargin(5, Wt::Left);
     untabButton->clicked().connect(std::bind([=] ()
     {
+     //def ungroup(markerTree):
 	std::vector< Wt::WTreeNode*> siblings;
 	Wt::WTreeNode *parent;
 	Wt::WTreeNode *grandparent;
@@ -398,7 +402,8 @@ zmq_conn::send(ret);
     splitButton->clicked().connect(std::bind([=] ()
     {	
 	long pos = current_track_time();	
-	for (auto fragmentTTN:this->fragment_set)
+//def split(pos, markerTree); 
+	for (auto fragmentTTN:children_as_vector(markerTree->tree()->treeRoot()) ) 
 	{
 		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
@@ -423,7 +428,7 @@ zmq_conn::send(ret);
 				this->log("warn")<<"Can't find myself when splitting a fragment";
 				return;
 			}
-			MyTreeTableNode *newFragmentTTN = addNode(0,"New node", pos, stop);
+			MyTreeTableNode *newFragmentTTN = MyTreeTableNode::addNode(0,"New node", pos, stop);
 			my_parent->insertChildNode(index+1, newFragmentTTN);
 		}
 		
@@ -432,7 +437,7 @@ zmq_conn::send(ret);
     Wt::WPushButton *joinButton = new Wt::WPushButton("Join selected fragments", fragmentButtonsContainer); 
     joinButton->setMargin(5, Wt::Left);
     joinButton->clicked().connect(std::bind([=] ()
-    {
+    { //def join(markerTree)
 //Get selected nodes
 	long prevStop = -2;
 	std::string newname ="";
@@ -476,7 +481,7 @@ zmq_conn::send(ret);
     Wt::WPushButton *delgrpButton = new Wt::WPushButton("Delete empty group", fragmentButtonsContainer);
     delgrpButton->setMargin(5, Wt::Left);
     delgrpButton->clicked().connect(std::bind([=] ()
-    {	
+    {//def del_empty(markerTree)	
 	std::set<Wt::WTreeNode*> selectedNodes = markerTree->tree()->selectedNodes();
 	for (auto node:selectedNodes)	
 	{
@@ -503,7 +508,7 @@ this->log("info")<<"Trying to delete a non-empty group";
     Wt::WPushButton *savebutton = new Wt::WPushButton("Save fragments", fragmentButtonsContainer);
     savebutton->setMargin(5, Wt::Left);
     savebutton->clicked().connect(std::bind([=] ()
-    {	
+    {	//def save(markerTree)
 	Wt::Json::Value fragmentsval = saveFragments(dynamic_cast<MyTreeTableNode*>(markerTree->tree()->treeRoot() ));
 	Wt::Json::Array& fragments = fragmentsval; 
 	std::string fragstring = Wt::Json::serialize(fragments);
@@ -561,7 +566,7 @@ this->log("info")<<"Trying to delete a non-empty group";
 }
 void EarUI::mark_current_fragment(long long pos)
 {
-	for (auto fragmentTTN:this->fragment_set)
+	for (auto fragmentTTN:children_as_vector(markerTree->tree()->treeRoot()) ) 
 	{
 		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
 		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
@@ -594,7 +599,7 @@ long EarUI::current_track_time( zmq::socket_t *socket )
 }
 
 Wt::Json::Value EarUI::saveFragments(MyTreeTableNode *root)
-{
+{ //Does not seem to need an object at all
 
 	Wt::Json::Value retVal = Wt::Json::Value(Wt::Json::ArrayType);
 	Wt::Json::Array& ret = retVal; 
@@ -629,7 +634,7 @@ Wt::Json::Value EarUI::saveFragments(MyTreeTableNode *root)
 return retVal;
 }
 void EarUI::loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments)
-{ //Recursively add the fragments to the treetable
+{ //Recursively add the fragments to the treetable //does not need object at all
 this->log("info") <<"Loading fragments";
 	for(auto fragmentValue:fragments)
 	{
@@ -640,13 +645,13 @@ this->log("debug") <<"Loading fragment "<<name<<" of type "<<type;
 		if (type == "group")
 		{
 			
-			loadGroup( addNode(current_root,name,-1,-1) ,fragment[2]);	
+			loadGroup( MyTreeTableNode::addNode(current_root,name,-1,-1) ,fragment[2]);	
 		}
 		else if (type == "fragment")
 		{
 			long long start_time = fragment[2]; 
 			long long stop_time = fragment[3];
-			addNode(current_root,name,start_time,stop_time);
+			MyTreeTableNode::addNode(current_root,name,start_time,stop_time);
 		}
 		else
 		{
@@ -700,16 +705,17 @@ chartText->setText(WString(std::to_string(waveform.size())));
 
 void EarUI::loadFragments(zmq::socket_t *socket)
 {
-#ifdef PLOT
-waveformTimer->start();
-#endif
-bool disconnect = false;
+	//needs markerTree
+	#ifdef PLOT
+	waveformTimer->start();
+	#endif
+	bool disconnect = false;
 	if (socket == 0)
 	{
 		socket = zmq_conn::connect();
 		disconnect = true;
 	}
-		Wt::WTreeTable *treeTable; 
+	Wt::WTreeTable *treeTable; 
 	treeTable = this->markerTree;
 	
 	Wt::Json::Object response;
@@ -720,7 +726,7 @@ bool disconnect = false;
 	MyTreeTableNode *root = new MyTreeTableNode(trackname);
 	treeTable->setTreeRoot(root,trackname); 
 	MyTreeTableNode *current_root = root;
-	this->fragment_set.clear();
+//	this->fragment_set.clear();
 	response = zmq_conn::interact("fragments?",socket);
 	Wt::Json::Array fragments;
 	fragments = response.get("fragments");
@@ -729,8 +735,9 @@ bool disconnect = false;
 	
 	root->expand();
 
-        TimeWidget *firstW = dynamic_cast<TimeWidget*>((*fragment_set.begin())->columnWidget(1));
-        TimeWidget *lastW = dynamic_cast<TimeWidget*>((*fragment_set.rbegin())->columnWidget(2));
+        TimeWidget *firstW = dynamic_cast<TimeWidget*>((*children_as_vector(markerTree->tree()->treeRoot()) .begin())->columnWidget(1));
+        //TimeWidget *lastW = dynamic_cast<TimeWidget*>((*fragment_set.rbegin())->columnWidget(2));
+        TimeWidget *lastW = dynamic_cast<TimeWidget*>((*children_as_vector(markerTree->tree()->treeRoot()).rbegin())->columnWidget(2));
         posSlider->setMinimum(firstW->time());
         posSlider->setMaximum(lastW->time());
 	if (disconnect)
@@ -775,55 +782,6 @@ zmq_conn::disconnect(socket);
 }
 
 
-
-
-
-MyTreeTableNode *EarUI::addNode(MyTreeTableNode *parent, Wt::WString name, const long start, const long stop ) {
-	MyTreeTableNode *node = new MyTreeTableNode(name, 0, parent);
-	Wt::WContainerWidget *labelArea = node->labelArea();
-	Wt::WWidget *labelWidget = labelArea->widget(0); //See source of WTreeNode.
-	labelArea->removeWidget(labelWidget);
-	node->editWidget = new Wt::WInPlaceEdit(name);
-	
-	node->editWidget->valueChanged().connect(std::bind([=]() {
-		node->text = node->editWidget->text();
-	}));
-	node->text = node->editWidget->text();
-	labelArea->addWidget(node->editWidget );
-	TimeWidget *startWidget = new TimeWidget();
-	startWidget->setTime(start);
-	node->setColumnWidget(1, startWidget); 
-//todo: add doubleclick trick to allow modal edit
-	Wt::WPushButton *startButton = new Wt::WPushButton("|>");
-	startButton->clicked().connect(std::bind([=]() {
-this->log("debug")<<"Handlign a startbutton click from the markertree";
-		long mystart = start;	
-		if(start == -1)
-		{ 
-			if (node->childNodes().size() > 0)
-			{
-				MyTreeTableNode *myttn = dynamic_cast<MyTreeTableNode*> (*(node->childNodes()).begin());
-				mystart = dynamic_cast<TimeWidget*>(myttn->columnWidget(1))->time();
-			}
-			else
-			{
-				return;
-			}
-		}
-		long startBefore = mystart - beforeSlider->value()*1000;
-		zmq_conn::interact(Wt::WString("event:stop")); //Probably needed to help stop the track from stopping the middle of a play
-
-		Wt::WString command="play:"+std::to_string(startBefore); 
-		zmq_conn::interact(command);
-	}));
-	node->setColumnWidget(3, startButton);
-
-	TimeWidget *stopWidget = new TimeWidget();
-	stopWidget->setTime(stop);
-	node->setColumnWidget(2, stopWidget);
-	this->fragment_set.push_back(node);
-	return node;
-    }
 
 
 
