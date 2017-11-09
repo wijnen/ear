@@ -29,5 +29,6 @@ std::vector<MyTreeTableNode*> ancestors_as_vector(MyTreeTableNode *child);
 void playSelection(Wt::WTreeTable *markerTree);
 void groupMarkers(Wt::WTreeTable *markerTree);
 void ungroupMarkers(Wt::WTreeTable *markerTree);
-
+void splitFragment(Wt::WTreeTable *markerTree, long pos);
+void joinSelectedFragments(Wt::WTreeTable *markerTree);
 #endif

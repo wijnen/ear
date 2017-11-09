@@ -206,6 +206,87 @@ void ungroupMarkers(Wt::WTreeTable *markerTree)
 
 }
 
+
+
+void splitFragment(Wt::WTreeTable *markerTree, long pos)
+{
+
+	for (auto fragmentTTN:children_as_vector(markerTree->tree()->treeRoot()) ) 
+	{
+		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
+		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
+		long start = startW->time();
+		long stop = stopW->time();
+		if(pos > start and pos < stop)
+		{
+			//Fragment to split
+			stopW->setTime(pos);
+			Wt::WTreeNode *my_parent = fragmentTTN->parentNode();
+			const std::vector< Wt::WTreeNode * > siblings = my_parent->childNodes();
+			int index = -1;
+			for(unsigned int i=0;i<siblings.size()+1;i++) //There is insert, and insertBefore, but no insertAfter. So first, determine the index of the widget we're splitting, and then insert at that index.
+			{
+				if(fragmentTTN == siblings[i])
+				{
+					index = i;
+				}
+			}
+			assert (index !=-1);
+		/*	{
+				this->log("warn")<<"Can't find myself when splitting a fragment";
+				return;
+			}*/
+			MyTreeTableNode *newFragmentTTN = MyTreeTableNode::addNode(0,"New node", pos, stop);
+			my_parent->insertChildNode(index+1, newFragmentTTN);
+		}
+		
+	}	
+
+}
+
+void joinSelectedFragments(Wt::WTreeTable *markerTree)
+{
+	long prevStop = -2; //To check for contiguous fragments. Fragment times are never negative, but -1 is used to signify groups
+	std::string newname ="";
+	std::set<Wt::WTreeNode*> unSortedselectedNodes =markerTree->tree()->selectedNodes();
+	std::vector<Wt::WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
+	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB);
+ 
+	for (auto node:selectedNodes)	{
+	//tree returns a tree with tree nodes. We need treetable nodes!
+		MyTreeTableNode *fragmentTTN =  dynamic_cast<MyTreeTableNode*>(node);
+		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
+		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2)); //TODO: Make this more flexible and not so dependant on orders. Maybe witch to a node object?
+		long start = startW->time();
+		long stop = stopW->time();
+		if (prevStop !=-2)
+		{
+			if (prevStop != start)
+			{
+				return; //Not contiguous
+			}
+		}
+		prevStop = stop;
+		newname +=" "+ fragmentTTN->text.narrow();
+	}
+//Change the first node
+	MyTreeTableNode *firstNode = dynamic_cast<MyTreeTableNode*>(*selectedNodes.begin());
+        firstNode->editWidget->setText(newname);
+	dynamic_cast<TimeWidget*>(firstNode->columnWidget(2))->setTime(prevStop);
+	bool first=true;
+//Dwlete all others
+	for (auto node:selectedNodes)	
+	{
+		if (not first)
+		{
+			node->parentNode()->removeChildNode(node);
+		}
+		first = false;
+	}
+
+}
+
+
 std::vector<MyTreeTableNode*> children_as_vector(Wt::WTreeNode *root)
 {
 	return children_as_vector(dynamic_cast<MyTreeTableNode*>(root));
