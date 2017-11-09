@@ -325,12 +325,8 @@ sliderPanel->setCentralWidget(inputContainer);
     Wt::WPushButton *savebutton = new Wt::WPushButton("Save fragments", fragmentButtonsContainer);
     savebutton->setMargin(5, Wt::Left);
     savebutton->clicked().connect(std::bind([=] ()
-    {	//def save(markerTree)
-	Wt::Json::Value fragmentsval = saveFragments(dynamic_cast<MyTreeTableNode*>(markerTree->tree()->treeRoot() ));
-	Wt::Json::Array& fragments = fragmentsval; 
-	std::string fragstring = Wt::Json::serialize(fragments);
-	fragstring = "{ \"fragments\" : "+fragstring + "}";
-	zmq_conn::interact(fragstring,true);
+    {	
+	saveFragmentsTree(markerTree);
     }));	
 
 
@@ -415,41 +411,6 @@ long EarUI::current_track_time( zmq::socket_t *socket )
 	
 }
 
-Wt::Json::Value EarUI::saveFragments(MyTreeTableNode *root)
-{ //Does not seem to need an object at all
-
-	Wt::Json::Value retVal = Wt::Json::Value(Wt::Json::ArrayType);
-	Wt::Json::Array& ret = retVal; 
-	Wt::WString name;
-	name = root->text;	
-	if(root->childNodes().size()>0)
-	{
-		ret.push_back(Wt::Json::Value(Wt::WString("group")));
-		ret.push_back(Wt::Json::Value(name));
-		Wt::Json::Value out_children_value = Wt::Json::Value(Wt::Json::ArrayType);	
-		Wt::Json::Array& out_children = out_children_value; //TODO FIXME Ordering?
-		for(auto mynode:root->childNodes()) //I wonder, what order do we get these in?
-		{
-			out_children.push_back(saveFragments(dynamic_cast<MyTreeTableNode*>(mynode)));
-		}
-
-		ret.push_back(out_children_value);
-
-	}
-	else //TODO add room for annotations
-	{
-		ret.push_back(Wt::Json::Value(Wt::WString("fragment")));
-		ret.push_back(Wt::Json::Value(name));
-		TimeWidget *startW = dynamic_cast<TimeWidget*>(root->columnWidget(1));
-		TimeWidget *stopW = dynamic_cast<TimeWidget*>(root->columnWidget(2));
-		long long start = startW->time();
-		long long stop = stopW->time();
-		this->log("info")<< "Saving fragment "<<std::to_string(start) << "  "<<std::to_string(stop);
-		ret.push_back(Wt::Json::Value(start));
-		ret.push_back(Wt::Json::Value(stop));
-	}
-return retVal;
-}
 void EarUI::loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments)
 { //Recursively add the fragments to the treetable //does not need object at all
 this->log("info") <<"Loading fragments";

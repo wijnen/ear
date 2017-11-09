@@ -26,10 +26,14 @@ bool fragmentAbeforeB(Wt::WTreeNode* A, Wt::WTreeNode* B); //Needs renaming)
 std::vector<MyTreeTableNode*> children_as_vector(MyTreeTableNode *root);
 std::vector<MyTreeTableNode*> children_as_vector(Wt::WTreeNode *root);
 std::vector<MyTreeTableNode*> ancestors_as_vector(MyTreeTableNode *child);
+
+//Functions below should go into a new MarkerTree class, at one point
 void playSelection(Wt::WTreeTable *markerTree);
 void groupMarkers(Wt::WTreeTable *markerTree);
 void ungroupMarkers(Wt::WTreeTable *markerTree);
 void splitFragment(Wt::WTreeTable *markerTree, long pos);
 void joinSelectedFragments(Wt::WTreeTable *markerTree);
 void deleteEmptyGroups(Wt::WTreeTable *markerTree);
+void saveFragmentsTree(Wt::WTreeTable *markerTree); 
+Wt::Json::Value saveFragments(MyTreeTableNode *root);
 #endif
