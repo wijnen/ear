@@ -513,7 +513,7 @@ this->log("info")<<"Trying to delete a non-empty group";
 	Wt::Json::Array& fragments = fragmentsval; 
 	std::string fragstring = Wt::Json::serialize(fragments);
 	fragstring = "{ \"fragments\" : "+fragstring + "}";
-	zmq_conn::interact(fragstring);
+	zmq_conn::interact(fragstring,true);
     }));	
 
 
