@@ -165,6 +165,46 @@ void groupMarkers(Wt::WTreeTable *markerTree)
 
 }
 
+void ungroupMarkers(Wt::WTreeTable *markerTree)
+{
+	std::vector< Wt::WTreeNode*> siblings;
+	Wt::WTreeNode *parent;
+	Wt::WTreeNode *grandparent;
+	std::vector< Wt::WTreeNode*> uncles; //My parents siblings
+	int index = 0;
+
+	std::set<Wt::WTreeNode*> unSortedselectedNodes = markerTree->tree()->selectedNodes();
+	std::vector<Wt::WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
+	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB);
+ 
+	Wt::WTreeNode *firstNode = *selectedNodes.begin();
+	Wt::WTreeNode *lastNode = *selectedNodes.rbegin(); //Note, the reverse of the beginning is not the end
+	parent = firstNode->parentNode();
+	if(parent == markerTree->tree()->treeRoot())
+	{
+		return;
+	}
+	siblings = parent->childNodes();
+
+	if(firstNode != siblings.front() and lastNode != siblings.back())
+	{ 
+		return;
+	}
+	grandparent = parent->parentNode();
+	uncles = grandparent->childNodes();
+	index = std::find(uncles.begin(), uncles.end(), parent) - uncles.begin();
+	if (firstNode == siblings.front() and lastNode != siblings.back())
+	{
+		index--;
+	}
+	for (auto node:selectedNodes)
+	{
+		parent->removeChildNode(node);
+		index++;
+		grandparent->insertChildNode(index,node);
+	}
+
+}
 
 std::vector<MyTreeTableNode*> children_as_vector(Wt::WTreeNode *root)
 {
