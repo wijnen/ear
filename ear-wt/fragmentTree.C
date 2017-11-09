@@ -287,6 +287,32 @@ void joinSelectedFragments(Wt::WTreeTable *markerTree)
 }
 
 
+void deleteEmptyGroups(Wt::WTreeTable *markerTree)
+{
+	std::set<Wt::WTreeNode*> selectedNodes = markerTree->tree()->selectedNodes();
+	for (auto node:selectedNodes)	
+	{
+		MyTreeTableNode *fragmentTTN = dynamic_cast<MyTreeTableNode*>(node);
+		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
+		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
+		long start = startW->time();
+		long stop = stopW->time(); 
+		if (start != -1  or stop !=-1)
+		{
+//this->log("info")<<"Trying to delete a none-group";
+			return;
+		}
+		if(node->childNodes().size()>0)
+		{
+//this->log("info")<<"Trying to delete a non-empty group";
+			return;
+		}
+		node->parentNode()->removeChildNode(node);
+	}
+	
+}
+
+
 std::vector<MyTreeTableNode*> children_as_vector(Wt::WTreeNode *root)
 {
 	return children_as_vector(dynamic_cast<MyTreeTableNode*>(root));

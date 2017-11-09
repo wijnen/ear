@@ -31,4 +31,5 @@ void groupMarkers(Wt::WTreeTable *markerTree);
 void ungroupMarkers(Wt::WTreeTable *markerTree);
 void splitFragment(Wt::WTreeTable *markerTree, long pos);
 void joinSelectedFragments(Wt::WTreeTable *markerTree);
+void deleteEmptyGroups(Wt::WTreeTable *markerTree);
 #endif

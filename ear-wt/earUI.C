@@ -318,29 +318,9 @@ sliderPanel->setCentralWidget(inputContainer);
     Wt::WPushButton *delgrpButton = new Wt::WPushButton("Delete empty group", fragmentButtonsContainer);
     delgrpButton->setMargin(5, Wt::Left);
     delgrpButton->clicked().connect(std::bind([=] ()
-    {//def del_empty(markerTree)	
-	std::set<Wt::WTreeNode*> selectedNodes = markerTree->tree()->selectedNodes();
-	for (auto node:selectedNodes)	
-	{
-		MyTreeTableNode *fragmentTTN = dynamic_cast<MyTreeTableNode*>(node);
-		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
-		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
-		long start = startW->time();
-		long stop = stopW->time(); 
-		if (start != -1  or stop !=-1)
-		{
-this->log("info")<<"Trying to delete a none-group";
-			return;
-		}
-		if(node->childNodes().size()>0)
-		{
-this->log("info")<<"Trying to delete a non-empty group";
-			return;
-		}
-		node->parentNode()->removeChildNode(node);
-	}
-		
-	}));
+    {
+	deleteEmptyGroups(markerTree);	
+    }));
 
     Wt::WPushButton *savebutton = new Wt::WPushButton("Save fragments", fragmentButtonsContainer);
     savebutton->setMargin(5, Wt::Left);
