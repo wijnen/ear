@@ -24,16 +24,22 @@ MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString n
 	Wt::WPushButton *startButton = new Wt::WPushButton("|>");
 	startButton->clicked().connect(std::bind([=]() {
 //this->log("debug")<<"Handlign a startbutton click from the markertree";
+		MyTreeTableNode* mynode =  dynamic_cast<MyTreeTableNode*> (node);
 		long mystart = start;	
-		if(start == -1) //We've clicked the startbutton on a group, so we need to find the first non-group widget to get a start time. This should probably be recursive at some point //TODO: After testing the current round of changes, change the if into a while mystart
+		while(mystart == -1) //We've clicked the startbutton on a group, so we need to find the first non-group widget to get a start time. This should probably be recursive at some point //TODO: After testing the current round of changes, change the if into a while mystart
 		{ 
+std::cout<<"In the loop"<<std::endl;
 			if (node->childNodes().size() > 0)
 			{
-				MyTreeTableNode *myttn = dynamic_cast<MyTreeTableNode*> (*(node->childNodes()).begin());
+				MyTreeTableNode *myttn = dynamic_cast<MyTreeTableNode*> (*(mynode->childNodes()).begin());
 				mystart = dynamic_cast<TimeWidget*>(myttn->columnWidget(1))->time();
+				mynode = myttn;
+std::cout<<"Changing start"<<std::endl;
+
 			}
 			else
-			{
+			{ //Where in a childless group, so we cannot play anything!
+std::cout<<"No children, last of the line"<<std::endl;
 				return;
 			}
 		}
