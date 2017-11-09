@@ -39,7 +39,7 @@
 #include "earzmq.h"
 #include "filteredStringModel.h"
 #include "TimeWidget.h"
-#include "MyTreeTableNode.h"
+#include "fragmentTree.h"
 #include <Wt/WLogger>
 
 //#define OLD_WT

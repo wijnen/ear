@@ -1,5 +1,5 @@
 LIBRARIES = -l wt -l zmq -l wthttp 
-OBJECTS=earUI.o earzmq.o filteredStringModel.o TimeWidget.o trackSearchContainer.o MyTreeTableNode.o
+OBJECTS=earUI.o earzmq.o filteredStringModel.o TimeWidget.o trackSearchContainer.o fragmentTree.o
 all:  	earUI 
 #earMobileUI 
 %.o: %.C
