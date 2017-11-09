@@ -276,47 +276,7 @@ sliderPanel->setCentralWidget(inputContainer);
     Wt::WPushButton *playSelectionButton = new Wt::WPushButton("Play selection" ,fragmentButtonsContainer);     
     playSelectionButton->setMargin(5, Wt::Left);
     playSelectionButton->clicked().connect(std::bind([=] ()
-    {	
-	std::string ret = "{\"play\": [";	
-	bool first = true;
-	for(auto node:children_as_vector(dynamic_cast<MyTreeTableNode*>(markerTree->tree()->treeRoot())))
-	{
-		TimeWidget *startW = dynamic_cast<TimeWidget*>(node->columnWidget(1));
-		TimeWidget *stopW = dynamic_cast<TimeWidget*>(node->columnWidget(2)); //Todo: Find a way to make this more flexible to re-ordering
-		long start = startW->time();
-		long stop = stopW->time();
-		bool selected = markerTree->tree()->isSelected(node);
-		if (start == -1 or stop ==-1)
-		{
-			continue;
-		}
-		for(auto parent:ancestors_as_vector(node))
-		{
-			if(markerTree->tree()->isSelected(parent) and not parent->isExpanded())
-			{
-				selected = true;
-				break;
-			}
-		}
-		if(selected)
-		{
-	
-			if (first)
-			{
-				start -= beforeSlider->value()*1000;
-				first = false;
-			}
-			else
-			{
-				ret+=" , ";
-			}
-			ret += "["+std::to_string(start)+" , "+	std::to_string(stop)+"]\n";
-			
-		}
-	}
-	ret+="]}";
-		
-zmq_conn::send(ret);
+    {	 playSelection(markerTree);
     }));
 
 

@@ -1,10 +1,10 @@
 #ifndef _MyTreeTableNode
 #define _MyTreeTableNode
-#include <Wt/WTreeTableNode>
 #include <Wt/WString>
 #include <Wt/WTree>
-#include <Wt/WTreeTableNode>
 #include <Wt/WTreeNode>
+#include <Wt/WTreeTable>
+#include <Wt/WTreeTableNode>
 #include <Wt/WInPlaceEdit>
 #include <Wt/WPushButton>
 #include "TimeWidget.h"
@@ -21,9 +21,12 @@ class MyTreeTableNode : public Wt::WTreeTableNode
 
 
 
-
+ //TODO: Namespace this? Re-factor everything into a class?
 bool fragmentAbeforeB(Wt::WTreeNode* A, Wt::WTreeNode* B); //Needs renaming)
 std::vector<MyTreeTableNode*> children_as_vector(MyTreeTableNode *root);
 std::vector<MyTreeTableNode*> children_as_vector(Wt::WTreeNode *root);
 std::vector<MyTreeTableNode*> ancestors_as_vector(MyTreeTableNode *child);
+void playSelection(Wt::WTreeTable *markerTree);
+
+
 #endif
