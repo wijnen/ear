@@ -133,10 +133,38 @@ void playSelection(Wt::WTreeTable *markerTree)
 	}
 	ret+="]}";
 		
-zmq_conn::send(ret);
+	zmq_conn::send(ret);
 
 
 }
+void groupMarkers(Wt::WTreeTable *markerTree)
+{
+ 	Wt::WTreeNode *parent;
+	Wt::WTreeNode *newNode;
+	std::set<Wt::WTreeNode*> unSortedselectedNodes =markerTree->tree()->selectedNodes();
+	std::vector<Wt::WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
+	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB);
+ 
+	std::vector< Wt::WTreeNode*> siblings;
+ 	
+	Wt::WTreeNode *firstNode = *selectedNodes.begin();
+	if(firstNode == markerTree->tree()->treeRoot())
+	{
+		return;
+	}
+	parent = firstNode->parentNode();
+	newNode = MyTreeTableNode::addNode(0 ,"Group" ,-1,-1);
+	siblings = parent->childNodes();
+	int index = std::find(siblings.begin(), siblings.end(), firstNode) - siblings.begin();
+	parent->insertChildNode(index, newNode);
+	for(auto node:selectedNodes)
+	{
+		parent->removeChildNode(node);
+		newNode->addChildNode(node);
+	}
+
+}
+
 
 std::vector<MyTreeTableNode*> children_as_vector(Wt::WTreeNode *root)
 {

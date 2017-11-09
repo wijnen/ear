@@ -27,6 +27,6 @@ std::vector<MyTreeTableNode*> children_as_vector(MyTreeTableNode *root);
 std::vector<MyTreeTableNode*> children_as_vector(Wt::WTreeNode *root);
 std::vector<MyTreeTableNode*> ancestors_as_vector(MyTreeTableNode *child);
 void playSelection(Wt::WTreeTable *markerTree);
-
+void groupMarkers(Wt::WTreeTable *markerTree);
 
 #endif

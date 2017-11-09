@@ -280,34 +280,11 @@ sliderPanel->setCentralWidget(inputContainer);
     }));
 
 
-//TODO: Split out the tab and untab functions so we can call them with the keyboard
     Wt::WPushButton *tabButton = new Wt::WPushButton("Group selection >>>>" ,fragmentButtonsContainer);     //This randomises the order
     tabButton->setMargin(5, Wt::Left);
     tabButton->clicked().connect(std::bind([=] ()
-    { //def group(markerTree):
- 	Wt::WTreeNode *parent;
-	Wt::WTreeNode *newNode;
-	std::set<Wt::WTreeNode*> unSortedselectedNodes =markerTree->tree()->selectedNodes();
-	std::vector<Wt::WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
-	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB);
- 
-	std::vector< Wt::WTreeNode*> siblings;
- 	
-	Wt::WTreeNode *firstNode = *selectedNodes.begin();
-	if(firstNode == markerTree->tree()->treeRoot())
-	{
-		return;
-	}
-	parent = firstNode->parentNode();
-	newNode = MyTreeTableNode::addNode(0 ,"Group" ,-1,-1);
-	siblings = parent->childNodes();
-	int index = std::find(siblings.begin(), siblings.end(), firstNode) - siblings.begin();
-	parent->insertChildNode(index, newNode);
-	for(auto node:selectedNodes)
-	{
-		parent->removeChildNode(node);
-		newNode->addChildNode(node);
-	}
+    { 
+	groupMarkers(markerTree);
     }));	
     
     Wt::WPushButton *untabButton = new Wt::WPushButton("Ungroup selection <<<<<" ,fragmentButtonsContainer);     
