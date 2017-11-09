@@ -35,28 +35,15 @@
 #include <iostream>
 #include <boost/range/adaptor/reversed.hpp>
 #include <Wt/WCompositeWidget>
-#include <Wt/WTreeTableNode>
 #include <Wt/WBootstrapTheme>
 
 #include "earzmq.h"
 #include "filteredStringModel.h"
 #include "TimeWidget.h"
+#include "MyTreeTableNode.h"
 #include <Wt/WLogger>
 
 //#define OLD_WT
-
-
-class MyTreeTableNode : public Wt::WTreeTableNode
-{
-	public:
-		MyTreeTableNode(const Wt::WString& labelText, Wt::WIconPair *labelIcon = 0,  Wt::WTreeTableNode *parentNode = 0) ;
-	using Wt::WTreeTableNode::labelArea;
-	Wt::WString text;		
-	Wt::WInPlaceEdit*  editWidget;
-
-};
-
-
 class EarUI : public Wt::WApplication
 {
 public:
