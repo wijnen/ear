@@ -26,25 +26,21 @@ MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString n
 //this->log("debug")<<"Handlign a startbutton click from the markertree";
 		MyTreeTableNode* mynode =  dynamic_cast<MyTreeTableNode*> (node);
 		long mystart = start;	
-		while(mystart == -1) //We've clicked the startbutton on a group, so we need to find the first non-group widget to get a start time. This should probably be recursive at some point //TODO: After testing the current round of changes, change the if into a while mystart
+		while(mystart == -1) //We've clicked the startbutton on a group, so we need to find the first non-group widget to get a start time. This should probably be recursive at some point 
 		{ 
-std::cout<<"In the loop"<<std::endl;
 			if (node->childNodes().size() > 0)
 			{
 				MyTreeTableNode *myttn = dynamic_cast<MyTreeTableNode*> (*(mynode->childNodes()).begin());
 				mystart = dynamic_cast<TimeWidget*>(myttn->columnWidget(1))->time();
 				mynode = myttn;
-std::cout<<"Changing start"<<std::endl;
 
 			}
 			else
 			{ //Where in a childless group, so we cannot play anything!
-std::cout<<"No children, last of the line"<<std::endl;
 				return;
 			}
 		}
-		//long startBefore = mystart - beforeSlider->value()*1000;
-		Wt::Json::Object jStartBefore = zmq_conn::interact("inputs?"); //There's actually something to be said for just asking the Ear instance for the before value before playing instead of using the own slider. And it makes the objectmodel a lot better.
+		Wt::Json::Object jStartBefore = zmq_conn::interact("inputs?"); 
 		Wt::Json::Array aStartBefore = jStartBefore.get("before");
 		signed long long startBefore = aStartBefore[2];
 		zmq_conn::interact(Wt::WString("event:stop")); //Probably needed to help stop the track from stopping the middle of a play
