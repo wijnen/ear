@@ -150,7 +150,7 @@ void playSelection(Wt::WTreeTable *markerTree)
 	}
 	ret+="]}";
 		
-	zmq_conn::send(ret);
+	zmq_conn::interact(ret,true);
 
 
 }
@@ -328,6 +328,7 @@ void deleteEmptyGroups(Wt::WTreeTable *markerTree)
 	}
 	
 }
+
 
 
 void saveFragmentsTree(Wt::WTreeTable *markerTree) 
