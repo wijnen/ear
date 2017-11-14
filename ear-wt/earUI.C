@@ -452,50 +452,6 @@ chartText->setText(WString(std::to_string(waveform.size())));
 #endif
 
 
-void EarUI::loadFragments(zmq::socket_t *socket)
-{
-	//needs markerTree
-	#ifdef PLOT
-	waveformTimer->start();
-	#endif
-	bool disconnect = false;
-	if (socket == 0)
-	{
-		socket = zmq_conn::connect();
-		disconnect = true;
-	}
-	Wt::WTreeTable *treeTable; 
-	treeTable = this->markerTree;
-	
-	Wt::Json::Object response;
-
-	response = zmq_conn::interact("title?",socket);
-
-	Wt::WString trackname = response.get("title"); 
-	MyTreeTableNode *root = new MyTreeTableNode(trackname);
-	treeTable->setTreeRoot(root,trackname); 
-	MyTreeTableNode *current_root = root;
-//	this->fragment_set.clear();
-	response = zmq_conn::interact("fragments?",socket);
-	Wt::Json::Array fragments;
-	fragments = response.get("fragments");
-
-	loadGroup(current_root,fragments);
-	
-	root->expand();
-
-        TimeWidget *firstW = dynamic_cast<TimeWidget*>((*children_as_vector(markerTree->tree()->treeRoot()) .begin())->columnWidget(1));
-        //TimeWidget *lastW = dynamic_cast<TimeWidget*>((*fragment_set.rbegin())->columnWidget(2));
-        TimeWidget *lastW = dynamic_cast<TimeWidget*>((*children_as_vector(markerTree->tree()->treeRoot()).rbegin())->columnWidget(2));
-        posSlider->setMinimum(firstW->time());
-        posSlider->setMaximum(lastW->time());
-	if (disconnect)
-	{
-		zmq_conn::disconnect(socket);
-	}	
-}
-
-
 
 void EarUI::updateInputs()
 {	
@@ -521,7 +477,14 @@ void EarUI::updateInputs()
 	int server_track_idx = response.get("current");
 	if(ui_track_idx != server_track_idx)
 	{
-		loadFragments(socket);
+		loadFragments(markerTree, socket);
+
+		TimeWidget *firstW = dynamic_cast<TimeWidget*>((*children_as_vector(markerTree->tree()->treeRoot()) .begin())->columnWidget(1));
+		//TimeWidget *lastW = dynamic_cast<TimeWidget*>((*fragment_set.rbegin())->columnWidget(2));
+		TimeWidget *lastW = dynamic_cast<TimeWidget*>((*children_as_vector(markerTree->tree()->treeRoot()).rbegin())->columnWidget(2));
+		posSlider->setMinimum(firstW->time());
+		posSlider->setMaximum(lastW->time());
+
 		ui_track_idx = server_track_idx;
 	}	
 

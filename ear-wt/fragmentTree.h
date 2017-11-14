@@ -37,6 +37,6 @@ void joinSelectedFragments(Wt::WTreeTable *markerTree);
 void deleteEmptyGroups(Wt::WTreeTable *markerTree);
 void saveFragmentsTree(Wt::WTreeTable *markerTree); 
 void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments);
-
+void loadFragments(Wt::WTreeTable *markerTree, zmq::socket_t *socket = 0 );
 Wt::Json::Value saveFragments(MyTreeTableNode *root);
 #endif

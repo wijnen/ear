@@ -366,6 +366,44 @@ void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments)
 		
 }
 
+void loadFragments(Wt::WTreeTable *markerTree, zmq::socket_t *socket)
+{
+	//needs markerTree
+	#ifdef PLOT
+	waveformTimer->start();
+	#endif
+	bool disconnect = false;
+	if (socket == 0)
+	{
+		socket = zmq_conn::connect();
+		disconnect = true;
+	}
+		
+	Wt::Json::Object response;
+
+	response = zmq_conn::interact("title?",socket);
+
+	Wt::WString trackname = response.get("title"); 
+	MyTreeTableNode *root = new MyTreeTableNode(trackname);
+	markerTree->setTreeRoot(root,trackname); 
+	MyTreeTableNode *current_root = root;
+	response = zmq_conn::interact("fragments?",socket);
+	Wt::Json::Array fragments;
+	fragments = response.get("fragments");
+
+	loadGroup(current_root,fragments);
+	
+	root->expand();
+	if (disconnect)
+	{
+		zmq_conn::disconnect(socket);
+	}	
+}
+
+
+
+
+
 
 
 

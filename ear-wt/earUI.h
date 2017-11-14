@@ -56,7 +56,6 @@ private:
   Wt::WLength width = Wt::WLength::Auto; 
   std::vector<MyTreeTableNode*> fragment_set;
   void clicked(Wt::WPushButton* source );
-  void loadFragments(zmq::socket_t *socket = 0);
   Wt::WTreeTable *markerTree;
   MyTreeTableNode *addNode(MyTreeTableNode *parent, Wt::WString name, const long start, const long stop );
   Wt::Json::Value saveFragments(MyTreeTableNode *root);
