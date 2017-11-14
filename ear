@@ -6,7 +6,7 @@ import logging
 logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=logging.DEBUG)
 logging.info("Ear started, starting imports")
 import fhs
-config = fhs.init({'port': 0, 'http-port': 8082, 'Wt': '/usr/share/Wt', "webUI" : True})
+config = fhs.init({'port': 0, 'http-port': 8082, 'Wt': '/usr/share/Wt', "webUI" : True, "mobileUI" : True})
 
 from collections import OrderedDict
 import gi
@@ -375,6 +375,27 @@ if config['webUI']:
     except:
         logging.warning("No exe found!")
         pass
+
+if config['mobileUI']:
+    executable = fhs.read_data(os.path.join('ear-wt', 'earMobileUI'), opened = False)
+    wt_config = fhs.read_data(os.path.join('ear-wt', 'wt_config.xml'), opened = False)
+
+    logging.info(" opening subprocess earMobileUI " )
+    try:
+        UI = subprocess.Popen((executable,
+            '--docroot', config['Wt'],
+            '--http-address=0.0.0.0',
+            '--http-port=' + str(config['http-port']+1),
+            '-c', wt_config,
+            '--accesslog','-'),
+        env = env)
+        logging.info("Popened")
+    except:
+        logging.warning("No exe found!")
+        pass
+
+
+
 logging.info("Running mainloop")
 GLib.MainLoop().run()
     
