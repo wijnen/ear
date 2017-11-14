@@ -12,10 +12,10 @@ MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString n
 	Wt::WContainerWidget *labelArea = node->labelArea();
 	Wt::WWidget *labelWidget = labelArea->widget(0); //See source of WTreeNode.
 	labelArea->removeWidget(labelWidget);
-	Wt::WPushButton *startButton;
 	if (mini)
 	{
-		startButton = new Wt::WPushButton(name);
+		node->startButton = new Wt::WPushButton(name);
+		labelArea->addWidget(node->startButton);
 	}
 	else
 	{
@@ -30,42 +30,39 @@ MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString n
 		TimeWidget *startWidget = new TimeWidget();
 		startWidget->setTime(start);
 		node->setColumnWidget(1, startWidget); 
-		startButton = new Wt::WPushButton("|>");
+		node->startButton = new Wt::WPushButton("|>");
 	}
 //todo: add doubleclick trick to allow modal edit
-	startButton->clicked().connect(std::bind([=]() { //This callback is currently not split out, because if we do it this way we can take advantage of the start and stop arguments given to this node, and we don't have to make them proper member variables. 
-//this->log("debug")<<"Handlign a startbutton click from the markertree";
-		MyTreeTableNode* mynode =  dynamic_cast<MyTreeTableNode*> (node);
-		signed long mystart = start;	
-		while(mystart == -1) //We've clicked the startbutton on a group, so we need to find the first non-group widget to get a start time. 
-		{ 
+	node->startButton->clicked().connect(std::bind([=]() { 
+		if(start == -1)
+		{	//We've clicked the startbutton on a group, so we need to find the first non-group widget. 
 			if (node->childNodes().size() > 0)
 			{
-				MyTreeTableNode *myttn = dynamic_cast<MyTreeTableNode*> (*(mynode->childNodes()).begin());
-				mystart = dynamic_cast<TimeWidget*>(myttn->columnWidget(1))->time();
-				mynode = myttn;
-
+ 				//So, there are children.. In this case take the first child and pretend we've clicked that startButton. It'll be recursive. 
+				MyTreeTableNode *firstChild = dynamic_cast<MyTreeTableNode*> (*(node->childNodes()).begin());
+				return firstChild->startButton->clicked().emit(Wt::WMouseEvent());
 			}
 			else
 			{ //Where in a childless group, so we cannot play anything!
 				return;
 			}
+
 		}
+		std::cout <<"It's not a group: "<<start<<std::endl;
 		Wt::Json::Object jStartBefore = zmq_conn::interact("inputs?"); 
 		Wt::Json::Array aStartBefore = jStartBefore.get("before");
 		signed long long startBefore = aStartBefore[2];
 		zmq_conn::interact(Wt::WString("event:stop")); //Probably needed to help stop the track from stopping the middle of a play
 
-		Wt::WString command="play:"+std::to_string(mystart - startBefore * 1000); 
+		Wt::WString command="play:"+std::to_string(start - startBefore * 1000); 
 		zmq_conn::interact(command);
 	}));
 	if(mini)
 	{
-		node->setColumnWidget(0, startButton);
 	}
 	else
 	{
-		node->setColumnWidget(3, startButton);
+		node->setColumnWidget(3, node->startButton);
 		TimeWidget *stopWidget = new TimeWidget();
 		stopWidget->setTime(stop);
 		node->setColumnWidget(2, stopWidget);
@@ -337,7 +334,7 @@ void deleteEmptyGroups(Wt::WTreeTable *markerTree)
 
 
 
-void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments)
+void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments, bool mini)
 { //Recursively add the fragments to the treetable //does not need object at all
 //this->log("info") <<"Loading fragments";
 	for(auto fragmentValue:fragments)
@@ -349,13 +346,13 @@ void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments)
 		if (type == "group")
 		{
 			
-			loadGroup( MyTreeTableNode::addNode(current_root,name,-1,-1) ,fragment[2]);	
+			loadGroup( MyTreeTableNode::addNode(current_root,name,-1,-1, mini) ,fragment[2], mini);	
 		}
 		else if (type == "fragment")
 		{
 			long long start_time = fragment[2]; 
 			long long stop_time = fragment[3];
-			MyTreeTableNode::addNode(current_root,name,start_time,stop_time);
+			MyTreeTableNode::addNode(current_root,name,start_time,stop_time, mini);
 		}
 		else
 		{
@@ -366,7 +363,7 @@ void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments)
 		
 }
 
-void loadFragments(Wt::WTreeTable *markerTree, zmq::socket_t *socket)
+void loadFragments(Wt::WTreeTable *markerTree, bool mini, zmq::socket_t *socket)
 {
 	//needs markerTree
 	#ifdef PLOT
@@ -391,7 +388,7 @@ void loadFragments(Wt::WTreeTable *markerTree, zmq::socket_t *socket)
 	Wt::Json::Array fragments;
 	fragments = response.get("fragments");
 
-	loadGroup(current_root,fragments);
+	loadGroup(current_root,fragments, mini);
 	
 	root->expand();
 	if (disconnect)

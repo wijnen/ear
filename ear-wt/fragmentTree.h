@@ -8,6 +8,7 @@
 #include <Wt/WInPlaceEdit>
 #include <Wt/WPushButton>
 #include <Wt/Json/Array>
+#include <Wt/WEvent>
 #include "TimeWidget.h"
 #include "earzmq.h"
 class MyTreeTableNode : public Wt::WTreeTableNode
@@ -18,6 +19,7 @@ class MyTreeTableNode : public Wt::WTreeTableNode
 	Wt::WString text;		
 	Wt::WInPlaceEdit*  editWidget;
 	static MyTreeTableNode *addNode(MyTreeTableNode *parent, Wt::WString name, const long start, const long stop, bool mini = false ) ;
+	Wt::WPushButton *startButton;
 };
 
 
@@ -36,7 +38,7 @@ void splitFragment(Wt::WTreeTable *markerTree, long pos);
 void joinSelectedFragments(Wt::WTreeTable *markerTree);
 void deleteEmptyGroups(Wt::WTreeTable *markerTree);
 void saveFragmentsTree(Wt::WTreeTable *markerTree); 
-void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments);
-void loadFragments(Wt::WTreeTable *markerTree, zmq::socket_t *socket = 0 );
+void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments, bool mini = false);
+void loadFragments(Wt::WTreeTable *markerTree, bool mini = false, zmq::socket_t *socket = 0 );
 Wt::Json::Value saveFragments(MyTreeTableNode *root);
 #endif

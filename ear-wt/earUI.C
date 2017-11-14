@@ -477,7 +477,7 @@ void EarUI::updateInputs()
 	int server_track_idx = response.get("current");
 	if(ui_track_idx != server_track_idx)
 	{
-		loadFragments(markerTree, socket);
+		loadFragments(markerTree,false, socket);
 
 		TimeWidget *firstW = dynamic_cast<TimeWidget*>((*children_as_vector(markerTree->tree()->treeRoot()) .begin())->columnWidget(1));
 		//TimeWidget *lastW = dynamic_cast<TimeWidget*>((*fragment_set.rbegin())->columnWidget(2));
