@@ -331,6 +331,49 @@ void deleteEmptyGroups(Wt::WTreeTable *markerTree)
 
 
 
+
+
+
+
+
+
+void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments)
+{ //Recursively add the fragments to the treetable //does not need object at all
+//this->log("info") <<"Loading fragments";
+	for(auto fragmentValue:fragments)
+	{
+		const Wt::Json::Array& fragment = fragmentValue;
+		std::string type = fragment[0];
+		Wt::WString name = fragment[1];
+//this->log("debug") <<"Loading fragment "<<name<<" of type "<<type;
+		if (type == "group")
+		{
+			
+			loadGroup( MyTreeTableNode::addNode(current_root,name,-1,-1) ,fragment[2]);	
+		}
+		else if (type == "fragment")
+		{
+			long long start_time = fragment[2]; 
+			long long stop_time = fragment[3];
+			MyTreeTableNode::addNode(current_root,name,start_time,stop_time);
+		}
+		else
+		{
+//this->log("warn")<<"Node type not understood";
+		}
+	}
+
+		
+}
+
+
+
+
+
+
+
+
+
 void saveFragmentsTree(Wt::WTreeTable *markerTree) 
 {
 	Wt::Json::Value fragmentsval = saveFragments(dynamic_cast<MyTreeTableNode*>(markerTree->tree()->treeRoot() ));

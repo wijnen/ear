@@ -7,6 +7,7 @@
 #include <Wt/WTreeTableNode>
 #include <Wt/WInPlaceEdit>
 #include <Wt/WPushButton>
+#include <Wt/Json/Array>
 #include "TimeWidget.h"
 #include "earzmq.h"
 class MyTreeTableNode : public Wt::WTreeTableNode
@@ -35,5 +36,7 @@ void splitFragment(Wt::WTreeTable *markerTree, long pos);
 void joinSelectedFragments(Wt::WTreeTable *markerTree);
 void deleteEmptyGroups(Wt::WTreeTable *markerTree);
 void saveFragmentsTree(Wt::WTreeTable *markerTree); 
+void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments);
+
 Wt::Json::Value saveFragments(MyTreeTableNode *root);
 #endif
