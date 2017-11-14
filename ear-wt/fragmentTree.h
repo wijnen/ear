@@ -16,7 +16,7 @@ class MyTreeTableNode : public Wt::WTreeTableNode
 	using Wt::WTreeTableNode::labelArea;
 	Wt::WString text;		
 	Wt::WInPlaceEdit*  editWidget;
-	static MyTreeTableNode *addNode(MyTreeTableNode *parent, Wt::WString name, const long start, const long stop ) ;
+	static MyTreeTableNode *addNode(MyTreeTableNode *parent, Wt::WString name, const long start, const long stop, bool mini = false ) ;
 };
 
 
