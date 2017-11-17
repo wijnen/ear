@@ -468,9 +468,8 @@ void EarUI::updateInputs()
 	{
 		loadFragments(markerTree,false, socket);
 
-		TimeWidget *firstW = dynamic_cast<TimeWidget*>((*children_as_vector(markerTree->tree()->treeRoot()) .begin())->columnWidget(1));
-		//TimeWidget *lastW = dynamic_cast<TimeWidget*>((*fragment_set.rbegin())->columnWidget(2));
-		TimeWidget *lastW = dynamic_cast<TimeWidget*>((*children_as_vector(markerTree->tree()->treeRoot()).rbegin())->columnWidget(2));
+		TimeWidget *firstW = (*children_as_vector(markerTree->tree()->treeRoot()).begin())->startWidget ;
+		TimeWidget *lastW = (*children_as_vector(markerTree->tree()->treeRoot()).rbegin())->stopWidget;
 		posSlider->setMinimum(firstW->time());
 		posSlider->setMaximum(lastW->time());
 
