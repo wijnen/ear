@@ -421,14 +421,19 @@ void mark_current_fragment(Wt::WTreeTable *markerTree, long long pos)
 		long stop = fragmentTTN->stopWidget->time();
 		if(pos > start and pos < stop)
 		{ 
-			fragmentTTN->decorationStyle().setBackgroundColor(Wt::WColor(255,0,0)); //TODO: ?Make a proper style, and enlarge the font or something
+			for( auto node:ancestors_as_vector(fragmentTTN))
+			{
+				dynamic_cast<MyTreeTableNode*>(node)->startButton->addStyleClass("btn-info");
+			}
+		//	fragmentTTN->decorationStyle().setBackgroundColor(Wt::WColor(255,0,0)); //TODO: ?Make a proper style, and enlarge the font or something
 //TODO: Maybe get the parents too, if the current widget is not shown			
 
 		}
 		else
 		{
 
-		fragmentTTN->decorationStyle().setBackgroundColor(Wt::WColor(255,255,255)); //TODO: Properly remove the previously added style
+				dynamic_cast<MyTreeTableNode*>(fragmentTTN)->startButton->removeStyleClass("btn-info");
+//		fragmentTTN->decorationStyle().setBackgroundColor(Wt::WColor(255,255,255)); //TODO: Properly remove the previously added style
 
 		}
 	

@@ -52,6 +52,22 @@ EarMobileUI::EarMobileUI(const Wt::WEnvironment& env)
     posText = new TimeWidget(buttonContainer);
     posText->setMargin(5, Wt::Left);
    
+
+
+
+
+    Wt::WContainerWidget *fragmentContainer = new Wt::WContainerWidget(root());
+    fragmentTree = new Wt::WTreeTable(fragmentContainer);
+//    fragmentTree->addColumn("",500);
+
+   Wt::WTimer *inputtimer = new Wt::WTimer();  
+   inputtimer->setInterval(2500);
+   inputtimer->timeout().connect(std::bind([=] ()
+   {
+       updateInputs();
+   }));
+   inputtimer->start();
+   updateInputs();
     Wt::WTimer *timer = new Wt::WTimer();  
     timer->setInterval(100);
     timer->timeout().connect(std::bind([=] ()
@@ -71,7 +87,7 @@ EarMobileUI::EarMobileUI(const Wt::WEnvironment& env)
 	const long long track_time = posjv;
 	
 	posText->setTime(track_time);
-	
+	mark_current_fragment(fragmentTree,track_time);
 	playing = playingj.get("playing");
 	if (playing)
 	{
@@ -94,22 +110,6 @@ EarMobileUI::EarMobileUI(const Wt::WEnvironment& env)
 
 
 
-
-
-
-
-    Wt::WContainerWidget *fragmentContainer = new Wt::WContainerWidget(root());
-    fragmentTree = new Wt::WTreeTable(fragmentContainer);
-//    fragmentTree->addColumn("",500);
-
-   Wt::WTimer *inputtimer = new Wt::WTimer();  
-   inputtimer->setInterval(2500);
-   inputtimer->timeout().connect(std::bind([=] ()
-   {
-       updateInputs();
-   }));
-   inputtimer->start();
-   updateInputs();
 
  
 }
