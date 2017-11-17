@@ -114,6 +114,7 @@ def save_all():
     logging.info("Saving entire database")
     #print(db)
     dbread.write(db)
+    dbread.clear_cache()
 
 logging.info("Reading db")
 dbrefresh = True

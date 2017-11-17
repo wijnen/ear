@@ -256,11 +256,23 @@ def write_track(track):
     ret += write_group(track['fragments'], INDENT)
     return ret
 
+def clear_cache():
+    basedirs = fhs.read_data('db', dir = True, opened = False, multiple = True)
+    cachefile = os.path.join(basedirs[0],"cache.pickle");
+    if os.path.exists(cachefile):
+        logging.info ("Clearing cache file {}".format(os.path.join(basedirs[0],"cache.pickle")))
+        try:
+            os.remove(cachefile)
+        except Exception as e:
+            logging.exception("Clearing cache failed",e)
+     
+
+
 def write(tracks):
     '''Write the internal track data to a file that can be read back with db.read()'''
-
-    output = {}
     
+    output = {}
+     
     for track in tracks:
         # Don't define tracks without fragments.
         if len(track['fragments']) == 0:
