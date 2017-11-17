@@ -10,7 +10,18 @@ EarUI::EarUI(const Wt::WEnvironment& env) : Wt::WApplication(env)
   max_tags = 0;
     setTitle("Ear interface"); 
 //setCssTheme("polished"); //This fixes the columns of the treetable, soimehow
-    setTheme(new Wt::WBootstrapTheme());
+    Wt::WBootstrapTheme *theme = new Wt::WBootstrapTheme();
+    theme->setResponsive(true);
+
+    theme->setVersion(Wt::WBootstrapTheme::Version3);  //This makes the whole UI look a bit more website-like, which is unfortunate. However, it also fixes a lot of wierd resizing issues, and makes the track selection box almost usable on mobile. 
+
+    this->removeMetaHeader(Wt::MetaHeaderType::MetaName,"viewport");
+    this->addMetaHeader("viewport",
+			   "width=device-width, target-densityDpi=device-dpi");
+ 
+    setTheme(theme);
+    
+
    
     Wt::WPanel *selectPanel = new Wt::WPanel(root());
     selectPanel->setTitle("Select new track");
@@ -400,6 +411,8 @@ void EarUI::mark_current_fragment(long long pos)
 	
 	}
 }
+
+
 long EarUI::current_track_time( zmq::socket_t *socket )
 {
 
