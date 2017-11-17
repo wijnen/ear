@@ -276,9 +276,9 @@ sliderPanel->setCentralWidget(inputContainer);
     markerTree = new Wt::WTreeTable();
     markerContainer->addWidget(markerTree);
 //    markerTree->setObjectName("markertree"); //TODO: Still something wierd with the columns, they are sometimes offset
-    markerTree->tree()->setSelectionMode(Wt::ExtendedSelection);
-    markerTree->addColumn("",100);
-    markerTree->addColumn("",100); 
+    markerTree->tree()->setSelectionMode(Wt::ExtendedSelection); 
+    markerTree->resize(500,1000);
+ 
     markerTree->addColumn("",100); //start
     markerTree->addColumn("",100);  //end
     markerTree->addColumn("",50); //StartButton

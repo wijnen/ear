@@ -32,7 +32,7 @@ MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString n
 		node->text = node->editWidget->text();
 		labelArea->addWidget(node->editWidget );
 	
-		node->setColumnWidget(1, node->startWidget); 
+		node->setColumnWidget(2, node->startWidget); 
 		node->startButton = new Wt::WPushButton("|>");
 	}
 //todo: add doubleclick trick to allow modal edit
@@ -65,8 +65,8 @@ MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString n
 	}
 	else
 	{
-		node->setColumnWidget(3, node->startButton);
-		node->setColumnWidget(2, node->stopWidget);
+		node->setColumnWidget(1, node->startButton);
+		node->setColumnWidget(3, node->stopWidget);
 	}
 	return node;
     }
