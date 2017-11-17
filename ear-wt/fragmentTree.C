@@ -20,7 +20,6 @@ MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString n
 	if (mini)
 	{
 		node->startButton = new Wt::WPushButton(name);
-		labelArea->addWidget(node->startButton);
 	}
 	else
 	{
@@ -30,9 +29,7 @@ MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString n
 		}));
 	
 		node->text = node->editWidget->text();
-		labelArea->addWidget(node->editWidget );
 	
-		node->setColumnWidget(2, node->startWidget); 
 		node->startButton = new Wt::WPushButton("|>");
 	}
 //todo: add doubleclick trick to allow modal edit
@@ -60,12 +57,15 @@ MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString n
 		Wt::WString command="play:"+std::to_string(start - startBefore * 1000); 
 		zmq_conn::interact(command);
 	}));
+	labelArea->addWidget(node->startButton);
 	if(mini)
 	{
 	}
 	else
-	{
-		node->setColumnWidget(1, node->startButton);
+	{ //0 is startbutton now
+		//node->setColumnWidget(1, node->startButton);
+		node->setColumnWidget(1,node->editWidget );
+		node->setColumnWidget(2, node->startWidget); 
 		node->setColumnWidget(3, node->stopWidget);
 	}
 	return node;
