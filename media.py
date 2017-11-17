@@ -205,8 +205,15 @@ class Media:
             self.pipeline.get_state(Gst.CLOCK_TIME_NONE)
             if end is not None and (start is None or end > start):
                 ret = self.pipeline.seek(1.0, Gst.Format(Gst.Format.TIME), Gst.SeekFlags.ACCURATE | Gst.SeekFlags.FLUSH, Gst.SeekType.SET, start * Gst.MSECOND, Gst.SeekType.SET, end * Gst.MSECOND)
+                if not ret:
+                    ret = self.pipeline.seek_simple(Gst.Format.TIME, Gst.SeekFlags.KEY_UNIT | Gst.SeekFlags.FLUSH, start * Gst.MSECOND)
+                    logging.warning("Simple seeking")
+                    #self.playbin.seek_simple(Gst.Format.TIME,  Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, seek_time_secs * Gst.SECOND) 
             else:
                 ret = self.pipeline.seek(1.0, Gst.Format(Gst.Format.TIME), Gst.SeekFlags.ACCURATE | Gst.SeekFlags.FLUSH, Gst.SeekType.SET, start * Gst.MSECOND, Gst.SeekType.END, 0)
+                if not ret:
+                    ret = self.pipeline.seek_simple(Gst.Format.TIME, Gst.SeekFlags.KEY_UNIT|Gst.SeekFlags.ACCURATE | Gst.SeekFlags.FLUSH, start * Gst.MSECOND)
+                    logging.warning("Simple seeking")
             if not ret:
                 logging.warning("Seeking not allowed by gstreamer")
         if play:
