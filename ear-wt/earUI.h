@@ -59,7 +59,6 @@ private:
   Wt::WTreeTable *markerTree;
   MyTreeTableNode *addNode(MyTreeTableNode *parent, Wt::WString name, const long start, const long stop );
   Wt::Json::Value saveFragments(MyTreeTableNode *root);
-  void mark_current_fragment(long long track_time);
   
   Wt::WPushButton *playPauseButton;
 

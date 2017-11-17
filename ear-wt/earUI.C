@@ -379,7 +379,7 @@ sliderPanel->setCentralWidget(inputContainer);
 			playPauseButton->setText("Play from start");
 		}
 	}
-        mark_current_fragment(track_time); 
+        mark_current_fragment(markerTree,track_time); 
    }));
 
 
@@ -388,30 +388,6 @@ sliderPanel->setCentralWidget(inputContainer);
 
 
 }
-void EarUI::mark_current_fragment(long long pos)
-{
-	for (auto fragmentTTN:children_as_vector(markerTree->tree()->treeRoot()) ) 
-	{
-		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
-		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
-		long start = startW->time();
-		long stop = stopW->time();
-		if(pos > start and pos < stop)
-		{ 
-			fragmentTTN->decorationStyle().setBackgroundColor(Wt::WColor(255,0,0)); //TODO: ?Make a proper style, and enlarge the font or something
-//TODO: Maybe get the parents too, if the current widget is not shown			
-
-		}
-		else
-		{
-
-		fragmentTTN->decorationStyle().setBackgroundColor(Wt::WColor(255,255,255)); //TODO: Properly remove the previously added style
-
-		}
-	
-	}
-}
-
 
 long EarUI::current_track_time( zmq::socket_t *socket )
 {

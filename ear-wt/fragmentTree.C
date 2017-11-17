@@ -401,6 +401,31 @@ void loadFragments(Wt::WTreeTable *markerTree, bool mini, zmq::socket_t *socket)
 
 
 
+void mark_current_fragment(Wt::WTreeTable *markerTree, long long pos)
+{
+	for (auto fragmentTTN:children_as_vector(markerTree->tree()->treeRoot()) ) 
+	{
+		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
+		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
+		long start = startW->time();
+		long stop = stopW->time();
+		if(pos > start and pos < stop)
+		{ 
+			fragmentTTN->decorationStyle().setBackgroundColor(Wt::WColor(255,0,0)); //TODO: ?Make a proper style, and enlarge the font or something
+//TODO: Maybe get the parents too, if the current widget is not shown			
+
+		}
+		else
+		{
+
+		fragmentTTN->decorationStyle().setBackgroundColor(Wt::WColor(255,255,255)); //TODO: Properly remove the previously added style
+
+		}
+	
+	}
+}
+
+
 
 
 

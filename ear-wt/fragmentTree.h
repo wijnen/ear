@@ -1,5 +1,6 @@
 #ifndef _MyTreeTableNode
 #define _MyTreeTableNode
+#include <Wt/WApplication>
 #include <Wt/WString>
 #include <Wt/WTree>
 #include <Wt/WTreeNode>
@@ -40,5 +41,6 @@ void deleteEmptyGroups(Wt::WTreeTable *markerTree);
 void saveFragmentsTree(Wt::WTreeTable *markerTree); 
 void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments, bool mini = false);
 void loadFragments(Wt::WTreeTable *markerTree, bool mini = false, zmq::socket_t *socket = 0 );
+void mark_current_fragment(Wt::WTreeTable *markerTree, long long track_time);
 Wt::Json::Value saveFragments(MyTreeTableNode *root);
 #endif
