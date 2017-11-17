@@ -8,6 +8,7 @@ EarUI::EarUI(const Wt::WEnvironment& env) : Wt::WApplication(env)
 {
   ui_track_idx = -1;
   max_tags = 0;
+  posSliderMoving = false;
     setTitle("Ear interface"); 
 //setCssTheme("polished"); //This fixes the columns of the treetable, soimehow
     Wt::WBootstrapTheme *theme = new Wt::WBootstrapTheme();
@@ -203,6 +204,7 @@ this->log("info")<<"Making pos slider";
     posSlider = new Wt::WSlider();
 	posSlider->valueChanged().connect(std::bind([=] ()
     {
+	this->posSliderMoving = false;
 this->log("info")<<"Updating pos because posSlider valueChanged";
 	zmq_conn::interact("pos:"+posSlider->valueText());
         posText->setTime(posSlider->value());
@@ -243,6 +245,7 @@ this->log("info")<<"Updating pos because posSlider valueChanged";
 //Also TODO, use this to stop the slider from being moved by the udpating timer if someone is dragging it
     { 
 	this->posText->setTime(v); //So we can move and see where we'll end up before releasing
+	this->posSliderMoving = true;
     }, std::placeholders::_1));
     
 
@@ -452,6 +455,13 @@ void EarUI::updateInputs()
 	Wt::WText *textWidget;
 	for(auto name:responses.names())
 	{
+	 	if (name == "pos")
+		{
+			if(this->posSliderMoving)
+			{
+				continue;
+			}
+		}
 		inputSettings = responses.get(name);
 		sliderWidget = inputSliders[name];
 		sliderWidget->setValue(inputSettings[2]);

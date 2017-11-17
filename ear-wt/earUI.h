@@ -53,6 +53,7 @@ public:
   static long time_speed;
   void updateInputs();
 private:
+  bool posSliderMoving;
   TimeWidget *posText;
   Wt::WLength width = Wt::WLength::Auto; 
   std::vector<MyTreeTableNode*> fragment_set;
