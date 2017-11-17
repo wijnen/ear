@@ -197,7 +197,7 @@ this->log("info")<<"Making pos slider";
 	posInputBox->addLayout(posTextBox);
 	Wt::WText *posLabel = new Wt::WText("Position");
 	posTextBox->addWidget(posLabel,0);
-	TimeWidget *posText = new TimeWidget();
+	posText = new TimeWidget();
 	posTextBox->addWidget(posText,0);
 	posText->setTime(0);
     posSlider = new Wt::WSlider();
@@ -238,13 +238,12 @@ this->log("info")<<"Updating pos because posSlider valueChanged";
     }
     posSlider->resize(width,50);
     posSlider->setTickInterval(60000); //One minute in ms
-    posSlider->setTickPosition(Wt::WSlider::TicksAbove);/*
-*    posSlider->sliderMoved().connect(std::bind([=] (int v) //TODO:Implement this. I'm not sure why it does not currently work, as it looks like Wt casts the value to a static int. 
+    posSlider->setTickPosition(Wt::WSlider::TicksAbove);
+    posSlider->sliderMoved().connect(std::bind([this] (const int &v)
 //Also TODO, use this to stop the slider from being moved by the udpating timer if someone is dragging it
     { 
-	posText->setTime(v); //So we can move and see where we'll end up before releasing
-    }));*/
-
+	this->posText->setTime(v); //So we can move and see where we'll end up before releasing
+    }, std::placeholders::_1));
     
 
 
