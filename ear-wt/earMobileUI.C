@@ -20,6 +20,8 @@ public:
   int ui_track_idx;
 private:
   Wt::WTreeTable *fragmentTree;
+  Wt::WPushButton *playPauseButton;
+  TimeWidget *posText;
 };
 
 
@@ -27,18 +29,87 @@ EarMobileUI::EarMobileUI(const Wt::WEnvironment& env)
   : Wt::WApplication(env)
 {
     setTitle("Ear interface"); 
-    setTheme(new Wt::WBootstrapTheme());
+    Wt::WBootstrapTheme *theme = new Wt::WBootstrapTheme();
+    theme->setResponsive(true);
+    theme->setVersion(Wt::WBootstrapTheme::Version3); 
+    this->removeMetaHeader(Wt::MetaHeaderType::MetaName,"viewport");
+    this->addMetaHeader("viewport",
+			   "width=device-width, height=device-height, initial-scale=2");
+    setTheme(theme);
+    
+    Wt::WContainerWidget *buttonContainer = new Wt::WContainerWidget(root());
+    playPauseButton = new Wt::WPushButton("Play from start",buttonContainer);
+    playPauseButton->clicked().connect(std::bind([=] ()
+    {
+	zmq_conn::interact(std::string("event:pause"));
+    }));
+    Wt::WPushButton *stopButton = new Wt::WPushButton("Stop",buttonContainer); 
+    stopButton->clicked().connect(std::bind([=] ()
+    {
+	zmq_conn::interact(std::string("event:stop"));
+    }));
+    stopButton->setMargin(5, Wt::Left);
+    posText = new TimeWidget(buttonContainer);
+    posText->setMargin(5, Wt::Left);
+   
+    Wt::WTimer *timer = new Wt::WTimer();  
+    timer->setInterval(100);
+    timer->timeout().connect(std::bind([=] ()
+    {
+	Wt::Json::Object posj ;
+	bool playing;
+	Wt::Json::Object playingj;
+
+
+	zmq::socket_t *socket = zmq_conn::connect();
+	posj = zmq_conn::interact(std::string("pos?"),socket);
+	playingj = zmq_conn::interact(std::string("playing?"),socket);
+	zmq_conn::disconnect(socket);
+
+
+	Wt::Json::Value posjv = posj.get("pos");	
+	const long long track_time = posjv;
+	
+	posText->setTime(track_time);
+	
+	playing = playingj.get("playing");
+	if (playing)
+	{
+		playPauseButton->setText("Pause");
+	}
+	else
+	{
+		if(track_time > 0)
+		{
+			playPauseButton->setText("Continue");
+		}
+		else
+		{
+			playPauseButton->setText("Play from start");
+		}
+	}
+    }));
+    timer->start();
+
+
+
+
+
+
+
+
     Wt::WContainerWidget *fragmentContainer = new Wt::WContainerWidget(root());
     fragmentTree = new Wt::WTreeTable(fragmentContainer);
-    fragmentTree->addColumn("",500);
-    Wt::WTimer *inputtimer = new Wt::WTimer();  
+//    fragmentTree->addColumn("",500);
+
+   Wt::WTimer *inputtimer = new Wt::WTimer();  
    inputtimer->setInterval(2500);
    inputtimer->timeout().connect(std::bind([=] ()
    {
        updateInputs();
    }));
    inputtimer->start();
-
+   updateInputs();
 
  
 }
