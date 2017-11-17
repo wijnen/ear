@@ -81,7 +81,6 @@ bool fragmentAbeforeB(Wt::WTreeNode* A, Wt::WTreeNode* B) //Needs renaming)
 		MyTreeTableNode *myA =  dynamic_cast<MyTreeTableNode*>(A);
 		while(myA->startWidget->time() ==-1) //TODO: make get_first_fragment_child
 		{
-			std::cout<<"in the loop"<<std::endl;
 			if(myA->childNodes().size() ==0)
 			{
 				return false;
@@ -461,7 +460,6 @@ void saveFragmentsTree(Wt::WTreeTable *markerTree)
 
 Wt::Json::Value saveFragments(MyTreeTableNode *root)
 { 
-
 	Wt::Json::Value retVal = Wt::Json::Value(Wt::Json::ArrayType);
 	Wt::Json::Array& ret = retVal; 
 	Wt::WString name;
@@ -484,10 +482,8 @@ Wt::Json::Value saveFragments(MyTreeTableNode *root)
 	{
 		ret.push_back(Wt::Json::Value(Wt::WString("fragment")));
 		ret.push_back(Wt::Json::Value(name));
-		TimeWidget *startW = dynamic_cast<TimeWidget*>(root->columnWidget(1));
-		TimeWidget *stopW = dynamic_cast<TimeWidget*>(root->columnWidget(2));
-		long long start = startW->time();
-		long long stop = stopW->time();
+		long long start = root->startWidget->time();
+		long long stop = root->stopWidget->time();
 		//this->log("info")<< "Saving fragment "<<std::to_string(start) << "  "<<std::to_string(stop);
 		ret.push_back(Wt::Json::Value(start));
 		ret.push_back(Wt::Json::Value(stop));
