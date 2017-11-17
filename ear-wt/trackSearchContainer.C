@@ -42,6 +42,7 @@ searchBox->keyPressed().connect(std::bind([=] ()
 
 trackModel->update();
 trackSelectionBox->setModel(trackModel);
+trackSelectionBox->setVerticalSize(10);
 trackSelectionBox->setSelectionMode(Wt::SingleSelection);
 Wt::WPushButton *selectButton = new Wt::WPushButton("Select track");
 vbox->addWidget(selectButton);
