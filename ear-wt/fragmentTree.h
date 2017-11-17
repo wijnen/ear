@@ -21,6 +21,8 @@ class MyTreeTableNode : public Wt::WTreeTableNode
 	Wt::WInPlaceEdit*  editWidget;
 	static MyTreeTableNode *addNode(MyTreeTableNode *parent, Wt::WString name, const long start, const long stop, bool mini = false ) ;
 	Wt::WPushButton *startButton;
+	TimeWidget *startWidget;
+	TimeWidget *stopWidget;
 };
 
 

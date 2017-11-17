@@ -12,6 +12,11 @@ MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString n
 	Wt::WContainerWidget *labelArea = node->labelArea();
 	Wt::WWidget *labelWidget = labelArea->widget(0); //See source of WTreeNode.
 	labelArea->removeWidget(labelWidget);
+	node->startWidget = new TimeWidget(); //We make these, even if we're doing the mini-tree. We use these widgets to store the actual data, so that if we need the start or stop time, we can get them out of the widget and get the right numbers, even if we haven't saved the fragment set yet.
+	node->startWidget->setTime(start);
+	node->stopWidget = new TimeWidget();
+	node->stopWidget->setTime(stop);
+	
 	if (mini)
 	{
 		node->startButton = new Wt::WPushButton(name);
@@ -27,9 +32,7 @@ MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString n
 		node->text = node->editWidget->text();
 		labelArea->addWidget(node->editWidget );
 	
-		TimeWidget *startWidget = new TimeWidget();
-		startWidget->setTime(start);
-		node->setColumnWidget(1, startWidget); 
+		node->setColumnWidget(1, node->startWidget); 
 		node->startButton = new Wt::WPushButton("|>");
 	}
 //todo: add doubleclick trick to allow modal edit
@@ -63,9 +66,7 @@ MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString n
 	else
 	{
 		node->setColumnWidget(3, node->startButton);
-		TimeWidget *stopWidget = new TimeWidget();
-		stopWidget->setTime(stop);
-		node->setColumnWidget(2, stopWidget);
+		node->setColumnWidget(2, node->stopWidget);
 	}
 	return node;
     }
@@ -76,16 +77,35 @@ MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString n
 
 bool fragmentAbeforeB(Wt::WTreeNode* A, Wt::WTreeNode* B) //Needs renaming)
 {
-	
-		TimeWidget *startAt = dynamic_cast<TimeWidget*>( dynamic_cast<MyTreeTableNode*>(A)->columnWidget(1));
-		TimeWidget *stopAt = dynamic_cast<TimeWidget*>( dynamic_cast<MyTreeTableNode*>(A)->columnWidget(2));
-		long startA = startAt->time();
-		long stopA = stopAt->time();
+		
+		MyTreeTableNode *myA =  dynamic_cast<MyTreeTableNode*>(A);
+		while(myA->startWidget->time() ==-1) //TODO: make get_first_fragment_child
+		{
+			std::cout<<"in the loop"<<std::endl;
+			if(myA->childNodes().size() ==0)
+			{
+				return false;
+			}
+			myA = dynamic_cast<MyTreeTableNode*>(*(myA->childNodes().begin()));
+		}
+		long startA = myA->startWidget->time();
+		long stopA = myA->stopWidget->time();
 
-		TimeWidget *startBt = dynamic_cast<TimeWidget*>( dynamic_cast<MyTreeTableNode*>(B)->columnWidget(1));
-		TimeWidget *stopBt = dynamic_cast<TimeWidget*>(  dynamic_cast<MyTreeTableNode*>(B)->columnWidget(2));
-		long startB = startBt->time();
-		long stopB = stopBt->time();
+
+		MyTreeTableNode *myB =  dynamic_cast<MyTreeTableNode*>(B);
+		while(myB->startWidget->time() ==-1)
+		{
+			if(myB->childNodes().size() ==0)
+			{
+				return false;
+			}
+			myB = dynamic_cast<MyTreeTableNode*>(*(myB->childNodes().begin()));
+		}
+		long startB = myB->startWidget->time();
+		long stopB = myB->stopWidget->time();
+
+
+
 		//Strictly, this does not mean that A<B means that B>A, because of stuff. See what breaks? --KRL 11072017 FIXME
 	if(startA < startB)
 	{
@@ -109,10 +129,8 @@ void playSelection(Wt::WTreeTable *markerTree)
 	bool first = true;
 	for(auto node:children_as_vector(dynamic_cast<MyTreeTableNode*>(markerTree->tree()->treeRoot())))
 	{
-		TimeWidget *startW = dynamic_cast<TimeWidget*>(node->columnWidget(1));
-		TimeWidget *stopW = dynamic_cast<TimeWidget*>(node->columnWidget(2)); //Todo: Find a way to make this more flexible to re-ordering
-		long start = startW->time();
-		long stop = stopW->time();
+		long start = node->startWidget->time();
+		long stop = node->stopWidget->time();
 		bool selected = markerTree->tree()->isSelected(node);
 		if (start == -1 or stop ==-1)
 		{
@@ -152,12 +170,12 @@ void playSelection(Wt::WTreeTable *markerTree)
 
 }
 void groupMarkers(Wt::WTreeTable *markerTree)
-{
+{ //This breaks the ordering when we group something containing both groups and fragments
  	Wt::WTreeNode *parent;
 	Wt::WTreeNode *newNode;
 	std::set<Wt::WTreeNode*> unSortedselectedNodes =markerTree->tree()->selectedNodes();
 	std::vector<Wt::WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
-	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB);
+	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB); //This breaks with groups
  
 	std::vector< Wt::WTreeNode*> siblings;
  	
@@ -227,14 +245,12 @@ void splitFragment(Wt::WTreeTable *markerTree, long pos)
 
 	for (auto fragmentTTN:children_as_vector(markerTree->tree()->treeRoot()) ) 
 	{
-		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
-		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
-		long start = startW->time();
-		long stop = stopW->time();
+		long start = fragmentTTN->startWidget->time();
+		long stop = fragmentTTN->stopWidget->time();
 		if(pos > start and pos < stop)
 		{
 			//Fragment to split
-			stopW->setTime(pos);
+			fragmentTTN->stopWidget->setTime(pos);
 			Wt::WTreeNode *my_parent = fragmentTTN->parentNode();
 			const std::vector< Wt::WTreeNode * > siblings = my_parent->childNodes();
 			int index = -1;
@@ -269,10 +285,8 @@ void joinSelectedFragments(Wt::WTreeTable *markerTree)
 	for (auto node:selectedNodes)	{
 	//tree returns a tree with tree nodes. We need treetable nodes!
 		MyTreeTableNode *fragmentTTN =  dynamic_cast<MyTreeTableNode*>(node);
-		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
-		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2)); //TODO: Make this more flexible and not so dependant on orders. Maybe witch to a node object?
-		long start = startW->time();
-		long stop = stopW->time();
+		long start = fragmentTTN->startWidget->time();
+		long stop = fragmentTTN->stopWidget->time();
 		if (prevStop !=-2)
 		{
 			if (prevStop != start)
@@ -286,7 +300,7 @@ void joinSelectedFragments(Wt::WTreeTable *markerTree)
 //Change the first node
 	MyTreeTableNode *firstNode = dynamic_cast<MyTreeTableNode*>(*selectedNodes.begin());
         firstNode->editWidget->setText(newname);
-	dynamic_cast<TimeWidget*>(firstNode->columnWidget(2))->setTime(prevStop);
+	firstNode->stopWidget->setTime(prevStop);
 	bool first=true;
 //Dwlete all others
 	for (auto node:selectedNodes)	
@@ -307,10 +321,8 @@ void deleteEmptyGroups(Wt::WTreeTable *markerTree)
 	for (auto node:selectedNodes)	
 	{
 		MyTreeTableNode *fragmentTTN = dynamic_cast<MyTreeTableNode*>(node);
-		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
-		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
-		long start = startW->time();
-		long stop = stopW->time(); 
+		long start = fragmentTTN->startWidget->time();
+		long stop = fragmentTTN->stopWidget->time();
 		if (start != -1  or stop !=-1)
 		{
 //this->log("info")<<"Trying to delete a none-group";
@@ -405,10 +417,8 @@ void mark_current_fragment(Wt::WTreeTable *markerTree, long long pos)
 {
 	for (auto fragmentTTN:children_as_vector(markerTree->tree()->treeRoot()) ) 
 	{
-		TimeWidget *startW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(1));
-		TimeWidget *stopW = dynamic_cast<TimeWidget*>(fragmentTTN->columnWidget(2));
-		long start = startW->time();
-		long stop = stopW->time();
+		long start = fragmentTTN->startWidget->time();
+		long stop = fragmentTTN->stopWidget->time();
 		if(pos > start and pos < stop)
 		{ 
 			fragmentTTN->decorationStyle().setBackgroundColor(Wt::WColor(255,0,0)); //TODO: ?Make a proper style, and enlarge the font or something
