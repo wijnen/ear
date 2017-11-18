@@ -23,8 +23,27 @@ MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString n
 	}
 	else
 	{
-		node->editWidget = new Wt::WInPlaceEdit(name);
+		node->editWidget = new Wt::WInPlaceEdit();
+		std::string str = name.toUTF8();
+		str.erase(std::remove(str.begin(), str.end(), ' '), str.end()); //This removes whitespace
+		if(str.length()<1)
+		{
+			node->editWidget->setText(Wt::WString::Empty);	
+			node->editWidget->setPlaceholderText("New Node");	
+		
+		}
+		else
+		{
+			node->editWidget->setText(name);	
+		}
 		node->editWidget->valueChanged().connect(std::bind([=]() {
+			
+			std::string str = node->editWidget->text().toUTF8();
+			str.erase(std::remove(str.begin(), str.end(), ' '), str.end()); //This removes whitespace
+			if(str.length()<1)
+			{
+				node->editWidget->setText(Wt::WString::Empty);	
+			}
 			node->text = node->editWidget->text();
 		}));
 	
@@ -48,7 +67,6 @@ MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString n
 			}
 
 		}
-		std::cout <<"It's not a group: "<<start<<std::endl;
 		Wt::Json::Object jStartBefore = zmq_conn::interact("inputs?"); 
 		Wt::Json::Array aStartBefore = jStartBefore.get("before");
 		signed long long startBefore = aStartBefore[2];
@@ -265,7 +283,7 @@ void splitFragment(Wt::WTreeTable *markerTree, long pos)
 				this->log("warn")<<"Can't find myself when splitting a fragment";
 				return;
 			}*/
-			MyTreeTableNode *newFragmentTTN = MyTreeTableNode::addNode(0,"New node", pos, stop);
+			MyTreeTableNode *newFragmentTTN = MyTreeTableNode::addNode(0,"", pos, stop);
 			my_parent->insertChildNode(index+1, newFragmentTTN);
 		}
 		
@@ -298,7 +316,12 @@ void joinSelectedFragments(Wt::WTreeTable *markerTree)
 	}
 //Change the first node
 	MyTreeTableNode *firstNode = dynamic_cast<MyTreeTableNode*>(*selectedNodes.begin());
-        firstNode->editWidget->setText(newname);
+	std::string str = newname;
+	str.erase(std::remove(str.begin(), str.end(), ' '), str.end()); //This removes whitespace
+	if(str.length()>1)
+	{
+	        firstNode->editWidget->setText(newname);
+	}
 	firstNode->stopWidget->setTime(prevStop);
 	bool first=true;
 //Dwlete all others
