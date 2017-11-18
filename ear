@@ -53,7 +53,8 @@ def filtered(search,musts = [],mays = []): # {{{
         if len(musts)==0 and len(mays)==0:
               logging.info((len(tracks), len(db)) ) #Why do we get so much doubes?
         for k,v in tracks.items():
-            toSend.append((k,v))     #ASCIIbetical filename ordering due to ordereddict used above. Basically, order by whatever happens in the fragments files, and then determistically random crud. Pretty close to what you'd expect anyway
+            toSend.append((k,v))   
+            toSend.sort() #Sort the track names alphabetically
         return toSend
     if fuzzy:
         out = process.extract(search,tracks.keys(),limit=len(tracks))
@@ -63,6 +64,7 @@ def filtered(search,musts = [],mays = []): # {{{
         for track in tracks.keys():
              if search in track:
                   toSend.append((track,tracks[track]))
+        toSend.sort() #Sort the track names alphabetically
     return toSend 
 # }}}
 
