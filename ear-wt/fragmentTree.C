@@ -487,12 +487,18 @@ Wt::Json::Value saveFragments(MyTreeTableNode *root)
 	Wt::Json::Array& ret = retVal; 
 	Wt::WString name;
 	name = root->text;	
+	std::string str = name.toUTF8();
+	str.erase(std::remove(str.begin(), str.end(), ' '), str.end()); //This removes whitespace
+	if(str.length()<1)
+	{
+		name = Wt::WString("New Node");
+	}
 	if(root->childNodes().size()>0)
 	{
 		ret.push_back(Wt::Json::Value(Wt::WString("group")));
 		ret.push_back(Wt::Json::Value(name));
 		Wt::Json::Value out_children_value = Wt::Json::Value(Wt::Json::ArrayType);	
-		Wt::Json::Array& out_children = out_children_value; //TODO FIXME Ordering?
+		Wt::Json::Array& out_children = out_children_value; 
 		for(auto mynode:root->childNodes()) //I wonder, what order do we get these in?
 		{
 			out_children.push_back(saveFragments(dynamic_cast<MyTreeTableNode*>(mynode)));
