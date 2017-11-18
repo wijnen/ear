@@ -362,8 +362,11 @@ sliderPanel->setCentralWidget(inputContainer);
 	playingj = zmq_conn::interact(std::string("playing?"),socket);
 
 	zmq_conn::disconnect(socket);
-	posSlider->setValue(track_time);
-	posText->setTime(track_time);
+	if(not posSliderMoving)
+	{
+		posSlider->setValue(track_time);
+		posText->setTime(track_time);
+	}
 	
 	playing = playingj.get("playing");
 	if (playing)
