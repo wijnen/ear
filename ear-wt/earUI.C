@@ -285,22 +285,26 @@ sliderPanel->setCentralWidget(inputContainer);
     markerTree->addColumn("",100);
     markerTree->addColumn("",100);
 
- 
-    Wt::WPushButton *playSelectionButton = new Wt::WPushButton("Play selection" ,fragmentButtonsContainer);     
-    playSelectionButton->setMargin(5, Wt::Left);
+    Wt::WContainerWidget *groupButtonsContainer = new Wt::WContainerWidget(fragmentButtonsContainer);
+    
+    Wt::WContainerWidget *splitjoinButtonsContainer = new Wt::WContainerWidget(fragmentButtonsContainer);
+
+   
+    Wt::WPushButton *playSelectionButton = new Wt::WPushButton("Play selection" ,groupButtonsContainer);     
+    //playSelectionButton->setMargin(5, Wt::Left);
     playSelectionButton->clicked().connect(std::bind([=] ()
     {	 playSelection(markerTree);
     }));
 
 
-    Wt::WPushButton *tabButton = new Wt::WPushButton("Group selection >>>>" ,fragmentButtonsContainer);     //This randomises the order
+    Wt::WPushButton *tabButton = new Wt::WPushButton("Group selection >>>>" ,groupButtonsContainer);     //This randomises the order
     tabButton->setMargin(5, Wt::Left);
     tabButton->clicked().connect(std::bind([=] ()
     { 
 	groupMarkers(markerTree);
     }));	
     
-    Wt::WPushButton *untabButton = new Wt::WPushButton("Ungroup selection <<<<<" ,fragmentButtonsContainer);     
+    Wt::WPushButton *untabButton = new Wt::WPushButton("Ungroup selection <<<<<" ,groupButtonsContainer);     
     untabButton->setMargin(5, Wt::Left);
     untabButton->clicked().connect(std::bind([=] ()
     {
@@ -311,8 +315,8 @@ sliderPanel->setCentralWidget(inputContainer);
 
 
 
-    Wt::WPushButton *splitButton = new Wt::WPushButton("Split fragment here", fragmentButtonsContainer);
-    splitButton->setMargin(5, Wt::Left);
+    Wt::WPushButton *splitButton = new Wt::WPushButton("Split fragment here", splitjoinButtonsContainer);
+    //splitButton->setMargin(5, Wt::Left);
     splitButton->clicked().connect(std::bind([=] ()
     {	
 	long pos = current_track_time();	
@@ -321,21 +325,21 @@ sliderPanel->setCentralWidget(inputContainer);
 
 
 
-    Wt::WPushButton *joinButton = new Wt::WPushButton("Join selected fragments", fragmentButtonsContainer); 
+    Wt::WPushButton *joinButton = new Wt::WPushButton("Join selected fragments", splitjoinButtonsContainer); 
     joinButton->setMargin(5, Wt::Left);
     joinButton->clicked().connect(std::bind([=] ()
     {
 	joinSelectedFragments(markerTree);
     }));
  
-    Wt::WPushButton *delgrpButton = new Wt::WPushButton("Delete empty group", fragmentButtonsContainer);
+    Wt::WPushButton *delgrpButton = new Wt::WPushButton("Delete empty group", groupButtonsContainer);
     delgrpButton->setMargin(5, Wt::Left);
     delgrpButton->clicked().connect(std::bind([=] ()
     {
 	deleteEmptyGroups(markerTree);	
     }));
 
-    Wt::WPushButton *savebutton = new Wt::WPushButton("Save fragments", fragmentButtonsContainer);
+    Wt::WPushButton *savebutton = new Wt::WPushButton("Save fragments", splitjoinButtonsContainer);
     savebutton->setMargin(5, Wt::Left);
     savebutton->clicked().connect(std::bind([=] ()
     {	
