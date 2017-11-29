@@ -7,7 +7,7 @@ import media
 FRAGMENTS = 'fragments.txt'
 INDENT = '\t'
 EOL = '\r\n'
-exts = ('.mp3', '.ogg', '.wav', '.mp4', '.ogv', '.mpg', '.mpeg', '.avi') #TODO: Get these from whatever GStreamer can read
+exts = ('.mp3', '.ogg', '.wav', '.mp4', '.ogv', '.mpg', '.mpeg', '.avi','m4a','aac') #TODO: Get these from whatever GStreamer can read
 
 def makepath(root, filename):
     '''Write a filename in a form that can be used to detect duplicates'''
