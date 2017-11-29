@@ -229,6 +229,7 @@ def write_group(group, indent):
     '''Recursively write a group of fragments'''
     ret = ''
     for fragment in group:
+        assert len(fragment[1].strip())>0
         if fragment[0] == 'group':
             ret += '{}{}:{}'.format(indent, fragment[1], EOL)
             ret += write_group(fragment[2], indent + INDENT)
