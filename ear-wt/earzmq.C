@@ -23,8 +23,10 @@ zmq::socket_t* zmq_conn::connect()
 
 void zmq_conn::disconnect(zmq::socket_t *socket)
 {
-//	std::cout << "Disconnecting " << zmq_conn::zmq_port << std::endl; //Currently we get a segfault on the second disconnect. If somehow keeping the connection does not have any downsides, it might be good to leave things this way. Check once we have two interface instances.
+//	std::cout << "Disconnecting " << zmq_conn::zmq_port << std::endl;
+//	std::cout << "Num connections: "<<connections<<std::endl;
 	assert (connections >0);
+
 	connections--;
 	socket->disconnect(zmq_port);
 	delete	socket;

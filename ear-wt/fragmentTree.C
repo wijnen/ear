@@ -97,13 +97,13 @@ bool fragmentAbeforeB(Wt::WTreeNode* A, Wt::WTreeNode* B) //Needs renaming)
 {
 		
 		MyTreeTableNode *myA =  dynamic_cast<MyTreeTableNode*>(A);
-		while(myA->startWidget->time() ==-1) //TODO: make get_first_fragment_child
+		while(myA->startWidget->time() ==-1) //If it's a group....   //TODO: make get_first_fragment_child
 		{
 			if(myA->childNodes().size() ==0)
 			{
-				return false;
+				return false; //If it's an empty group
 			}
-			myA = dynamic_cast<MyTreeTableNode*>(*(myA->childNodes().begin()));
+			myA = dynamic_cast<MyTreeTableNode*>(*(myA->childNodes().begin())); //Otherwise, get the first child. It's a while loop, so it'll get the first non-group child in a direct line of first-born children. 
 		}
 		long startA = myA->startWidget->time();
 		long stopA = myA->stopWidget->time();
@@ -187,12 +187,12 @@ void playSelection(Wt::WTreeTable *markerTree)
 
 }
 void groupMarkers(Wt::WTreeTable *markerTree)
-{ //This breaks the ordering when we group something containing both groups and fragments
+{
  	Wt::WTreeNode *parent;
 	Wt::WTreeNode *newNode;
 	std::set<Wt::WTreeNode*> unSortedselectedNodes =markerTree->tree()->selectedNodes();
 	std::vector<Wt::WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
-	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB); //This breaks with groups
+	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB); 
  
 	std::vector< Wt::WTreeNode*> siblings;
  	
@@ -401,7 +401,7 @@ void loadFragments(Wt::WTreeTable *markerTree, bool mini, zmq::socket_t *socket)
 {
 	//needs markerTree
 	#ifdef PLOT
-	waveformTimer->start();
+		waveformTimer->start();
 	#endif
 	bool disconnect = false;
 	if (socket == 0)

@@ -42,7 +42,6 @@
 #include "fragmentTree.h"
 #include <Wt/WLogger>
 
-//#define PLOT
 //#define OLD_WT
 class EarUI : public Wt::WApplication
 {
