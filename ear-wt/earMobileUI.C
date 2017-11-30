@@ -32,9 +32,9 @@ EarMobileUI::EarMobileUI(const Wt::WEnvironment& env)
     Wt::WBootstrapTheme *theme = new Wt::WBootstrapTheme();
     theme->setResponsive(true);
     theme->setVersion(Wt::WBootstrapTheme::Version3); 
-    this->removeMetaHeader(Wt::MetaHeaderType::MetaName,"viewport");
-    this->addMetaHeader("viewport",
-			   "width=device-width, height=device-height, initial-scale=2");
+   // this->removeMetaHeader(Wt::MetaHeaderType::MetaName,"viewport");
+    //this->addMetaHeader("viewport",
+//			   "width=device-width, height=device-height, initial-scale=2");
     setTheme(theme);
     
     Wt::WContainerWidget *buttonContainer = new Wt::WContainerWidget(root());
@@ -59,7 +59,9 @@ EarMobileUI::EarMobileUI(const Wt::WEnvironment& env)
     Wt::WContainerWidget *fragmentContainer = new Wt::WContainerWidget(root());
     fragmentTree = new Wt::WTreeTable(fragmentContainer);
 //    fragmentTree->addColumn("",500);
-
+    fragmentTree->resize(
+			Wt::WLength(100,Wt::WLength::Unit::Percentage), //Width
+			Wt::WLength(80,Wt::WLength::Unit::Percentage)); //Heigth
    Wt::WTimer *inputtimer = new Wt::WTimer();  
    inputtimer->setInterval(2500);
    inputtimer->timeout().connect(std::bind([=] ()
