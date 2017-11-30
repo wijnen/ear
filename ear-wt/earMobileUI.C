@@ -28,24 +28,28 @@ private:
 EarMobileUI::EarMobileUI(const Wt::WEnvironment& env)
   : Wt::WApplication(env)
 {
-    setTitle("Ear interface"); 
+    setTitle("Ear Mobile interface"); 
+this->log("notice")<<"Making mobile UI";
     Wt::WBootstrapTheme *theme = new Wt::WBootstrapTheme();
-    theme->setResponsive(true);
+//    theme->setResponsive(true);
     theme->setVersion(Wt::WBootstrapTheme::Version3); 
    // this->removeMetaHeader(Wt::MetaHeaderType::MetaName,"viewport");
     //this->addMetaHeader("viewport",
 //			   "width=device-width, height=device-height, initial-scale=2");
     setTheme(theme);
     
+this->log("notice")<<"Making button container";
     Wt::WContainerWidget *buttonContainer = new Wt::WContainerWidget(root());
     playPauseButton = new Wt::WPushButton("Play from start",buttonContainer);
     playPauseButton->clicked().connect(std::bind([=] ()
     {
+this->log("notice")<<"interactnig to pause";
 	zmq_conn::interact(std::string("event:pause"));
     }));
     Wt::WPushButton *stopButton = new Wt::WPushButton("Stop",buttonContainer); 
     stopButton->clicked().connect(std::bind([=] ()
     {
+this->log("notice")<<"interactnig to stop";
 	zmq_conn::interact(std::string("event:stop"));
     }));
     stopButton->setMargin(5, Wt::Left);
@@ -55,21 +59,25 @@ EarMobileUI::EarMobileUI(const Wt::WEnvironment& env)
 
 
 
-
     Wt::WContainerWidget *fragmentContainer = new Wt::WContainerWidget(root());
     fragmentTree = new Wt::WTreeTable(fragmentContainer);
 //    fragmentTree->addColumn("",500);
-    fragmentTree->resize(
-			Wt::WLength(100,Wt::WLength::Unit::Percentage), //Width
-			Wt::WLength(80,Wt::WLength::Unit::Percentage)); //Heigth
-   Wt::WTimer *inputtimer = new Wt::WTimer();  
-   inputtimer->setInterval(2500);
+//    fragmentTree->resize(
+//			Wt::WLength(100,Wt::WLength::Unit::Percentage), //Width
+//			Wt::WLength(80,Wt::WLength::Unit::Percentage)); //Heigth
+/*   Wt::WTimer *inputtimer = new Wt::WTimer();   
+   inputtimer->setInterval(2500); //For some reason, this actually segfaults (on a RPi) when it fires, before calling updateInputs. Calling updateInputs from any other place works, including the other timer. I'll try and find out the cause later, now it runs
    inputtimer->timeout().connect(std::bind([=] ()
    {
+std::cout<< "updating inputs " <<std::endl;
        updateInputs();
    }));
    inputtimer->start();
+*/
+
    updateInputs();
+
+
     Wt::WTimer *timer = new Wt::WTimer();  
     timer->setInterval(100);
     timer->timeout().connect(std::bind([=] ()
@@ -78,16 +86,13 @@ EarMobileUI::EarMobileUI(const Wt::WEnvironment& env)
 	bool playing;
 	Wt::Json::Object playingj;
 
-
 	zmq::socket_t *socket = zmq_conn::connect();
 	posj = zmq_conn::interact(std::string("pos?"),socket);
 	playingj = zmq_conn::interact(std::string("playing?"),socket);
 	zmq_conn::disconnect(socket);
 
-
 	Wt::Json::Value posjv = posj.get("pos");	
 	const long long track_time = posjv;
-	
 	posText->setTime(track_time);
 	mark_current_fragment(fragmentTree,track_time);
 	playing = playingj.get("playing");
@@ -106,6 +111,7 @@ EarMobileUI::EarMobileUI(const Wt::WEnvironment& env)
 			playPauseButton->setText("Play from start");
 		}
 	}
+updateInputs();
     }));
     timer->start();
 
@@ -118,7 +124,7 @@ EarMobileUI::EarMobileUI(const Wt::WEnvironment& env)
 void EarMobileUI::updateInputs()
 {	
 	Wt::Json::Object response;
-	response=zmq_conn::interact("track?");
+	response = zmq_conn::interact("track?");
 	int server_track_idx = response.get("current");
 	if(ui_track_idx != server_track_idx)
 	{
