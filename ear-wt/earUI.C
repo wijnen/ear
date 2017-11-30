@@ -164,35 +164,6 @@ this->log("info")<<"Handling special sliders";
     posContainer->setLayout(posInputBox);
     inputbox->addWidget(posContainer);
 
-
-
-#ifdef PLOT //ifdef'd out as it crashes on all Debian versions of Wt //TODO add to the boxes as well
-    Wt::WContainerWidget *chartContainer = new Wt::WContainerWidget(inputContainer);
-	chartText = new  Wt::WText( "chart", chartContainer);
-this->log("info")<<"Charting";
- waveformChart = new Wt::Chart::WCartesianChart(chartContainer);
- waveformModel = new Wt::WStandardItemModel(0,3);
- loadWaveform();
- waveformChart->setModel(waveformModel);        // set the model
- waveformChart->setXSeriesColumn(0);    // set the column that holds the categorie
- waveformChart->setType(Wt::Chart::ScatterPlot);
- waveformChart->setAutoLayoutEnabled(true);
- 	Wt::Chart::WDataSeries *l = new Wt::Chart::WDataSeries(1, Wt::Chart::LineSeries);
-    l->setShadow(WShadow(3, 3, WColor(0, 0, 0, 127), 3));
- waveformChart->addSeries(*l);
-/*Chart::WDataSeries *r = new Chart::WDataSeries(2, Wt::Chart::LineSeries);
-    r->setShadow(WShadow(3, 3, WColor(0, 0, 0, 127), 3));
-   waveformChart->addSeries(*r);*/
-   waveformChart->resize(width,100);
-	waveformTimer = new WTimer();
-	waveformTimer->setSingleShot(true);
-	waveformTimer->setInterval(50);
-	waveformTimer->timeout().connect( std::bind([=] ()
-	{
-		loadWaveform();
-	}));
-	waveformTimer->start();
-#endif //Plot 
 this->log("info")<<"Making pos slider";
 	Wt::WHBoxLayout *posTextBox = new Wt::WHBoxLayout();
 	posInputBox->addLayout(posTextBox);
@@ -213,6 +184,35 @@ this->log("info")<<"Updating pos because posSlider valueChanged";
 
     posSlider->resize(width,50); 
     posInputBox->addWidget(posSlider,1);
+
+#ifdef PLOT //ifdef'd out as it crashes on all Debian versions of Wt //TODO add to the boxes as well
+    Wt::WContainerWidget *chartContainer = new Wt::WContainerWidget(root());
+    chartText = new  Wt::WText( "chart", chartContainer);
+this->log("info")<<"Charting";
+ waveformChart = new Wt::Chart::WCartesianChart(chartContainer);
+ waveformModel = new Wt::WStandardItemModel(0,3);
+ loadWaveform();
+ waveformChart->setModel(waveformModel);        // set the model
+ waveformChart->setXSeriesColumn(0);    // set the column that holds the categorie
+ waveformChart->setType(Wt::Chart::ScatterPlot);
+ waveformChart->setAutoLayoutEnabled(true);
+ 	Wt::Chart::WDataSeries *l = new Wt::Chart::WDataSeries(1, Wt::Chart::LineSeries);
+    l->setShadow(Wt::WShadow(3, 3, Wt::WColor(0, 0, 0, 127), 3));
+ waveformChart->addSeries(*l);
+Wt::Chart::WDataSeries *r = new Wt::Chart::WDataSeries(2, Wt::Chart::LineSeries);
+    r->setShadow(Wt::WShadow(3, 3, Wt::WColor(255, 0, 0, 127), 3));
+   waveformChart->addSeries(*r);
+   waveformChart->resize(width,100);
+	waveformTimer = new Wt::WTimer();
+	waveformTimer->setSingleShot(true);
+	waveformTimer->setInterval(50);
+	waveformTimer->timeout().connect( std::bind([=] ()
+	{
+		loadWaveform();
+	}));
+	waveformTimer->start();
+//    posInputBox->addWidget(chartContainer);
+#endif //Plot 
 
 
     Wt::WContainerWidget *posButtonContainer = new Wt::WContainerWidget();
@@ -413,12 +413,12 @@ void EarUI::loadWaveform()
 {
 	Wt::Json::Object ret = zmq_conn::interact(std::string("waveform?"));
 	Wt::Json::Array waveform = ret.get("waveform");
-chartText->setText(WString(std::to_string(waveform.size())));
+	chartText->setText(Wt::WString(std::to_string(waveform.size())));
 	waveformModel->removeRows(0,waveformModel->rowCount());
 	waveformModel->insertRows(0,waveform.size());
 	if(waveform.size() < 10)
 	{
-	waveformModel->insertRows(0,10);
+		waveformModel->insertRows(0,10);
 		waveformTimer->start();
 		for(int i=0;i<10+1;i++)
 		{
@@ -431,7 +431,7 @@ chartText->setText(WString(std::to_string(waveform.size())));
 	int i=0;
 	for(auto item: waveform)
 	{
-		Json::Array foo = item;
+		Wt::Json::Array foo = item;
 		double timestamp = foo[0];
 		double l = foo[1];
 		double r = foo[2];
@@ -439,10 +439,11 @@ chartText->setText(WString(std::to_string(waveform.size())));
 		waveformModel->setData(i,1,l);
 		waveformModel->setData(i,2,r);
 		i++;
+std::cout<<"Adding waveform row"<<i<<" "<<timestamp<<" "<<l<<" "<<r<<std::endl;
 	}
 	
-  //waveformChart->setModel(waveformModel);        // set the model
- waveformChart->resize(500,50); //This is needed to render the modlel, but causes a crash on my laptop. This is because of some font issues with libharu. Retry on more recent OS's first to see if that fixes things.
+  waveformChart->setModel(waveformModel);        // set the model
+ waveformChart->resize(width,100); //This is needed to render the modlel, but causes a crash on my laptop. This is because of some font issues with libharu. Retry on more recent OS's first to see if that fixes things.
 //https://sourceforge.net/p/witty/mailman/message/30272114/ //Won't work on Debian for now
 //http://witty-interest.narkive.com/1FcaBlfE/wt-interest-wpdfimage-error-102b
 }

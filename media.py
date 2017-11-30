@@ -104,7 +104,7 @@ class Media:
                 if  "GstLevel" not in str(type(msg.src)):
                     return #TODO: Optimize code below to not append and be faster
                 rms = msg.get_structure().get_value('rms')
-                output.append( (msg.get_structure().get_value('timestamp')/Gst.MSECOND , rms[0],rms[1]))
+                output.append( (msg.get_structure().get_value('timestamp')/Gst.MSECOND/100 , abs(rms[0]),abs(rms[1])))
             elif msg.type == Gst.MessageType.EOS:
                 self.waveform = output #TODO set some signal that this can be sent to Wt
                 pipeline.set_state(Gst.State.NULL)

@@ -42,6 +42,7 @@
 #include "fragmentTree.h"
 #include <Wt/WLogger>
 
+//#define PLOT
 //#define OLD_WT
 class EarUI : public Wt::WApplication
 {
@@ -73,7 +74,7 @@ private:
   #ifdef  PLOT
   void loadWaveform();
   Wt::WStandardItemModel *waveformModel;
-  Chart::WCartesianChart *waveformChart;
+  Wt::Chart::WCartesianChart *waveformChart;
   Wt::WText *chartText;
   Wt::WTimer *waveformTimer;
   #endif
