@@ -236,6 +236,7 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
                 logging.debug("Event from UI:{}".format(event))
                 if event in kwargs['events'].keys():
                     try:
+                        logging.debug("Msg:{}".format(msg))
                         ret=kwargs['events'][event]("foo")
                     except TypeError:
                         ret=kwargs['events'][event]()
