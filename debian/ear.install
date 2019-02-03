@@ -2,3 +2,4 @@ ear usr/lib/ear/
 media.py usr/lib/ear/
 dbread.py usr/lib/ear/
 ear-wt/earUI usr/lib/ear/
+ear-wt/earMobileUI usr/lib/ear/
