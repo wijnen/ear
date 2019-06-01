@@ -93,6 +93,18 @@ def parse_fragments(root, tracks, used):
                             offset = 0
                         current['files'].append((filename, offset))
                         used.add(makepath(root, filename))
+                    elif key =='AnnounceFile': #An audio file containing a recording annoucning this dance. Used for balls and maybe performances. Can be played before the dance.
+                        parts = value.split(';')
+                        filename = parts[0].strip()
+                        fileargs = [x.split('=') for x in parts[1:]]
+                        offsets = [x[1] for x in fileargs if x[0] == 'offset'] 
+                        if len(offsets) == 1:
+                            offset = int(offsets[0])
+                        else:
+                            offset = 0
+                        current['announcefiles'].append((filename, offset))
+                        used.add(makepath(root, filename))
+                        
                     elif key == 'Fragments':
                         need_indent = True
                         stack = [current['fragments']]
@@ -145,7 +157,7 @@ def read(use_cache = True):
             import pickle
             logging.info ("Trying to use cache from {}".format(os.path.join(basedirs[0],"cache.pickle")))
             tracks = pickle.load(open(os.path.join(basedirs[0],"cache.pickle"),'rb'))
-        except Exception as e:
+        except Exception as e: #TODO: Narrow exception class.
             logging.info("Cache not found")
         if len(tracks) > 1:
             return tracks
