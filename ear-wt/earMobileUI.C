@@ -2,10 +2,13 @@
 #include <Wt/WLogger>
 #include <Wt/WBootstrapTheme>
 #include <Wt/WApplication>
-#include <Wt/WContainerWidget>
+//#include <Wt/WContainerWidget>
 #include <Wt/WTreeTable>
 #include <Wt/WTimer>
 #include <Wt/Json/Object>
+//#include <Wt/WHBoxLayout>
+//#include <Wt/WVBoxLayout>
+#include <Wt/WTemplate>
 #include "earzmq.h"
 #include "fragmentTree.h"
 
@@ -31,36 +34,61 @@ EarMobileUI::EarMobileUI(const Wt::WEnvironment& env)
     setTitle("Ear Mobile interface"); 
 this->log("notice")<<"Making mobile UI";
     Wt::WBootstrapTheme *theme = new Wt::WBootstrapTheme();
-//    theme->setResponsive(true);
+///    theme->setResponsive(true);
     theme->setVersion(Wt::WBootstrapTheme::Version3); 
    // this->removeMetaHeader(Wt::MetaHeaderType::MetaName,"viewport");
     //this->addMetaHeader("viewport",
 //			   "width=device-width, height=device-height, initial-scale=2");
-    setTheme(theme);
-    
+//  this->addMetaHeader("viewport",
+//			   "width=1024");
+  setTheme(theme);
+   
+
+Wt::WTemplate *html = new Wt::WTemplate(Wt::WString(
+"<div width='device-width' scale='4'   >"
+	"<div>"
+		"${start-button} ${stop-button} ${play-time}"
+	"</div>"
+	"<div>"
+		"${fragment-tree}"
+	"</div>"
+"</div>"
+),root());
+
+ 
 this->log("notice")<<"Making button container";
-    Wt::WContainerWidget *buttonContainer = new Wt::WContainerWidget(root());
-    playPauseButton = new Wt::WPushButton("Play from start",buttonContainer);
+    //Wt::WContainerWidget *buttonContainer = new Wt::WContainerWidget(root());
+    //buttonContainer->setMaximumSize(500,Wt::WLength::Auto);
+    //Wt::WHBoxLayout *buttonBox = new Wt::WHBoxLayout();
+    //buttonContainer->setLayout(buttonBox);
+    playPauseButton = new Wt::WPushButton("Play from start");
+    //buttonBox->addWidget(playPauseButton);
     playPauseButton->clicked().connect(std::bind([=] ()
     {
 this->log("notice")<<"interactnig to pause";
 	zmq_conn::interact(std::string("event:pause"));
     }));
-    Wt::WPushButton *stopButton = new Wt::WPushButton("Stop",buttonContainer); 
+    html->bindWidget("start-button",playPauseButton);
+    Wt::WPushButton *stopButton = new Wt::WPushButton("Stop"); 
+    //buttonBox->addWidget(stopButton);
+    html->bindWidget("stop-button",stopButton);
+
     stopButton->clicked().connect(std::bind([=] ()
     {
 this->log("notice")<<"interactnig to stop";
 	zmq_conn::interact(std::string("event:stop"));
     }));
     stopButton->setMargin(5, Wt::Left);
-    posText = new TimeWidget(buttonContainer);
+    posText = new TimeWidget();
     posText->setMargin(5, Wt::Left);
+    html->bindWidget("play-time",posText);
+    //buttonBox->addWidget(posText);
    
 
 
-
-    Wt::WContainerWidget *fragmentContainer = new Wt::WContainerWidget(root());
-    fragmentTree = new Wt::WTreeTable(fragmentContainer);
+//    Wt::WContainerWidget *fragmentContainer = new Wt::WContainerWidget(root());
+    fragmentTree = new Wt::WTreeTable();
+ html->bindWidget("fragment-tree",fragmentTree);
 //    fragmentTree->addColumn("",500);
 //    fragmentTree->resize(
 //			Wt::WLength(100,Wt::WLength::Unit::Percentage), //Width
@@ -137,7 +165,12 @@ void EarMobileUI::updateInputs()
 
 Wt::WApplication *createApplication(const Wt::WEnvironment& env)
 {
-  return new EarMobileUI(env);
+  Wt::WApplication *ui =  new EarMobileUI(env);
+//    ui->addMetaHeader("viewport",
+//			   "width=1024");
+
+
+return ui;
 }
 
 
