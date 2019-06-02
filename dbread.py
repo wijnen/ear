@@ -13,7 +13,7 @@ def makepath(root, filename):
     '''Write a filename in a form that can be used to detect duplicates'''
     return os.path.realpath(os.path.abspath(os.path.join(root, filename)))
 
-def parse_fragments(root, tracks, used):
+def parse_fragments(root, tracks, used, usednames):
     '''Read tracks from a FRAGMENTS file and insert them into tracks parameter.
     Note: this does not add the 'end' marker to the tracks.'''
     with open(os.path.join(root, FRAGMENTS), 'r',encoding = 'utf-8') as f:
@@ -74,7 +74,14 @@ def parse_fragments(root, tracks, used):
                 if state in ('VALUES', 'TRACK'):
                     if key == 'Track':
                         current = { 'root': root, 'name': value, 'files': [], 'fragments': [], 'tags' : [], 'dirty' : False }
-                        tracks.append(current) #We're appending here, but because it's a dict, and dicts are mutable, we can still write to it and get the changes through. No return needed
+                        if current['name'] in usednames: 
+                            origname = current['name']
+                            i = 1
+                            while current['name'] in usednames:
+                                current['name'] = origname + " ({0})".format(i)
+                        usednames.add(current['name'])
+                        tracks.append(current) #We're appending here, but because current is a dict, and dicts are mutable, we can still write to it and get the changes through. No return needed
+                        
                         tags = autotag(value, root) 
                         if len(tags)>0:
                             current['tags'].extend(tags)
@@ -138,16 +145,22 @@ def autotag(trackname, root):
                 break
     return list(tags)
 
-def add_unfragmented_file(filename, root):
-    out = { 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] , 'tags' : autotag(filename,root), "dirty" : False}
-    out['fragments'].append(["fragment",filename,0])
-    return out
+def add_unfragmented_file(filename, root, usednames):
+    current = { 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] , 'tags' : autotag(filename,root), "dirty" : False}
+    if current['name'] in usednames: 
+        origname = current['name']
+        i = 1
+        while current['name'] in usednames:
+            current['name'] = origname + " ({0})".format(i)
+    usednames.add(current['name'])
+    current['fragments'].append(["fragment",filename,0])
+    return current
 
-def read(use_cache = True):
+def read(use_cache = True, unique_names = False):
     '''Read all db files from all fhs data directories (and pwd)
     Return list of tracks.'''
     # db = list of tracks. 
-    # track = { 'name': name, 'files': list of (filename, offset), 'fragments': list of fragments and groups, 'end': time }
+    # track = { 'name': name, 'files': list of (filename, offset), 'announcefiles' : list of (filename, offset),'fragments': list of fragments and groups, 'end': time }
     # fragment = ( 'fragment', name, start_time )
     # group = ( 'group', name, list of fragments and groups )
     tracks = []
@@ -163,13 +176,14 @@ def read(use_cache = True):
             return tracks
     # Parse all fragments files.
     used = set()
+    usednames = set()
     for dirname in basedirs:
         for root, dirs, files in os.walk(dirname, followlinks=True):
             if FRAGMENTS in files:
                 if makepath(root, FRAGMENTS) in used:
                     continue
                 used.add(makepath(root, FRAGMENTS))
-                parse_fragments(root, tracks, used)
+                parse_fragments(root, tracks, used, usednames)
     # Add all other files.
     for dirname in basedirs:
         for root, dirs, files in os.walk(dirname, followlinks=True):
@@ -179,7 +193,7 @@ def read(use_cache = True):
                     continue
                 if os.path.splitext(filename)[1] not in exts:
                     continue
-                tracks.append(add_unfragmented_file(filename, root))
+                tracks.append(add_unfragmented_file(filename, root, usednames))
                 used.add(makepath(filename,root))
     tracks = load_test_tracks(tracks)
     try:
