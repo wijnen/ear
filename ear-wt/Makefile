@@ -3,10 +3,15 @@ LIBRARIES = -l wt -l zmq -l wthttp
 SHARED_OBJ = earzmq.o TimeWidget.o fragmentTree.o
 UI_OBJECTS = $(SHARED_OBJ) filteredStringModel.o trackSearchContainer.o earUI.o
 MOBILE_OBJECTS = $(SHARED_OBJ) earMobileUI.o
+PLAYLIST_OBJECTS = $(SHARED_OBJ) earPlaylistUI.o
 
-TARGETS = earUI earMobileUI resources
+TARGETS = earUI earMobileUI earPlaylistUI resources
 
 all: $(TARGETS)
+
+earPlaylistUI: $(PLAYLIST_OBJECTS)
+	g++ -std=c++14 -Wall -Wextra -ggdb3 -O3 $^ $(LIBRARIES) -o $@
+
 
 resources:
 	ln -s /usr/share/Wt/resources .
