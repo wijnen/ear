@@ -1,3 +1,8 @@
+/*
+ * Example used: Copyright (C) 2008 Emweb bvba, Heverlee, Belgium.
+ *
+ * Code copyright Kasper Loopstra, 2019  
+ */
 
 #include <Wt/WLogger>
 #include <Wt/WBootstrapTheme>
@@ -10,29 +15,27 @@
 //#include <Wt/WVBoxLayout>
 #include <Wt/WTemplate>
 #include "earzmq.h"
-#include "fragmentTree.h"
+//#include "fragmentTree.h"
+#include "trackSearchContainer.h"
 
 
 
-
-class EarMobileUI : public Wt::WApplication
+class EarPlaylistUI : public Wt::WApplication
 {
 public:
-  EarMobileUI(const Wt::WEnvironment& env);
+  EarPlaylistUI(const Wt::WEnvironment& env);
   void updateInputs();
   int ui_track_idx;
 private:
-  Wt::WTreeTable *fragmentTree;
-  Wt::WPushButton *playPauseButton;
-  TimeWidget *posText;
+  TrackSearchContainer *trackSearchContainer; 
 };
 
 
-EarMobileUI::EarMobileUI(const Wt::WEnvironment& env)
+EarPlaylistUI::EarPlaylistUI(const Wt::WEnvironment& env)
   : Wt::WApplication(env)
 {
-    setTitle("Ear Mobile interface"); 
-this->log("notice")<<"Making mobile UI";
+    setTitle("Ear Playlist/ballroom interface"); 
+this->log("notice")<<"Making playlist UI";
     Wt::WBootstrapTheme *theme = new Wt::WBootstrapTheme();
 ///    theme->setResponsive(true);
     theme->setVersion(Wt::WBootstrapTheme::Version3); 
@@ -43,7 +46,7 @@ this->log("notice")<<"Making mobile UI";
 //			   "width=1024");
   setTheme(theme);
    
-
+/*
 Wt::WTemplate *html = new Wt::WTemplate(Wt::WString(
 "<div width='device-width' scale='4'   >"
 	"<div>"
@@ -53,7 +56,7 @@ Wt::WTemplate *html = new Wt::WTemplate(Wt::WString(
 		"${fragment-tree}"
 	"</div>"
 "</div>"
-),root());
+),root());*/
 
  
 this->log("notice")<<"Making button container";
@@ -61,9 +64,9 @@ this->log("notice")<<"Making button container";
     //buttonContainer->setMaximumSize(500,Wt::WLength::Auto);
     //Wt::WHBoxLayout *buttonBox = new Wt::WHBoxLayout();
     //buttonContainer->setLayout(buttonBox);
-    playPauseButton = new Wt::WPushButton("Play from start");
+    //playPauseButton = new Wt::WPushButton("Play from start");
     //buttonBox->addWidget(playPauseButton);
-    playPauseButton->clicked().connect(std::bind([=] ()
+/*    playPauseButton->clicked().connect(std::bind([=] ()
     {
 this->log("notice")<<"interactnig to pause";
 	zmq_conn::interact(std::string("event:pause"));
@@ -78,17 +81,18 @@ this->log("notice")<<"interactnig to pause";
 this->log("notice")<<"interactnig to stop";
 	zmq_conn::interact(std::string("event:stop"));
     }));
-    stopButton->setMargin(5, Wt::Left);
-    posText = new TimeWidget();
+    stopButton->setMargin(5, Wt::Left);*/
+    /*posText = new TimeWidget();
     posText->setMargin(5, Wt::Left);
-    html->bindWidget("play-time",posText);
+    html->bindWidget("play-time",posText);*/
     //buttonBox->addWidget(posText);
    
 
+//trackSearchContainer = new TrackSearchContainer(this);
 
 //    Wt::WContainerWidget *fragmentContainer = new Wt::WContainerWidget(root());
-    fragmentTree = new Wt::WTreeTable();
- html->bindWidget("fragment-tree",fragmentTree);
+    //fragmentTree = new Wt::WTreeTable();
+// html->bindWidget("fragment-tree",fragmentTree);
 //    fragmentTree->addColumn("",500);
 //    fragmentTree->resize(
 //			Wt::WLength(100,Wt::WLength::Unit::Percentage), //Width
@@ -105,7 +109,7 @@ std::cout<< "updating inputs " <<std::endl;
 
    updateInputs();
 
-
+/*
     Wt::WTimer *timer = new Wt::WTimer();  
     timer->setInterval(100);
     timer->timeout().connect(std::bind([=] ()
@@ -115,7 +119,7 @@ std::cout<< "updating inputs " <<std::endl;
 	Wt::Json::Object playingj;
 
 	zmq::socket_t *socket = zmq_conn::connect();
-	posj = zmq_conn::interact(std::string("pos?"),socket);
+i//	posj = zmq_conn::interact(std::string("pos?"),socket);
 	playingj = zmq_conn::interact(std::string("playing?"),socket);
 	zmq_conn::disconnect(socket);
 
@@ -141,7 +145,7 @@ std::cout<< "updating inputs " <<std::endl;
 	}
 updateInputs();
     }));
-    timer->start();
+    timer->start();*/
 
 
 
@@ -149,23 +153,23 @@ updateInputs();
 
  
 }
-void EarMobileUI::updateInputs()
+void EarPlaylistUI::updateInputs()
 {	
 	Wt::Json::Object response;
 	response = zmq_conn::interact("track?");
-	int server_track_idx = response.get("current");
-	if(ui_track_idx != server_track_idx)
+//	int server_track_idx = response.get("current");
+/*	if(ui_track_idx != server_track_idx)
 	{
 		loadFragments(fragmentTree, true);
 		ui_track_idx = server_track_idx;
-	}	
+	}	*/
 		
 }
 
 
 Wt::WApplication *createApplication(const Wt::WEnvironment& env)
 {
-  Wt::WApplication *ui =  new EarMobileUI(env);
+  Wt::WApplication *ui =  new EarPlaylistUI(env);
 //    ui->addMetaHeader("viewport",
 //			   "width=1024");
 

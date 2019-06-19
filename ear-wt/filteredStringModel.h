@@ -23,7 +23,7 @@ Class to make a stringlistmodel that filters itsself based on filters set previo
 	std::vector<Wt::WString> mays;
 	Wt::WString searchString;
 	void update();
-	Wt::WStringListModel(parent);
+	Wt::WStringListModel parent;
     private:
 	Wt::WString zmqString;
 

@@ -187,6 +187,7 @@ zmq_fd=zmq_socket.getsockopt(zmq.FD)
 logging.info("Zmq port: {}".format(zmq_port))
 g.before_active = True
 def zmq_callback(fd,condition,zmq_socket): # {{{
+    global db
     while zmq_socket.getsockopt(zmq.EVENTS) & zmq.POLLIN:
         wt = False
         try:
@@ -281,7 +282,6 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
                     out[track['name']] = [x]+track['tags'] #track index is very much needed in the Wt UI!
                 zmq_socket.send_json({'tracks': out})
             elif msg == "tracks_refresh?":
-                global db
                 newdb = dbread.read(use_cache = False) #May take a very long time!
                 db = newdb #Wierd, but due to the whole callback thing we're kind of multithreaded. This might save on semaphores?
                 data['track'] = db[-1]    

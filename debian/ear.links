@@ -1,1 +1,2 @@
-/usr/share/ear/ear /usr/bin/ear
+/usr/lib/ear/ear /usr/bin/ear
+/usr/share/Wt/resources /usr/lib/ear/resources
