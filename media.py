@@ -10,6 +10,7 @@ from gi.repository import GLib
 import os
 import time
 
+import urllib.request as url #Otherwise all files with # in the name have 0 duration
 Gst.init(())
 
 def parsemoment(m):
@@ -113,7 +114,7 @@ class Media:
         pipeline.set_state(Gst.State.PLAYING)
     @classmethod
     def get_duration(cls, filename): #Class method so we can check a files duration without instantiating everything
-        cls.prober.set_property('uri', 'file://' + os.path.realpath(filename))
+        cls.prober.set_property('uri', 'file://' + url.pathname2url(os.path.realpath(filename)))
         cls.probe_pipeline.set_state(Gst.State.PAUSED)
         cls.probe_pipeline.get_state(Gst.CLOCK_TIME_NONE)
         if any([bugged in filename for bugged in ["mp3","wav","m4a"]]):
@@ -157,7 +158,7 @@ class Media:
         track['duration'] = self.media_duration
         self.offset *= 1000.
         filename = os.path.join(os.path.dirname(track['root']), filename)
-        self.player.set_property('uri', 'file://' + os.path.realpath(filename))
+        self.player.set_property('uri', 'file://' + url.pathname2url(os.path.realpath(filename)))
         self.pipeline.set_state(Gst.State.PAUSED)
         self.set_range(-self.media_duration, track['duration'])
         self.make_waveform(filename)
