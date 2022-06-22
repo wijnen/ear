@@ -1,25 +1,25 @@
 #ifndef _MyTreeTableNode
 #define _MyTreeTableNode
-#include <Wt/WApplication>
-#include <Wt/WString>
-#include <Wt/WTree>
-#include <Wt/WTreeNode>
-#include <Wt/WTreeTable>
-#include <Wt/WTreeTableNode>
-#include <Wt/WInPlaceEdit>
-#include <Wt/WPushButton>
-#include <Wt/Json/Array>
-#include <Wt/WEvent>
+#include <Wt/WApplication.h>
+#include <Wt/WString.h>
+#include <Wt/WTree.h>
+#include <Wt/WTreeNode.h>
+#include <Wt/WTreeTable.h>
+#include <Wt/WTreeTableNode.h>
+#include <Wt/WInPlaceEdit.h>
+#include <Wt/WPushButton.h>
+#include <Wt/Json/Array.h>
+#include <Wt/WEvent.h>
 #include "TimeWidget.h"
 #include "earzmq.h"
 class MyTreeTableNode : public Wt::WTreeTableNode
 {
-	public:
-		MyTreeTableNode(const Wt::WString& labelText, Wt::WIconPair *labelIcon = 0,  Wt::WTreeTableNode *parentNode = 0) ;
+public:
+	MyTreeTableNode(const Wt::WString& labelText, const long start, const long stop, bool mini);
 	using Wt::WTreeTableNode::labelArea;
 	Wt::WString text;		
-	Wt::WInPlaceEdit*  editWidget;
-	static MyTreeTableNode *addNode(MyTreeTableNode *parent, Wt::WString name, const long start, const long stop, bool mini = false ) ;
+	Wt::WInPlaceEdit *editWidget;
+	static MyTreeTableNode *addNode(Wt::WTreeTableNode *parentNode, Wt::WString name, const long start, const long stop, bool mini = false ) ;
 	Wt::WPushButton *startButton;
 	TimeWidget *startWidget;
 	TimeWidget *stopWidget;
@@ -41,7 +41,7 @@ void splitFragment(Wt::WTreeTable *markerTree, long pos);
 void joinSelectedFragments(Wt::WTreeTable *markerTree);
 void deleteEmptyGroups(Wt::WTreeTable *markerTree);
 void saveFragmentsTree(Wt::WTreeTable *markerTree); 
-void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments, bool mini = false);
+void loadGroup(Wt::WTreeTableNode *current_root, Wt::Json::Array fragments, bool mini = false);
 void loadFragments(Wt::WTreeTable *markerTree, bool mini = false, zmq::socket_t *socket = 0 );
 void mark_current_fragment(Wt::WTreeTable *markerTree, long long track_time);
 Wt::Json::Value saveFragments(MyTreeTableNode *root);

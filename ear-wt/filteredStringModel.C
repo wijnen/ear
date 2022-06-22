@@ -1,6 +1,6 @@
 #include "filteredStringModel.h"
 
-FilteredStringModel::FilteredStringModel(std::string zmqString, WObject *parent) : Wt::WStringListModel(parent)
+FilteredStringModel::FilteredStringModel(std::string zmqString)
 {
 	searchString = "";
 	this->zmqString = zmqString;
@@ -59,7 +59,7 @@ void FilteredStringModel::update()
 	std::string name = option[0];
 	int idx = option[1];
 	        addString(name);
-		setData(x,0,idx,Wt::UserRole);
+		setData(x,0,idx,Wt::ItemDataRole::User);
 		x++;
 	}
 

@@ -6,7 +6,12 @@ import logging
 logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=logging.DEBUG)
 logging.info("Ear started, starting imports")
 import fhs
-config = fhs.init({'port': 0, 'http-port': 8082, 'Wt': '/usr/share/Wt', "webUI" : True, "mobileUI" : True})
+fhs.option('port', 'override zmq port (set to 0 for random', default = 0)
+fhs.option('http-port', 'port to listen on for http requests', default = 8082)
+fhs.option('Wt', 'Wt install location', default = '/usr/local/share/Wt')
+fhs.option('no-webUI', "Don't use the web UI", argtype = bool)
+fhs.option('no-mobileUI', "Don't use the moblie UI", argtype = bool)
+config = fhs.init(help = 'Ear dance teaching interface', version = '0.2', contact = 'Bas Wijnen <wijnen@debian.org>')
 
 from collections import OrderedDict
 import gi
@@ -18,6 +23,7 @@ import dbread
 import zmq
 import simplejson.scanner
 import subprocess
+import traceback
 
 logging.info("Imports successfull")
 
@@ -51,7 +57,7 @@ def filtered(search,musts = [],mays = []): # {{{
     toSend = []
     if len(search)<1:
         if len(musts)==0 and len(mays)==0:
-              logging.info((len(tracks), len(db)) ) #Why do we get so much doubes?
+              logging.info('Why do we get so many doubles? %s', (len(tracks), len(db)) )
         for k,v in tracks.items():
             toSend.append((k,v))   
             toSend.sort() #Sort the track names alphabetically
@@ -78,7 +84,7 @@ def file_new(dummy = None): # {{{
 def new_file(): # {{{
     if len(data['track']['files']) > 0:
         data['media'].load(data['track'], 0)
-        logging.info("Loading track {}".format(data['track']))
+        logging.info("Loading track {}".format(data['track']['name']))
     else:
         logging.warning("Empty track")
         data['media'].load(data['track'], None)
@@ -179,10 +185,10 @@ logging.info("Starting zmq")
 zmqcontext=zmq.Context()
 zmq_socket=zmqcontext.socket(zmq.REP)
 if config['port'] == 0:
-	zmq_port = zmq_socket.bind_to_random_port("tcp://*")
+    zmq_port = zmq_socket.bind_to_random_port("tcp://*")
 else:
-	zmq_port = config['port']
-	zmq_socket.bind("tcp://*:" + str(zmq_port))
+    zmq_port = config['port']
+    zmq_socket.bind("tcp://*:" + str(zmq_port))
 zmq_fd=zmq_socket.getsockopt(zmq.FD)
 logging.info("Zmq port: {}".format(zmq_port))
 g.before_active = True
@@ -348,7 +354,7 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
 set_pos(0)
 data['track']=db[-1]    
 new_file()
-logging.info("Track: {}. Media:{}".format(data['track'],data['media']))
+logging.info("Track: {}. Media:{}".format(data['track']['name'],data['media']))
 logging.info ("importing gobject")
 from gi.repository import GObject
 import os
@@ -357,22 +363,22 @@ if windows:
     logging.info("Trying to run on windows!")
     GLib.timeout_add(10,lambda _:zmq_callback(zmq_socket.fd,True,zmq_socket),None)
 else:
-    GObject.io_add_watch(zmq_socket.fd, GObject.IO_IN, zmq_callback, zmq_socket)
+    GLib.io_add_watch(zmq_socket.fd, GLib.IO_IN, zmq_callback, zmq_socket)
 # Start the UI process with the zmq port.
 env = os.environ.copy()
 env['ZMQ_PORT'] = 'tcp://localhost:' + str(zmq_port)
 print(env['ZMQ_PORT'])
-if config['webUI']:
+if not config['no-webUI']:
     executable = fhs.read_data(os.path.join('ear-wt', 'earUI'), opened = False)
     wt_config = fhs.read_data(os.path.join('ear-wt', 'wt_config.xml'), opened = False)
 
-    logging.info(" opening subprocess " )
+    logging.info(" opening subprocess earUI")
     try:
         UI = subprocess.Popen((executable,
             '--docroot', config['Wt'],
             '--http-address=0.0.0.0',
             '--http-port=' + str(config['http-port']),
-            '-c', wt_config,
+	    '-c', wt_config,
             '--accesslog','-'),
         env = env)
         logging.info("Popened")
@@ -380,11 +386,11 @@ if config['webUI']:
         logging.warning("No exe found!")
         pass
 
-if config['mobileUI']:
+if not config['no-mobileUI']:
     executable = fhs.read_data(os.path.join('ear-wt', 'earMobileUI'), opened = False)
     wt_config = fhs.read_data(os.path.join('ear-wt', 'wt_config.xml'), opened = False)
 
-    logging.info(" opening subprocess earMobileUI " )
+    logging.info(" opening subprocess earMobileUI")
     try:
         UI = subprocess.Popen((executable,
             '--docroot', config['Wt'],
@@ -395,6 +401,7 @@ if config['mobileUI']:
         env = env)
         logging.info("Popened")
     except:
+        traceback.print_exc()
         logging.warning("No exe found!")
         pass
 

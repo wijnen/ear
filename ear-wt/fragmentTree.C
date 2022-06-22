@@ -1,92 +1,90 @@
 #include "fragmentTree.h"
 
 
-MyTreeTableNode::MyTreeTableNode(const Wt::WString& labelText, Wt::WIconPair *labelIcon,  Wt::WTreeTableNode *parentNode) :  Wt::WTreeTableNode( labelText,  labelIcon , parentNode )
+MyTreeTableNode::MyTreeTableNode(const Wt::WString& labelText, const long start, const long stop, bool mini)
+	:  Wt::WTreeTableNode( labelText,  nullptr )
 {
+	Wt::WContainerWidget *myLabelArea(labelArea());
+	Wt::WWidget *labelWidget(myLabelArea->widget(0)); //See source of WTreeNode.
+	myLabelArea->removeWidget(labelWidget);
+	if (mini) {
+		// We make these, even if we're doing the mini-tree. We use
+		// these widgets to store the actual data, so that if we need
+		// the start or stop time, we can get them out of the widget
+		// and get the right numbers, even if we haven't saved the
+		// fragment set yet.
+		startWidget = new TimeWidget();
+		stopWidget = new TimeWidget();
+	}
+	else {
+		setColumnWidget(2, std::make_unique <TimeWidget> ());
+		startWidget = dynamic_cast <TimeWidget *> (columnWidget(2));
+		setColumnWidget(3, std::make_unique <TimeWidget> ());
+		stopWidget = dynamic_cast <TimeWidget *> (columnWidget(3));
+	}
+	startWidget->setTime(start);
+	stopWidget->setTime(stop);
 
-}
+	Wt::WString startLabel;
 
-
-MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString name, const long start, const long stop, bool mini ) {
-	MyTreeTableNode *node = new MyTreeTableNode(name, 0, parent);
-	Wt::WContainerWidget *labelArea = node->labelArea();
-	Wt::WWidget *labelWidget = labelArea->widget(0); //See source of WTreeNode.
-	labelArea->removeWidget(labelWidget);
-	node->startWidget = new TimeWidget(); //We make these, even if we're doing the mini-tree. We use these widgets to store the actual data, so that if we need the start or stop time, we can get them out of the widget and get the right numbers, even if we haven't saved the fragment set yet.
-	node->startWidget->setTime(start);
-	node->stopWidget = new TimeWidget();
-	node->stopWidget->setTime(stop);
-	
 	if (mini)
 	{
-		node->startButton = new Wt::WPushButton(name);
+		startLabel = labelText;
 	}
 	else
 	{
-		node->editWidget = new Wt::WInPlaceEdit();
-		std::string str = name.toUTF8();
+		setColumnWidget(1, std::make_unique <Wt::WInPlaceEdit> ());
+		editWidget = dynamic_cast <Wt::WInPlaceEdit *> (columnWidget(1));
+		std::string str = labelText.toUTF8();
 		str.erase(std::remove(str.begin(), str.end(), ' '), str.end()); //This removes whitespace
 		if(str.length()<1)
 		{
-			node->editWidget->setText(Wt::WString::Empty);	
-			node->editWidget->setPlaceholderText("New Node");	
-		
+			editWidget->setText(Wt::WString::Empty);
+			editWidget->setPlaceholderText("New Node");
+
 		}
 		else
 		{
-			node->editWidget->setText(name);	
+			editWidget->setText(labelText);
 		}
-		node->editWidget->valueChanged().connect(std::bind([=]() {
-			
-			std::string str = node->editWidget->text().toUTF8();
+		editWidget->valueChanged().connect(std::bind([&]() {
+
+			std::string str = editWidget->text().toUTF8();
 			str.erase(std::remove(str.begin(), str.end(), ' '), str.end()); //This removes whitespace
 			if(str.length()<1)
 			{
-				node->editWidget->setText(Wt::WString::Empty);	
+				editWidget->setText(Wt::WString::Empty);
 			}
-			node->text = node->editWidget->text();
+			text = editWidget->text();
 		}));
-	
-		node->text = node->editWidget->text();
-	
-		node->startButton = new Wt::WPushButton("|>");
+
+		text = editWidget->text();
+
+		startLabel = "|>";
 	}
 //todo: add doubleclick trick to allow modal edit
-	node->startButton->clicked().connect(std::bind([=]() { 
-		if(start == -1)
-		{	//We've clicked the startbutton on a group, so we need to find the first non-group widget. 
-			if (node->childNodes().size() > 0)
-			{
- 				//So, there are children.. In this case take the first child and pretend we've clicked that startButton. It'll be recursive. 
-				MyTreeTableNode *firstChild = dynamic_cast<MyTreeTableNode*> (*(node->childNodes()).begin());
+	startButton = myLabelArea->addWidget(std::make_unique <Wt::WPushButton> (startLabel));
+	startButton->clicked().connect(std::bind([=]() {
+		if (start == -1)
+		{	//We've clicked the startbutton on a group, so we need to find the first non-group widget.
+			if (childNodes().size() > 0) {
+ 				// So, there are children.. In this case take the first child and pretend we've clicked that startButton. It'll be recursive.
+				MyTreeTableNode *firstChild = dynamic_cast<MyTreeTableNode*> (*(childNodes()).begin());
 				return firstChild->startButton->clicked().emit(Wt::WMouseEvent());
 			}
-			else
-			{ //Where in a childless group, so we cannot play anything!
+			else {
+				// We're in a childless group, so we cannot play anything!
 				return;
 			}
-
 		}
-		Wt::Json::Object jStartBefore = zmq_conn::interact("inputs?"); 
+		Wt::Json::Object jStartBefore = zmq_conn::interact("inputs?");
 		Wt::Json::Array aStartBefore = jStartBefore.get("before");
 		signed long long startBefore = aStartBefore[2];
 		zmq_conn::interact(Wt::WString("event:stop")); //Probably needed to help stop the track from stopping the middle of a play
 
-		Wt::WString command="play:"+std::to_string(start - startBefore * 1000); 
+		Wt::WString command="play:"+std::to_string(start - startBefore * 1000);
 		zmq_conn::interact(command);
 	}));
-	labelArea->addWidget(node->startButton);
-	if(mini)
-	{
-	}
-	else
-	{ //0 is startbutton now
-		//node->setColumnWidget(1, node->startButton);
-		node->setColumnWidget(1,node->editWidget );
-		node->setColumnWidget(2, node->startWidget); 
-		node->setColumnWidget(3, node->stopWidget);
-	}
-	return node;
     }
 
 
@@ -95,7 +93,7 @@ MyTreeTableNode *MyTreeTableNode::addNode(MyTreeTableNode *parent, Wt::WString n
 
 bool fragmentAbeforeB(Wt::WTreeNode* A, Wt::WTreeNode* B) //Needs renaming)
 {
-		
+
 		MyTreeTableNode *myA =  dynamic_cast<MyTreeTableNode*>(A);
 		while(myA->startWidget->time() ==-1) //If it's a group....   //TODO: make get_first_fragment_child
 		{
@@ -103,7 +101,7 @@ bool fragmentAbeforeB(Wt::WTreeNode* A, Wt::WTreeNode* B) //Needs renaming)
 			{
 				return false; //If it's an empty group
 			}
-			myA = dynamic_cast<MyTreeTableNode*>(*(myA->childNodes().begin())); //Otherwise, get the first child. It's a while loop, so it'll get the first non-group child in a direct line of first-born children. 
+			myA = dynamic_cast<MyTreeTableNode*>(*(myA->childNodes().begin())); //Otherwise, get the first child. It's a while loop, so it'll get the first non-group child in a direct line of first-born children.
 		}
 		long startA = myA->startWidget->time();
 		long stopA = myA->stopWidget->time();
@@ -132,7 +130,7 @@ bool fragmentAbeforeB(Wt::WTreeNode* A, Wt::WTreeNode* B) //Needs renaming)
 		}
 	}
 	return false;
-	
+
 
 
 }
@@ -142,7 +140,7 @@ bool fragmentAbeforeB(Wt::WTreeNode* A, Wt::WTreeNode* B) //Needs renaming)
 void playSelection(Wt::WTreeTable *markerTree)
 {
 
-	std::string ret = "{\"play\": [";	
+	std::string ret = "{\"play\": [";
 	bool first = true;
 	for(auto node:children_as_vector(dynamic_cast<MyTreeTableNode*>(markerTree->tree()->treeRoot())))
 	{
@@ -163,10 +161,10 @@ void playSelection(Wt::WTreeTable *markerTree)
 		}
 		if(selected)
 		{
-	
+
 			if (first)
 			{
-				Wt::Json::Object jStartBefore = zmq_conn::interact("inputs?"); 
+				Wt::Json::Object jStartBefore = zmq_conn::interact("inputs?");
 				Wt::Json::Array aStartBefore = jStartBefore.get("before");
 				signed long long startBefore = aStartBefore[2];
 				start -= startBefore * 1000;
@@ -177,11 +175,11 @@ void playSelection(Wt::WTreeTable *markerTree)
 				ret+=" , ";
 			}
 			ret += "["+std::to_string(start)+" , "+	std::to_string(stop)+"]\n";
-			
+
 		}
 	}
 	ret+="]}";
-		
+
 	zmq_conn::interact(ret,true);
 
 
@@ -189,28 +187,27 @@ void playSelection(Wt::WTreeTable *markerTree)
 void groupMarkers(Wt::WTreeTable *markerTree)
 {
  	Wt::WTreeNode *parent;
-	Wt::WTreeNode *newNode;
 	std::set<Wt::WTreeNode*> unSortedselectedNodes =markerTree->tree()->selectedNodes();
 	std::vector<Wt::WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
-	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB); 
- 
+	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB);
+
 	std::vector< Wt::WTreeNode*> siblings;
- 	
+ 
 	Wt::WTreeNode *firstNode = *selectedNodes.begin();
 	if(firstNode == markerTree->tree()->treeRoot())
 	{
 		return;
 	}
 	parent = firstNode->parentNode();
-	newNode = MyTreeTableNode::addNode(0 ,"Group" ,-1,-1);
 	siblings = parent->childNodes();
 	int index = std::find(siblings.begin(), siblings.end(), firstNode) - siblings.begin();
-	parent->insertChildNode(index, newNode);
+	auto newNode = new MyTreeTableNode("Group", -1, -1, false);
 	for(auto node:selectedNodes)
 	{
 		parent->removeChildNode(node);
-		newNode->addChildNode(node);
+		newNode->addChildNode(std::unique_ptr <Wt::WTreeNode>(node));
 	}
+	parent->insertChildNode(index, std::unique_ptr <Wt::WTreeNode> (newNode));
 
 }
 
@@ -225,7 +222,7 @@ void ungroupMarkers(Wt::WTreeTable *markerTree)
 	std::set<Wt::WTreeNode*> unSortedselectedNodes = markerTree->tree()->selectedNodes();
 	std::vector<Wt::WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
 	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB);
- 
+
 	Wt::WTreeNode *firstNode = *selectedNodes.begin();
 	Wt::WTreeNode *lastNode = *selectedNodes.rbegin(); //Note, the reverse of the beginning is not the end
 	parent = firstNode->parentNode();
@@ -236,7 +233,7 @@ void ungroupMarkers(Wt::WTreeTable *markerTree)
 	siblings = parent->childNodes();
 
 	if(firstNode != siblings.front() and lastNode != siblings.back())
-	{ 
+	{
 		return;
 	}
 	grandparent = parent->parentNode();
@@ -250,7 +247,7 @@ void ungroupMarkers(Wt::WTreeTable *markerTree)
 	{
 		parent->removeChildNode(node);
 		index++;
-		grandparent->insertChildNode(index,node);
+		grandparent->insertChildNode(index, std::unique_ptr <Wt::WTreeNode> (node));
 	}
 
 }
@@ -260,7 +257,7 @@ void ungroupMarkers(Wt::WTreeTable *markerTree)
 void splitFragment(Wt::WTreeTable *markerTree, long pos)
 {
 
-	for (auto fragmentTTN:children_as_vector(markerTree->tree()->treeRoot()) ) 
+	for (auto fragmentTTN:children_as_vector(markerTree->tree()->treeRoot()) )
 	{
 		long start = fragmentTTN->startWidget->time();
 		long stop = fragmentTTN->stopWidget->time();
@@ -283,11 +280,10 @@ void splitFragment(Wt::WTreeTable *markerTree, long pos)
 				this->log("warn")<<"Can't find myself when splitting a fragment";
 				return;
 			}*/
-			MyTreeTableNode *newFragmentTTN = MyTreeTableNode::addNode(0,"", pos, stop);
-			my_parent->insertChildNode(index+1, newFragmentTTN);
+			my_parent->insertChildNode(index+1, std::make_unique <MyTreeTableNode> ("", pos, stop, false));
 		}
-		
-	}	
+
+	}
 
 }
 
@@ -298,7 +294,7 @@ void joinSelectedFragments(Wt::WTreeTable *markerTree)
 	std::set<Wt::WTreeNode*> unSortedselectedNodes =markerTree->tree()->selectedNodes();
 	std::vector<Wt::WTreeNode*> selectedNodes ( unSortedselectedNodes.begin(), unSortedselectedNodes.end());
 	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB);
- 
+
 	for (auto node:selectedNodes)	{
 	//tree returns a tree with tree nodes. We need treetable nodes!
 		MyTreeTableNode *fragmentTTN =  dynamic_cast<MyTreeTableNode*>(node);
@@ -325,7 +321,7 @@ void joinSelectedFragments(Wt::WTreeTable *markerTree)
 	firstNode->stopWidget->setTime(prevStop);
 	bool first=true;
 //Dwlete all others
-	for (auto node:selectedNodes)	
+	for (auto node:selectedNodes)
 	{
 		if (not first)
 		{
@@ -340,7 +336,7 @@ void joinSelectedFragments(Wt::WTreeTable *markerTree)
 void deleteEmptyGroups(Wt::WTreeTable *markerTree)
 {
 	std::set<Wt::WTreeNode*> selectedNodes = markerTree->tree()->selectedNodes();
-	for (auto node:selectedNodes)	
+	for (auto node:selectedNodes)
 	{
 		MyTreeTableNode *fragmentTTN = dynamic_cast<MyTreeTableNode*>(node);
 		long start = fragmentTTN->startWidget->time();
@@ -357,7 +353,7 @@ void deleteEmptyGroups(Wt::WTreeTable *markerTree)
 		}
 		node->parentNode()->removeChildNode(node);
 	}
-	
+
 }
 
 
@@ -368,7 +364,7 @@ void deleteEmptyGroups(Wt::WTreeTable *markerTree)
 
 
 
-void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments, bool mini)
+void loadGroup(Wt::WTreeTableNode *current_root, Wt::Json::Array fragments, bool mini)
 { //Recursively add the fragments to the treetable //does not need object at all
 //this->log("info") <<"Loading fragments";
 	for(auto fragmentValue:fragments)
@@ -379,14 +375,15 @@ void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments, bool mi
 //this->log("debug") <<"Loading fragment "<<name<<" of type "<<type;
 		if (type == "group")
 		{
-			
-			loadGroup( MyTreeTableNode::addNode(current_root,name,-1,-1, mini) ,fragment[2], mini);	
+
+			auto node = current_root->addChildNode(std::make_unique <MyTreeTableNode> (name, -1, -1, mini));
+			loadGroup(dynamic_cast <MyTreeTableNode *> (node), fragment[2], mini);
 		}
 		else if (type == "fragment")
 		{
-			long long start_time = fragment[2]; 
+			long long start_time = fragment[2];
 			long long stop_time = fragment[3];
-			MyTreeTableNode::addNode(current_root,name,start_time,stop_time, mini);
+			current_root->addChildNode(std::make_unique <MyTreeTableNode> (name, start_time, stop_time, mini));
 		}
 		else
 		{
@@ -394,7 +391,7 @@ void loadGroup(MyTreeTableNode *current_root, Wt::Json::Array fragments, bool mi
 		}
 	}
 
-		
+
 }
 
 void loadFragments(Wt::WTreeTable *markerTree, bool mini, zmq::socket_t *socket)
@@ -404,31 +401,28 @@ void loadFragments(Wt::WTreeTable *markerTree, bool mini, zmq::socket_t *socket)
 		waveformTimer->start();
 	#endif
 	bool disconnect = false;
-	if (socket == 0)
-	{
+	if (socket == 0) {
 		socket = zmq_conn::connect();
 		disconnect = true;
 	}
-		
+
 	Wt::Json::Object response;
 
 	response = zmq_conn::interact("title?",socket);
 
-	Wt::WString trackname = response.get("title"); 
-	MyTreeTableNode *root = new MyTreeTableNode(trackname);
-	markerTree->setTreeRoot(root,trackname); 
-	MyTreeTableNode *current_root = root;
+	Wt::WString trackname = response.get("title");
+	markerTree->setTreeRoot(std::make_unique <MyTreeTableNode> (trackname, -1, -1, mini), trackname);
+	auto root = markerTree->treeRoot();
 	response = zmq_conn::interact("fragments?",socket);
 	Wt::Json::Array fragments;
 	fragments = response.get("fragments");
 
-	loadGroup(current_root,fragments, mini);
-	
+	loadGroup(root, fragments, mini);
+
 	root->expand();
-	if (disconnect)
-	{
+	if (disconnect) {
 		zmq_conn::disconnect(socket);
-	}	
+	}
 }
 
 
@@ -437,18 +431,18 @@ void loadFragments(Wt::WTreeTable *markerTree, bool mini, zmq::socket_t *socket)
 
 void mark_current_fragment(Wt::WTreeTable *markerTree, long long pos)
 {
-	for (auto fragmentTTN:children_as_vector(markerTree->tree()->treeRoot()) ) 
+	for (auto fragmentTTN:children_as_vector(markerTree->tree()->treeRoot()) )
 	{
 		long start = fragmentTTN->startWidget->time();
 		long stop = fragmentTTN->stopWidget->time();
 		if(pos > start and pos < stop)
-		{ 
+		{
 			for( auto node:ancestors_as_vector(fragmentTTN))
 			{
 				dynamic_cast<MyTreeTableNode*>(node)->startButton->addStyleClass("btn-info");
 			}
 		//	fragmentTTN->decorationStyle().setBackgroundColor(Wt::WColor(255,0,0)); //TODO: ?Make a proper style, and enlarge the font or something
-//TODO: Maybe get the parents too, if the current widget is not shown			
+//TODO: Maybe get the parents too, if the current widget is not shown
 
 		}
 		else
@@ -458,7 +452,7 @@ void mark_current_fragment(Wt::WTreeTable *markerTree, long long pos)
 //		fragmentTTN->decorationStyle().setBackgroundColor(Wt::WColor(255,255,255)); //TODO: Properly remove the previously added style
 
 		}
-	
+
 	}
 }
 
@@ -471,10 +465,10 @@ void mark_current_fragment(Wt::WTreeTable *markerTree, long long pos)
 
 
 
-void saveFragmentsTree(Wt::WTreeTable *markerTree) 
+void saveFragmentsTree(Wt::WTreeTable *markerTree)
 {
 	Wt::Json::Value fragmentsval = saveFragments(dynamic_cast<MyTreeTableNode*>(markerTree->tree()->treeRoot() ));
-	Wt::Json::Array& fragments = fragmentsval; 
+	Wt::Json::Array& fragments = fragmentsval;
 	std::string fragstring = Wt::Json::serialize(fragments);
 	fragstring = "{ \"fragments\" : "+fragstring + "}";
 	zmq_conn::interact(fragstring,true);
@@ -482,11 +476,11 @@ void saveFragmentsTree(Wt::WTreeTable *markerTree)
 }
 
 Wt::Json::Value saveFragments(MyTreeTableNode *root)
-{ 
-	Wt::Json::Value retVal = Wt::Json::Value(Wt::Json::ArrayType);
-	Wt::Json::Array& ret = retVal; 
+{
+	Wt::Json::Value retVal = Wt::Json::Value(Wt::Json::Type::Array);
+	Wt::Json::Array& ret = retVal;
 	Wt::WString name;
-	name = root->text;	
+	name = root->text;
 	std::string str = name.toUTF8();
 	str.erase(std::remove(str.begin(), str.end(), ' '), str.end()); //This removes whitespace
 	if(str.length()<1)
@@ -497,8 +491,8 @@ Wt::Json::Value saveFragments(MyTreeTableNode *root)
 	{
 		ret.push_back(Wt::Json::Value(Wt::WString("group")));
 		ret.push_back(Wt::Json::Value(name));
-		Wt::Json::Value out_children_value = Wt::Json::Value(Wt::Json::ArrayType);	
-		Wt::Json::Array& out_children = out_children_value; 
+		Wt::Json::Value out_children_value = Wt::Json::Value(Wt::Json::Type::Array);
+		Wt::Json::Array& out_children = out_children_value;
 		for(auto mynode:root->childNodes()) //I wonder, what order do we get these in?
 		{
 			out_children.push_back(saveFragments(dynamic_cast<MyTreeTableNode*>(mynode)));
@@ -538,9 +532,9 @@ std::vector<MyTreeTableNode*> children_as_vector(MyTreeTableNode *root)
 		if(node->childNodes().size()>0)
 
 		{	std::vector<MyTreeTableNode*> grandchildren = children_as_vector(dynamic_cast<MyTreeTableNode*>(node));
-			retval.insert(retval.end(),grandchildren.begin(),grandchildren.end()); 
+			retval.insert(retval.end(),grandchildren.begin(),grandchildren.end());
 		}
-			
+
 	}
 	return retval;
 

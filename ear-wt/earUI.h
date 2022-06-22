@@ -1,48 +1,48 @@
 #ifndef _earUI
 #define _earUI
 
-#include <Wt/WApplication>
-#include <Wt/WBreak>
-#include <Wt/WContainerWidget>
-#include <Wt/WLineEdit>
-#include <Wt/WPushButton>
-#include <Wt/WText>
-#include <Wt/WString>
-#include <Wt/WGroupBox>
-#include <Wt/WVBoxLayout>
-#include <Wt/WHBoxLayout>
-#include <Wt/WAnimation>
-#include <Wt/WStringListModel>
-#include <Wt/WStandardItemModel>
-#include <Wt/WComboBox>
-#include <Wt/WSelectionBox>
-#include <Wt/WPanel>
-#include <Wt/WSlider>
-#include <Wt/WTimer>
-#include <Wt/Json/Array>
-#include <Wt/Json/Parser>
-#include <Wt/Json/Object>
-#include <Wt/Json/Serializer>
-#include <Wt/WSignalMapper>
-#include <Wt/WTreeTable>
-#include <Wt/WTree>
-#include <Wt/WTreeNode>
-#include <Wt/WTreeTableNode>
-#include <Wt/Chart/WCartesianChart>
+#include <Wt/WApplication.h>
+#include <Wt/WBreak.h>
+#include <Wt/WContainerWidget.h>
+#include <Wt/WLineEdit.h>
+#include <Wt/WPushButton.h>
+#include <Wt/WText.h>
+#include <Wt/WString.h>
+#include <Wt/WGroupBox.h>
+#include <Wt/WVBoxLayout.h>
+#include <Wt/WHBoxLayout.h>
+#include <Wt/WAnimation.h>
+#include <Wt/WStringListModel.h>
+#include <Wt/WStandardItemModel.h>
+#include <Wt/WComboBox.h>
+#include <Wt/WSelectionBox.h>
+#include <Wt/WPanel.h>
+#include <Wt/WSlider.h>
+#include <Wt/WTimer.h>
+#include <Wt/Json/Array.h>
+#include <Wt/Json/Parser.h>
+#include <Wt/Json/Object.h>
+#include <Wt/Json/Serializer.h>
+#include <Wt/WSignal.h>
+#include <Wt/WTreeTable.h>
+#include <Wt/WTree.h>
+#include <Wt/WTreeNode.h>
+#include <Wt/WTreeTableNode.h>
+#include <Wt/Chart/WCartesianChart.h>
 #include <zmq.hpp>
 #include <string>
 #include <iostream>
 #include <boost/range/adaptor/reversed.hpp>
-#include <Wt/WCompositeWidget>
-#include <Wt/WBootstrapTheme>
+#include <Wt/WCompositeWidget.h>
+#include <Wt/WBootstrap3Theme.h>
+#include <Wt/WEnvironment.h>
 
 #include "earzmq.h"
 #include "filteredStringModel.h"
 #include "TimeWidget.h"
 #include "fragmentTree.h"
-#include <Wt/WLogger>
+#include <Wt/WLogger.h>
 
-//#define OLD_WT
 class EarUI : public Wt::WApplication
 {
 public:
@@ -59,7 +59,7 @@ private:
   std::vector<MyTreeTableNode*> fragment_set;
   void clicked(Wt::WPushButton* source );
   Wt::WTreeTable *markerTree;
-  MyTreeTableNode *addNode(MyTreeTableNode *parent, Wt::WString name, const long start, const long stop );
+  MyTreeTableNode *addNode(Wt::WString name, const long start, const long stop );
   Wt::Json::Value saveFragments(MyTreeTableNode *root);
   
   Wt::WPushButton *playPauseButton;

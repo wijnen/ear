@@ -246,7 +246,7 @@ class Media:
         self.play(self.get_pos() + delta, play = None)
     def pause(self, pausing = True):
         logging.debug("Pause in media, {}".format(pausing))
-        logging.debug("\n".join(traceback.format_stack()))
+        #logging.debug("\n".join(traceback.format_stack()))
         if pausing:
             self.pipeline.set_state(Gst.State.PAUSED)
             if self.updater:

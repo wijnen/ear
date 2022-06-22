@@ -1,77 +1,54 @@
 #include "trackSearchContainer.h"
 
-TrackSearchContainer::TrackSearchContainer(EarUI *parentUI, Wt::WContainerWidget *parent) : Wt::WContainerWidget(parent)
+TrackSearchContainer::TrackSearchContainer(EarUI *parentUI)
 {
-this->parentUI = parentUI;
-//Wt::WContainerWidget *trackSearchContainer = new Wt::WContainerWidget(); 
-//resize(parentUI->width,500);
-//Make this a GridLayout and add a second column showing the track settings TODO
+	this->parentUI = parentUI;
+	//Wt::WContainerWidget *trackSearchContainer = new Wt::WContainerWidget(); 
+	//resize(parentUI->width,500);
+	//Make this a GridLayout and add a second column showing the track settings TODO
 
-Wt::WVBoxLayout *vbox = new Wt::WVBoxLayout();
-setLayout(vbox); //TODO
+	auto vbox = setLayout(std::make_unique <Wt::WVBoxLayout> ());
 
+	auto searchBox = vbox->addWidget(std::make_unique <Wt::WLineEdit> ());
+	searchBox->setPlaceholderText("Type to search");
+	auto trackSelectionBox = vbox->addWidget(std::make_unique <Wt::WSelectionBox> (), 1);
+	trackModel = std::make_shared <FilteredStringModel> ();
+	searchBox->textInput().connect(std::bind([=] () {
+		trackModel->searchString = searchBox->text();
+		parentUI->log("notice")<<"Updating track search model";
+		trackModel->update();
+		trackSelectionBox->setModel(trackModel);
+		trackSelectionBox->setCurrentIndex(0);
+		parentUI->log("notice")<<"Updated track search model";
+	}));
 
-Wt::WLineEdit *searchBox = new Wt::WLineEdit(); 
-vbox->addWidget(searchBox);
-searchBox->setPlaceholderText("Type to search");
-Wt::WSelectionBox *trackSelectionBox = new Wt::WSelectionBox();
-vbox->addWidget(trackSelectionBox,1);
-FilteredStringModel *trackModel = new FilteredStringModel();
-#ifndef OLD_WT
-searchBox->textInput().connect(std::bind([=] ()
-{
-	trackModel->searchString = searchBox->text();
-	parentUI->log("notice")<<"Updating track search model";
 	trackModel->update();
-	trackSelectionBox->setModel(trackModel);
-	trackSelectionBox->setCurrentIndex(0);
-	parentUI->log("notice")<<"Updated track search model";
-}));
-#endif
-#ifdef OLD_WT
-//<3.3.6 I think
-searchBox->keyPressed().connect(std::bind([=] ()
-{
-	trackModel->searchString = searchBox->text();
-	trackModel->update();
-	trackSelectionBox->setModel(trackModel);
-	trackSelectionBox->setCurrentIndex(0);
-}));
-#
-#endif
-
-trackModel->update();
-trackSelectionBox->setModel(trackModel);
-trackSelectionBox->setVerticalSize(10);
-trackSelectionBox->setSelectionMode(Wt::SingleSelection);
-Wt::WPushButton *selectButton = new Wt::WPushButton("Select track");
-vbox->addWidget(selectButton);
-selectButton->clicked().connect(std::bind([=] ()
-{
-	int row = trackSelectionBox->currentIndex();
-	int tracknumber = boost::any_cast<int>(trackModel->data(trackModel->index(row,0),Wt::UserRole)); 
-	zmq_conn::interact(Wt::WString("track:"+std::to_string(tracknumber)));
-	if (parentUI !=0)
-	{
-		parentUI->updateInputs();
-	}
-}));
-
-    Wt::WContainerWidget *filterContainer = new WContainerWidget(this);
-vbox->addWidget(filterContainer);
-    Wt::WContainerWidget *searchContainer = new WContainerWidget(filterContainer);
-    Wt::WContainerWidget *filtersContainer = new WContainerWidget(filterContainer);
-    Wt::WLineEdit *filterbox = new Wt::WLineEdit(searchContainer);
-    filterbox->setPlaceholderText("Filter"); 
-    Wt::WPushButton *addFilter = new Wt::WPushButton("Add",searchContainer);
-    addFilter->clicked().connect(std::bind([=] ()
-    {
-	Wt::WContainerWidget *thisFilter = new Wt::WContainerWidget(filtersContainer); 
-	Wt::WString filterName = filterbox->text();
-	new Wt::WText(filterName,thisFilter);
-	Wt::WPushButton *removeButton = new Wt::WPushButton("X",thisFilter);
-		removeButton->clicked().connect(std::bind([=] ()
+	trackSelectionBox->setModel(std::shared_ptr <Wt::WAbstractItemModel> (trackModel));
+	trackSelectionBox->setVerticalSize(10);
+	trackSelectionBox->setSelectionMode(Wt::SelectionMode::Single);
+	auto selectButton = vbox->addWidget(std::make_unique <Wt::WPushButton> ("Select track"));
+	selectButton->clicked().connect(std::bind([=] () {
+		int row = trackSelectionBox->currentIndex();
+		int tracknumber = Wt::cpp17::any_cast <int> (trackModel->data(trackModel->index(row,0),Wt::ItemDataRole::User));
+		zmq_conn::interact(Wt::WString("track:"+std::to_string(tracknumber)));
+		if (parentUI !=0)
 		{
+			parentUI->updateInputs();
+		}
+	}));
+
+	auto filterContainer = vbox->addWidget(std::make_unique <WContainerWidget> ());
+	auto searchContainer = filterContainer->addWidget(std::make_unique <WContainerWidget> ());
+	auto filtersContainer = filterContainer->addWidget(std::make_unique <WContainerWidget> ());
+	auto filterBox = searchContainer->addWidget(std::make_unique <Wt::WLineEdit> ());
+	filterBox->setPlaceholderText("Filter"); 
+	auto addFilter = searchContainer->addWidget(std::make_unique <Wt::WPushButton> ("Add"));
+	addFilter->clicked().connect(std::bind([=] () {
+		auto thisFilter = filtersContainer->addWidget(std::make_unique <Wt::WContainerWidget> ());
+		Wt::WString filterName = filterBox->text();
+		thisFilter->addWidget(std::make_unique <Wt::WText> (filterName));
+		auto removeButton = thisFilter->addWidget(std::make_unique <Wt::WPushButton> ("X"));
+		removeButton->clicked().connect(std::bind([=] () {
 			filtersContainer->removeWidget(thisFilter);
 			thisFilter->clear();
 			std::vector<Wt::WString>::iterator pos = std::find(trackModel->musts.begin(), trackModel->musts.end(), filterName);
@@ -81,16 +58,13 @@ vbox->addWidget(filterContainer);
 				trackModel->update();
 			}
 		}));
-        trackModel->musts.push_back(filterName);  
-				trackModel->update();
-	filterbox->setText("");
-	filterbox->setPlaceholderText("Filter"); //TODO: Autofill/autocomplete
-     }));
-Wt::WPushButton *refreshButton = new Wt::WPushButton("Refresh database");
-refreshButton->clicked().connect( std::bind([=] ()
-{
-	zmq_conn::interact("tracks_refresh?");
-}));
-vbox->addWidget(refreshButton);
-
+		trackModel->musts.push_back(filterName);  
+					trackModel->update();
+		filterBox->setText("");
+		filterBox->setPlaceholderText("Filter"); //TODO: Autofill/autocomplete
+	}));
+	auto refreshButton = vbox->addWidget(std::make_unique <Wt::WPushButton> ("Refresh database"));
+	refreshButton->clicked().connect( std::bind([=] () {
+		zmq_conn::interact("tracks_refresh?");
+	}));
 }

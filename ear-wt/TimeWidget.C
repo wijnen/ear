@@ -38,8 +38,8 @@ Wt::WString TimeWidget::zero_pad(int val, int width)
 
 }
 
-TimeWidget::TimeWidget(Wt::WContainerWidget *parent )
- : Wt::WText(parent)
+TimeWidget::TimeWidget()
+ : Wt::WText()
 {  }  
 
 long long TimeWidget::time()
