@@ -1,3 +1,4 @@
+// Copyright 2022 Bas Wijnen <wijnen@debian.org>
 
 #ifndef earzmq_included
 #define earzmq_included

@@ -1,0 +1,34 @@
+#!/bin/sh -e
+
+if [ "$1" != deconfigure ] ; then
+        exit 0
+fi
+
+invoke-rc.d ear force-stop || :
+rm -rf /usr/lib/ear/__pycache__/
+
+pkg_db=/usr/lib/ear/db
+target="`readlink "$pkg_db"`"
+
+# Remove db, if it is empty.
+if [ -d "$target" ] ; then
+	contents="`ls "$target"`"
+	if [ "$contents" = "" -o "$contents" = "cache.pickle" ] ; then
+		rm -f "$target/cache.pickle"
+		rmdir "$target"
+	else
+		echo "Not removing $target, because it is not empty" >&2
+	fi
+fi
+
+# Remove link to db.
+if [ -L "$pkg_db" ] ; then
+	rm "$pkg_db"
+fi
+
+#DEBHELPER#
+
+if [ -e /usr/share/apache2/apache2-maintscript-helper ] ; then
+        . /usr/share/apache2/apache2-maintscript-helper
+        apache2_invoke disconf ear || exit $?
+fi

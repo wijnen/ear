@@ -1,3 +1,5 @@
+// Copyright 2022 Bas Wijnen <wijnen@debian.org>
+
 #ifndef _trackSearchContainer
 #define _trackSearchContainer
 
@@ -11,15 +13,15 @@
 #include <Wt/WLineEdit.h>
 #include "filteredStringModel.h"
 #include <Wt/WLogger.h>
-#include "earUI.h"
+#include "earUI_base.h"
 
 
 class TrackSearchContainer : public Wt::WContainerWidget 
 {
 	public:
-		TrackSearchContainer(EarUI *parentUI);
+		TrackSearchContainer(EarUI_base *parentUI);
 	private:
-		EarUI *parentUI;
+		EarUI_base *parentUI;
 		std::shared_ptr <FilteredStringModel> trackModel;
 		
 };

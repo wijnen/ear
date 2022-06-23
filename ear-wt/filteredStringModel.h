@@ -1,3 +1,5 @@
+// Copyright 2022 Bas Wijnen <wijnen@debian.org>
+
 #ifndef _FilteredStringModel
 #define _FilteredStringModel
 #include <string>

@@ -1,0 +1,36 @@
+Steps for installing ear on a mini-computer
+
+Download armbian and unpack it to sd card
+have a serial interface connected to the mini-computer
+use microcom -p /dev/ttyUSB0 to communicate with it
+boot mini-computer from the sd card
+answer all questions
+
+set new simpler passwords for root and user
+run armbian-config and:
+	set hostname
+	enable avahi
+	set wifi
+apt update + upgrade
+apt install libboost-all-dev libzmq3-dev cmake build-essential dh-python libhpdf-dev asciidoc doxygen pkg-config qt5-qmake
+
+wget https://people.debian.org/~wijnen/mkdeb
+
+wget https://github.com/emweb/wt/archive/refs/heads/master.zip
+
+Unpack and copy its debian/ into it
+run mkdeb
+sudo dpkg -i /tmp/libwt*deb
+
+git clone https://github.com/wijnen/ear
+compile ear
+	cd ear
+	mkdeb
+	sudo dpkg -i /tmp/ear*deb
+
+copy music to /srv/ear/
+
+add to /etc/apache2/apache2.conf:
+RedirectMatch "^/$" "/ear/"
+
+Connect to http://localhost

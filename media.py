@@ -189,7 +189,7 @@ class Media:
             loop = GLib.MainLoop()
             start = self.offset
             if self.timeout != None: 
-                GLib.source_remove(self.timeout) #Only do one timeout at a time to prevent wierd re-starting issues
+                GLib.source_remove(self.timeout) #Only do one timeout at a time to prevent weird re-starting issues
                 self.timeout = None 
             if self.playing(): 
                 self.pause(True) 
@@ -223,7 +223,7 @@ class Media:
         if timed:
             self.timeout = None
             self.countdown_end = None
-            return False #Bit wierd, but makes this function possible to be used as a oneshot timer.
+            return False #Bit weird, but makes this function possible to be used as a oneshot timer.
     def done(self):
         self.updater = None
         if self.cb:

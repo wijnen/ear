@@ -1,3 +1,5 @@
+// Copyright 2022 Bas Wijnen <wijnen@debian.org>
+
 #include "earzmq.h"
 
 namespace zmq_conn {
@@ -84,7 +86,7 @@ void zmq_conn::send(std::string value, zmq::socket_t *socket, bool raw) {
 	else {
 		data = value;
 	}
-	//std::cout << "Sending data " << data << std::endl;
+	//std::cerr << "Sending data " << data << std::endl;
 	socket->send(zmq::buffer(data.c_str(), data.size()), zmq::send_flags::none);
 	if(disconn) {
 		disconnect(socket);
@@ -100,6 +102,6 @@ std::string zmq_conn::recv(zmq::socket_t *socket) {
 		std::cerr << "zmq recv failed!" << std::endl;
 		std::abort();
 	}
-	//std::cout << "Received " << std::string(data, nbytes) << std::endl;
+	//std::cerr << "Received " << std::string(data, nbytes->size) << std::endl;
 	return std::string(data, nbytes->size);
 }

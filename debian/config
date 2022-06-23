@@ -1,0 +1,13 @@
+#!/bin/sh -e
+
+. /usr/share/debconf/confmodule
+
+# Set default value from current symlink, if it exists.
+pkg_db=/usr/lib/ear/db
+if [ -L "$pkg_db" ] ; then
+	target="`readlink "$pkg_db"`"
+	db_set ear/db "$target"
+fi
+
+db_input medium ear/db || :
+db_go

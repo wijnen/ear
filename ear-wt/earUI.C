@@ -2,23 +2,18 @@
  * Example used: Copyright (C) 2008 Emweb bvba, Heverlee, Belgium.
  *
  * Code copyright Kasper Loopstra, 2017
+ * Copyright 2022 Bas Wijnen <wijnen@debian.org>
  */
 #include "earUI.h"
-EarUI::EarUI(const Wt::WEnvironment& env) : Wt::WApplication(env) {
+EarUI::EarUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 	ui_track_idx = -1;
 	max_tags = 0;
 	posSliderMoving = false;
+	posSliderSetting = false;
 	setTitle("Ear interface"); 
 
-	//setCssTheme("polished"); //This fixes the columns of the treetable, soimehow
 	auto theme = std::make_shared <Wt::WBootstrap3Theme> ();
 	theme->setResponsive(true);
-
-	//theme->setVersion(Wt::BootstrapVersion::v3);	//This makes the whole UI look a bit more website-like, which is unfortunate. However, it also fixes a lot of weird resizing issues, and makes the track selection box almost usable on mobile. 
-
-	//this->removeMetaHeader(Wt::MetaHeaderType::Meta, "viewport");
-	//this->addMetaHeader("viewport", "width = device - width, target - densityDpi = device - dpi");
- 
 	setTheme(theme);
 
 	auto selectPanel = root()->addWidget(std::make_unique <Wt::WPanel> ());
@@ -33,7 +28,6 @@ EarUI::EarUI(const Wt::WEnvironment& env) : Wt::WApplication(env) {
 	//			 100); //Animation breaks with a VBoxLayout. Maybe report?
 	//selectPanel->setAnimation(animation);
 
-	//auto trackSearchContainer = Unused?!
 	selectPanel->setCentralWidget(std::make_unique <TrackSearchContainer> (this));
 
 	auto sliderPanel = root()->addWidget(std::make_unique <Wt::WPanel> ());
@@ -54,9 +48,9 @@ EarUI::EarUI(const Wt::WEnvironment& env) : Wt::WApplication(env) {
 	Wt::WSlider *inputSlider;
 	Wt::Json::Array inputSettings;
 	Wt::WText *valueText;
-	this->log("notice") <<"Making input boxes";
+	this->log("info") << "Making input boxes";
 	for (auto input_name:inputs.names()) {
-		this->log("notice") <<"Making input box for "<<input_name;
+		this->log("info") << "Making input box for " << input_name;
 		auto thisInputContainer = inputbox->addWidget(std::make_unique <Wt::WContainerWidget> ());
 		auto thisInputBox = thisInputContainer->setLayout(std::make_unique <Wt::WVBoxLayout> ());
 
@@ -88,12 +82,11 @@ EarUI::EarUI(const Wt::WEnvironment& env) : Wt::WApplication(env) {
 		inputSlider->setTickInterval( (max - min) / 6);
 		inputSlider->setValue(inputSettings[2]); 
 		inputSlider->setTickPosition(Wt::WSlider::TickPosition::TicksAbove);
-		//thisInputBox->addWidget(std::unique_ptr <Wt::WWidget> (inputSlider), 1); //So, if we put it in iwthout a container it won't appear if it has an objectName. If we put it in a container, it appears, but resizing is wierd. If we put a 100% the slider is there but the ticks and the min/max are all in one corner, if we put it 500px wide everything works except it's a hard limit. I'm debugging on a 4k screen and it should work on a phone. Now what? //Turns out, if you don't set the objectName, it all works as advertised. TODO: Make a minimal example and submit the bug
 	
 		auto inputButtonContainer = thisInputBox->addWidget(std::make_unique <Wt::WContainerWidget> ());
 		auto buttonbox = inputButtonContainer->setLayout(std::make_unique <Wt::WHBoxLayout> ());
 		buttonbox->addStretch();
-		this->log("notice") <<"Handling special sliders";
+		this->log("info") << "Handling special sliders";
 		if (input_name == "before") {
 			std::vector<int> beforeButtons = {0, 3, 6, 10};
 			for (auto before:beforeButtons) {
@@ -129,39 +122,42 @@ EarUI::EarUI(const Wt::WEnvironment& env) : Wt::WApplication(env) {
 	auto posContainer = inputbox->addWidget(std::make_unique <Wt::WContainerWidget> ());
 	auto posInputBox = posContainer->setLayout(std::make_unique <Wt::WVBoxLayout> ());
 
-	this->log("notice") <<"Making pos slider";
+	this->log("info") <<"Making pos slider";
 	auto posTextBox = posInputBox->addLayout(std::make_unique <Wt::WHBoxLayout> ());
 	posTextBox->addWidget(std::make_unique <Wt::WText> ("Position"));
 	posText = posTextBox->addWidget(std::make_unique <TimeWidget> ());
 	posText->setTime(0);
 	posSlider = posInputBox->addWidget(std::make_unique <Wt::WSlider> ());
 	posSlider->valueChanged().connect(std::bind([=]() {
+		if (posSliderSetting) {
+			// Ignore this event if it was caused by calling setValue().
+			return;
+		}
 		this->posSliderMoving = false;
-		this->log("notice") <<"Updating pos because posSlider valueChanged";
+		this->log("info") <<"Updating pos because posSlider valueChanged";
 		zmq_conn::interact("pos:" + posSlider->valueText());
-		this->log("notice") <<"Updated";
 		posText->setTime(posSlider->value());
+		this->log("info") << "slider value changed " << posSlider->value();
 	}));
 
-	posSlider->resize(width, 50); 
-
-#ifdef PLOT //ifdef'd out as it crashes on all Debian versions of Wt //TODO add to the boxes as well
-	Wt::WContainerWidget *chartContainer = new Wt::WContainerWidget(root());
-	chartText = new Wt::WText( "chart", chartContainer);
-	this->log("notice") <<"Charting";
-	waveformChart = new Wt::Chart::WCartesianChart(chartContainer);
-	waveformModel = new Wt::WStandardItemModel(0, 3);
+#ifdef PLOT
+	// Plot the waveform.
+	auto chartContainer = root()->addWidget(std::make_unique <Wt::WContainerWidget> ());
+	chartText = chartContainer->addWidget(std::make_unique <Wt::WText> ("chart"));
+	this->log("info") << "Charting";
+	waveformChart = chartContainer->addWidget(std::make_unique <Wt::Chart::WCartesianChart> ());
+	waveformModel = std::make_shared <Wt::WStandardItemModel> (0, 3);
 	loadWaveform();
-	waveformChart->setModel(waveformModel);		// set the model
-	waveformChart->setXSeriesColumn(0);	// set the column that holds the categorie
-	waveformChart->setType(Wt::Chart::ScatterPlot);
+	waveformChart->setModel(waveformModel);
+	waveformChart->setXSeriesColumn(0);	// set the column that holds the category
+	waveformChart->setType(Wt::Chart::ChartType::Scatter);
 	waveformChart->setAutoLayoutEnabled(true);
-	Wt::Chart::WDataSeries *l = new Wt::Chart::WDataSeries(1, Wt::Chart::LineSeries);
+	auto l = std::make_unique <Wt::Chart::WDataSeries> (1, Wt::Chart::SeriesType::Line);
 	l->setShadow(Wt::WShadow(3, 3, Wt::WColor(0, 0, 0, 127), 3));
-	waveformChart->addSeries(*l);
-Wt::Chart::WDataSeries *r = new Wt::Chart::WDataSeries(2, Wt::Chart::LineSeries);
+	waveformChart->addSeries(std::move(l));
+	auto r = std::make_unique <Wt::Chart::WDataSeries> (2, Wt::Chart::SeriesType::Line);
 	r->setShadow(Wt::WShadow(3, 3, Wt::WColor(255, 0, 0, 127), 3));
-	waveformChart->addSeries(*r);
+	waveformChart->addSeries(std::move(r));
 	waveformChart->resize(width, 100);
 	waveformTimer = new Wt::WTimer();
 	waveformTimer->setSingleShot(true);
@@ -171,13 +167,12 @@ Wt::Chart::WDataSeries *r = new Wt::Chart::WDataSeries(2, Wt::Chart::LineSeries)
 	}));
 	waveformTimer->start();
 	//posInputBox->addWidget(std::unique_ptr <Wt::WWidget> (chartContainer));
-#endif //Plot 
-
+#endif
 
 	auto posButtonContainer = posInputBox->addWidget(std::make_unique <Wt::WContainerWidget> ());
 	auto seekButtonBox = posButtonContainer->setLayout(std::make_unique <Wt::WHBoxLayout> ());
 	seekButtonBox->addStretch();
-	this->log("notice") <<"Adding seek buttons";
+	this->log("info") << "Adding seek buttons";
 	std::vector<int> seekButtons = {-10, -5, -1, 1, 5, 10};
 	for (auto seek:seekButtons) {
 		std::string title = std::to_string(seek);
@@ -192,14 +187,18 @@ Wt::Chart::WDataSeries *r = new Wt::Chart::WDataSeries(2, Wt::Chart::LineSeries)
 		}));
 	
 	}
-	this->log("notice") <<"Added seek buttons";
 	posSlider->resize(width, 50);
 	posSlider->setTickInterval(60000); //One minute in ms
 	posSlider->setTickPosition(Wt::WSlider::TickPosition::TicksAbove);
 	posSlider->sliderMoved().connect(std::bind([this](const int &v) { 
-		//Also TODO, use this to stop the slider from being moved by the updating timer if someone is dragging it
 		this->posText->setTime(v); //So we can move and see where we'll end up before releasing
+		if (posSliderSetting) {
+			// Only handle user-caused events here.
+			return;
+		}
+		this->log("info") << "slider moved " << v;
 		this->posSliderMoving = true;
+		show_backtrace("moving");
 	}, std::placeholders::_1));
 
 	auto markerContainer = root()->addWidget(std::make_unique <Wt::WContainerWidget> ());
@@ -217,7 +216,7 @@ Wt::Chart::WDataSeries *r = new Wt::Chart::WDataSeries(2, Wt::Chart::LineSeries)
 	stopButton->setMargin(5, Wt::Side::Left);
 
 	markerTree = markerContainer->addWidget(std::make_unique <Wt::WTreeTable> ());
-	//markerTree->setObjectName("markertree"); //TODO: Still something wierd with the columns, they are sometimes offset
+	//markerTree->setObjectName("markertree"); //TODO: Still something weird with the columns, they are sometimes offset
 	markerTree->tree()->setSelectionMode(Wt::SelectionMode::Extended); 
 	markerTree->resize(750, 1000);
  
@@ -291,8 +290,10 @@ Wt::Chart::WDataSeries *r = new Wt::Chart::WDataSeries(2, Wt::Chart::LineSeries)
 		zmq_conn::disconnect(socket);
 
 		if (not posSliderMoving) {
+			posSliderSetting = true;
 			posSlider->setValue(track_time);
 			posText->setTime(track_time);
+			posSliderSetting = false;
 		}
 		
 		playing = playingj.get("playing");
@@ -313,7 +314,7 @@ Wt::Chart::WDataSeries *r = new Wt::Chart::WDataSeries(2, Wt::Chart::LineSeries)
 	timer->start();
 	updateInputs();
 
-	this->log("notice") <<"Done building EarUI";
+	this->log("info") << "Done building EarUI";
 }
 
 long EarUI::current_track_time( zmq::socket_t *socket ) {
@@ -351,18 +352,14 @@ void EarUI::loadWaveform() {
 		waveformModel->setData(i, 1, l);
 		waveformModel->setData(i, 2, r);
 		i++;
-std::cout<<"Adding waveform row"<<i<<" "<<timestamp<<" "<<l<<" "<<r<<std::endl;
+		//std::cerr << "Adding waveform row " << i << " " << timestamp << " " << l << " " << r << std::endl;
 	}
 	
-	waveformChart->setModel(waveformModel);		// set the model
 	waveformChart->resize(width, 100); //This is needed to render the modlel, but causes a crash on my laptop. This is because of some font issues with libharu. Retry on more recent OS's first to see if that fixes things.
 	//https://sourceforge.net/p/witty/mailman/message/30272114/ //Won't work on Debian for now
 	//http://witty-interest.narkive.com/1FcaBlfE/wt-interest-wpdfimage-error-102b
 }
-
 #endif
-
-
 
 void EarUI::updateInputs() {	
 	//this->log("debug") <<"Updating inputs";
@@ -390,7 +387,6 @@ void EarUI::updateInputs() {
 	
 	int server_track_idx = response.get("current");
 	if (ui_track_idx != server_track_idx) {
-		this->log("notice") <<ui_track_idx << ", " << server_track_idx;
 		loadFragments(markerTree, false, socket);
 
 		TimeWidget *firstW = (*children_as_vector(markerTree->tree()->treeRoot()).begin())->startWidget ;

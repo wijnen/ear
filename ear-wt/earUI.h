@@ -1,7 +1,9 @@
+// Copyright 2022 Bas Wijnen <wijnen@debian.org>
+
 #ifndef _earUI
 #define _earUI
 
-#include <Wt/WApplication.h>
+#include "earUI_base.h"
 #include <Wt/WBreak.h>
 #include <Wt/WContainerWidget.h>
 #include <Wt/WLineEdit.h>
@@ -42,48 +44,45 @@
 #include "TimeWidget.h"
 #include "fragmentTree.h"
 #include <Wt/WLogger.h>
+#include "trackSearchContainer.h"
 
-class EarUI : public Wt::WApplication
+class EarUI : public EarUI_base
 {
 public:
-  EarUI(const Wt::WEnvironment& env);
+	EarUI(const Wt::WEnvironment& env);
 
-  static long start_track_time;
-  static long stop_track_time;
-  static long time_speed;
-  void updateInputs();
+	static long start_track_time;
+	static long stop_track_time;
+	static long time_speed;
+	void updateInputs();
 private:
-  bool posSliderMoving;
-  TimeWidget *posText;
-  Wt::WLength width = Wt::WLength::Auto; 
-  std::vector<MyTreeTableNode*> fragment_set;
-  void clicked(Wt::WPushButton* source );
-  Wt::WTreeTable *markerTree;
-  MyTreeTableNode *addNode(Wt::WString name, const long start, const long stop );
-  Wt::Json::Value saveFragments(MyTreeTableNode *root);
-  
-  Wt::WPushButton *playPauseButton;
+	bool posSliderMoving;
+	bool posSliderSetting;
+	TimeWidget *posText;
+	Wt::WLength width = Wt::WLength::Auto; 
+	std::vector<MyTreeTableNode*> fragment_set;
+	void clicked(Wt::WPushButton* source );
+	Wt::WTreeTable *markerTree;
+	MyTreeTableNode *addNode(Wt::WString name, const long start, const long stop );
+	Wt::Json::Value saveFragments(MyTreeTableNode *root);
 
-  std::map<std::string, Wt::WText*> inputTexts;
-  std::map<std::string, Wt::WSlider*> inputSliders;
-  long current_track_time( zmq::socket_t *socket  =0  );
-  Wt::WSlider *posSlider;
-  Wt::WSlider *beforeSlider;
+	Wt::WPushButton *playPauseButton;
 
-  #ifdef  PLOT
-  void loadWaveform();
-  Wt::WStandardItemModel *waveformModel;
-  Wt::Chart::WCartesianChart *waveformChart;
-  Wt::WText *chartText;
-  Wt::WTimer *waveformTimer;
-  #endif
+	std::map<std::string, Wt::WText*> inputTexts;
+	std::map<std::string, Wt::WSlider*> inputSliders;
+	long current_track_time( zmq::socket_t *socket  =0  );
+	Wt::WSlider *posSlider;
+	Wt::WSlider *beforeSlider;
 
-  int ui_track_idx;
-  int max_tags;
+	// Waveform plotting.
+	void loadWaveform();
+	std::shared_ptr <Wt::WStandardItemModel> waveformModel;
+	Wt::Chart::WCartesianChart *waveformChart;
+	Wt::WText *chartText;
+	Wt::WTimer *waveformTimer;
+
+	int ui_track_idx;
+	int max_tags;
 };
-
-
-
-#include "trackSearchContainer.h" //Include after class definition because it uses the class
 
 #endif

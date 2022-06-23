@@ -1,0 +1,6 @@
+Template: ear/db
+Type: string
+Default: /srv/ear
+_Description: Location of ear media database:
+ Ear will serve all media files from a directory and all its subdirectories.
+ Please enter the directory that it should use.

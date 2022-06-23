@@ -1,6 +1,8 @@
+// Copyright 2022 Bas Wijnen <wijnen@debian.org>
 
+#include "earUI_base.h"
 #include <Wt/WLogger.h>
-#include <Wt/WBootstrapTheme.h>
+#include <Wt/WBootstrap3Theme.h>
 #include <Wt/WApplication.h>
 #include <Wt/WContainerWidget.h>
 #include <Wt/WTreeTable.h>
@@ -10,7 +12,7 @@
 #include "earzmq.h"
 #include "fragmentTree.h"
 
-class EarMobileUI : public Wt::WApplication {
+class EarMobileUI : public EarUI_base {
 public:
 	EarMobileUI(const Wt::WEnvironment& env);
 	void updateInputs();
@@ -22,17 +24,13 @@ private:
 	Wt::WTemplate *html;
 };
 
-EarMobileUI::EarMobileUI(const Wt::WEnvironment& env) : Wt::WApplication(env) {
+EarMobileUI::EarMobileUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 	ui_track_idx = -1;
 	setTitle("Ear Mobile interface"); 
-	this->log("notice")<<"Making mobile UI";
-	Wt::WBootstrapTheme *theme = new Wt::WBootstrapTheme();
-	//    theme->setResponsive(true);
-	theme->setVersion(Wt::BootstrapVersion::v3); 
-	// this->removeMetaHeader(Wt::MetaHeaderType::MetaName,"viewport");
-	//this->addMetaHeader("viewport",
-	//			   "width=device-width, height=device-height, initial-scale=2");
-	setTheme(std::shared_ptr <Wt::WTheme> (theme));
+	this->log("info") << "Making mobile UI";
+	auto theme = std::make_shared <Wt::WBootstrap3Theme> ();
+	theme->setResponsive(true);
+	setTheme(theme);
 
 	html = root()->addWidget(std::make_unique <Wt::WTemplate> (Wt::WString(
 	"<div width='device-width' scale='4'>"
@@ -45,16 +43,16 @@ EarMobileUI::EarMobileUI(const Wt::WEnvironment& env) : Wt::WApplication(env) {
 	"</div>"
 	)));
 
-	this->log("notice")<<"Making button container";
+	this->log("info") << "Making button container";
 	playPauseButton = html->bindWidget("start-button", std::make_unique <Wt::WPushButton> ("Play from start"));
 	playPauseButton->clicked().connect(std::bind([=] () {
-		this->log("notice")<<"interactnig to pause";
+		this->log("info")<<"interacting to pause";
 		zmq_conn::interact(std::string("event:pause"));
 	}));
 
 	auto stopButton = html->bindWidget("stop-button", std::make_unique <Wt::WPushButton> ("Stop"));
 	stopButton->clicked().connect(std::bind([=] () {
-		this->log("notice")<<"interactnig to stop";
+		this->log("info")<<"interacting to stop";
 		zmq_conn::interact(std::string("event:stop"));
 	}));
 	stopButton->setMargin(5, Wt::Side::Left);

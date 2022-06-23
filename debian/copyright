@@ -1,7 +1,7 @@
-Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: ear
 Upstream-Contact: Bas Wijnen <wijnen@debian.org>
-Source: First published in Debian.
+Source: https://github.com/wijnen/ear
 
 Files: *
 Copyright: Copyright 2012-2014 Bas Wijnen <wijnen@debian.org>

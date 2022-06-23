@@ -2,12 +2,28 @@ Source: ear
 Section: sound
 Priority: optional
 Maintainer: Bas Wijnen <wijnen@debian.org>
-Build-Depends: debhelper (>= 11), python3-all, witty-dev, libzmq3-dev, dh-python
-Standards-Version: 4.3.0
+Build-Depends: debhelper (>= 11), python3-all, libzmq3-dev, dh-python, libwt-dev
+Standards-Version: 4.6.1
 
 Package: ear
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python3:Depends}, python3-gst-1.0, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad,  python3-zmq, python3-simplejson, gir1.2-gstreamer-1.0, gir1.2-gst-plugins-base-1.0, gstreamer1.0-alsa, python3-fhs
+Depends:
+	${shlibs:Depends},
+	${misc:Depends},
+	${python3:Depends},
+	python3-gst-1.0,
+	gstreamer1.0-plugins-good,
+	gstreamer1.0-plugins-bad,
+	python3-zmq,
+	python3-simplejson,
+	gir1.2-gstreamer-1.0,
+	gir1.2-gst-plugins-base-1.0,
+	gstreamer1.0-alsa,
+	python3-fhs,
+	adduser,
+	debconf,
+	po-debconf,
+	apache2 | httpd
 Recommends: gstreamer1.0-plugins-ugly, python3-fuzzywuzzy
 Description: play audio and video with markers and at different speeds
  For choreography dancing rehearsal, it is often useful to be able to play the
@@ -17,4 +33,3 @@ Description: play audio and video with markers and at different speeds
  .
  It provides a web-based UI, allowing users to control the music via a
  smartphone.
- .

@@ -1,5 +1,6 @@
-#include "TimeWidget.h"
+// Copyright 2022 Bas Wijnen <wijnen@debian.org>
 
+#include "TimeWidget.h"
 
 bool TimeWidget::setTime(long time)
 {

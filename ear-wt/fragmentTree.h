@@ -1,3 +1,5 @@
+// Copyright 2022 Bas Wijnen <wijnen@debian.org>
+
 #ifndef _MyTreeTableNode
 #define _MyTreeTableNode
 #include <Wt/WApplication.h>
@@ -12,6 +14,7 @@
 #include <Wt/WEvent.h>
 #include "TimeWidget.h"
 #include "earzmq.h"
+
 class MyTreeTableNode : public Wt::WTreeTableNode
 {
 public:

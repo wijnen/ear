@@ -1,3 +1,5 @@
+// Copyright 2022 Bas Wijnen <wijnen@debian.org>
+
 #include "filteredStringModel.h"
 
 FilteredStringModel::FilteredStringModel(std::string zmqString)

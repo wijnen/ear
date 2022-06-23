@@ -1,5 +1,18 @@
+# Main executable.
 ear usr/lib/ear/
+
+# Helper modules.
 media.py usr/lib/ear/
 dbread.py usr/lib/ear/
-ear-wt/earUI usr/lib/ear/
-ear-wt/earMobileUI usr/lib/ear/
+
+# UI components.
+ear-wt/earUI usr/lib/ear/ear-wt
+ear-wt/earMobileUI usr/lib/ear/ear-wt
+ear-wt/earPlaylistUI usr/lib/ear/ear-wt
+ear-wt/wt_config.xml usr/lib/ear/ear-wt
+
+# Web index page.
+index.html /usr/lib/ear/www/
+
+# Apache configuration.
+ear.conf /etc/apache2/conf-available/

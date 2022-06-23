@@ -1,0 +1,12 @@
+#!/bin/sh -e
+
+#DEBHELPER#
+
+if [ "$1" != purge ] ; then
+        exit 0
+fi
+
+# Remove user.
+invoke-rc.d ear force-stop || :
+userdel _ear > /dev/null 2> /dev/null || :
+groupdel _ear > /dev/null 2> /dev/null || :

@@ -1,6 +1,7 @@
 /__pycache__/
-/ear-wt/earUI
 /db/
 /ear-wt/*.o
+/ear-wt/earUI
 /ear-wt/earMobileUI
+/ear-wt/earPlaylistUI
 /ear-wt/resources

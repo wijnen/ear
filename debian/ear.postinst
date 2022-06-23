@@ -1,0 +1,39 @@
+#!/bin/bash -e
+
+if [ "$1" != configure ] ; then
+	exit 0
+fi
+
+. /usr/share/debconf/confmodule
+
+pkg_db=/usr/lib/ear/db
+db_get ear/db
+if [ -L "$pkg_db" ] ; then
+	rm "$pkg_db"
+fi
+mkdir -p "$RET"
+ln -s "$RET" "$pkg_db"
+
+# Create user.
+if ! getent passwd _ear > /dev/null ; then
+	adduser --force-badname --disabled-password --quiet --system \
+		--home /var/lib/ear/www --no-create-home \
+		--gecos "Ear server" --group _ear
+	adduser _ear audio
+fi
+
+# Change permissions for both the link and the db itself.
+files=("$pkg_db" "$RET")
+for file in "${files[@]}" ; do
+	if ! dpkg-statoverride --list "$file" > /dev/null ; then
+		chown -h _ear:_ear "$file"
+	fi
+done
+
+#DEBHELPER#
+
+if [ -e /usr/share/apache2/apache2-maintscript-helper ] ; then
+	. /usr/share/apache2/apache2-maintscript-helper
+	# This enables the configuration and reloads it.
+	apache2_invoke enconf ear
+fi

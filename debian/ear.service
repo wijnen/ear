@@ -1,0 +1,13 @@
+[Unit]
+Description=Ear dance instruction music server
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+User=_ear
+Group=_ear
+ExecStart=/usr/bin/ear --Wt /usr/share/Wt --system
+
+[Install]
+WantedBy=multi-user.target

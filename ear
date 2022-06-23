@@ -6,9 +6,9 @@ import logging
 logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=logging.DEBUG)
 logging.info("Ear started, starting imports")
 import fhs
-fhs.option('port', 'override zmq port (set to 0 for random', default = 0)
+fhs.option('port', 'override zmq port (set to 0 for random)', default = 0)
 fhs.option('http-port', 'port to listen on for http requests', default = 8082)
-fhs.option('Wt', 'Wt install location', default = '/usr/local/share/Wt')
+fhs.option('Wt', 'Wt install location', default = '/usr/share/Wt')
 fhs.option('no-webUI', "Don't use the web UI", argtype = bool)
 fhs.option('no-mobileUI', "Don't use the moblie UI", argtype = bool)
 config = fhs.init(help = 'Ear dance teaching interface', version = '0.2', contact = 'Bas Wijnen <wijnen@debian.org>')
@@ -289,7 +289,7 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
                 zmq_socket.send_json({'tracks': out})
             elif msg == "tracks_refresh?":
                 newdb = dbread.read(use_cache = False) #May take a very long time!
-                db = newdb #Wierd, but due to the whole callback thing we're kind of multithreaded. This might save on semaphores?
+                db = newdb #Weird, but due to the whole callback thing we're kind of multithreaded. This might save on semaphores?
                 data['track'] = db[-1]    
                 zmq_socket.send_json({"dummy":"dummy"})
                 
@@ -367,47 +367,32 @@ else:
 # Start the UI process with the zmq port.
 env = os.environ.copy()
 env['ZMQ_PORT'] = 'tcp://localhost:' + str(zmq_port)
-print(env['ZMQ_PORT'])
-if not config['no-webUI']:
-    executable = fhs.read_data(os.path.join('ear-wt', 'earUI'), opened = False)
-    wt_config = fhs.read_data(os.path.join('ear-wt', 'wt_config.xml'), opened = False)
+print('ZMQ port: ', env['ZMQ_PORT'])
 
-    logging.info(" opening subprocess earUI")
-    try:
-        UI = subprocess.Popen((executable,
-            '--docroot', config['Wt'],
-            '--http-address=0.0.0.0',
-            '--http-port=' + str(config['http-port']),
-	    '-c', wt_config,
-            '--accesslog','-'),
-        env = env)
-        logging.info("Popened")
-    except:
-        logging.warning("No exe found!")
-        pass
+wt_config = fhs.read_data(os.path.join('ear-wt', 'wt_config.xml'), opened = False)
 
-if not config['no-mobileUI']:
-    executable = fhs.read_data(os.path.join('ear-wt', 'earMobileUI'), opened = False)
-    wt_config = fhs.read_data(os.path.join('ear-wt', 'wt_config.xml'), opened = False)
+valgrind = None	# Set to program index (0-2) to enable valgrind for that program.
+for port_offset, (flag, program) in enumerate((('webUI', 'earUI'), ('mobileUI', 'earMobileUI'), ('playlistUI', 'earPlaylistUI'))):
+    if not config['no-webUI']:
+        executable = fhs.read_data(os.path.join('ear-wt', program), opened = False)
 
-    logging.info(" opening subprocess earMobileUI")
-    try:
-        UI = subprocess.Popen((executable,
-            '--docroot', config['Wt'],
-            '--http-address=0.0.0.0',
-            '--http-port=' + str(config['http-port']+1),
-            '-c', wt_config,
-            '--accesslog','-'),
-        env = env)
-        logging.info("Popened")
-    except:
-        traceback.print_exc()
-        logging.warning("No exe found!")
-        pass
-
-
+        logging.info("opening subprocess " + executable)
+        try:
+            if port_offset == valgrind:
+                prefix = ('valgrind',)
+            else:
+                prefix = ()
+            UI = subprocess.Popen(prefix + (executable,
+                '--docroot', config['Wt'],
+                '--http-address=0.0.0.0',
+                '--http-port=' + str(config['http-port'] + port_offset),
+                '-c', wt_config,
+                '--accesslog','-'),
+            env = env)
+            logging.info("Popened")
+        except:
+            traceback.print_exc()
+            logging.warning("No exe found!")
 
 logging.info("Running mainloop")
 GLib.MainLoop().run()
-    
-#

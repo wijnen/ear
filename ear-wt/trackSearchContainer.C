@@ -1,6 +1,8 @@
+// Copyright 2022 Bas Wijnen <wijnen@debian.org>
+
 #include "trackSearchContainer.h"
 
-TrackSearchContainer::TrackSearchContainer(EarUI *parentUI)
+TrackSearchContainer::TrackSearchContainer(EarUI_base *parentUI)
 {
 	this->parentUI = parentUI;
 	//Wt::WContainerWidget *trackSearchContainer = new Wt::WContainerWidget(); 
@@ -17,23 +19,22 @@ TrackSearchContainer::TrackSearchContainer(EarUI *parentUI)
 		trackModel->searchString = searchBox->text();
 		parentUI->log("notice")<<"Updating track search model";
 		trackModel->update();
-		trackSelectionBox->setModel(trackModel);
 		trackSelectionBox->setCurrentIndex(0);
 		parentUI->log("notice")<<"Updated track search model";
 	}));
 
 	trackModel->update();
-	trackSelectionBox->setModel(std::shared_ptr <Wt::WAbstractItemModel> (trackModel));
+	trackSelectionBox->setModel(trackModel);
 	trackSelectionBox->setVerticalSize(10);
 	trackSelectionBox->setSelectionMode(Wt::SelectionMode::Single);
 	auto selectButton = vbox->addWidget(std::make_unique <Wt::WPushButton> ("Select track"));
 	selectButton->clicked().connect(std::bind([=] () {
 		int row = trackSelectionBox->currentIndex();
-		int tracknumber = Wt::cpp17::any_cast <int> (trackModel->data(trackModel->index(row,0),Wt::ItemDataRole::User));
-		zmq_conn::interact(Wt::WString("track:"+std::to_string(tracknumber)));
-		if (parentUI !=0)
-		{
-			parentUI->updateInputs();
+		if (row >= 0) {
+			int tracknumber = Wt::cpp17::any_cast <int> (trackModel->data(trackModel->index(row,0),Wt::ItemDataRole::User));
+			zmq_conn::interact(Wt::WString("track:"+std::to_string(tracknumber)));
+			if (parentUI !=0)
+				parentUI->updateInputs();
 		}
 	}));
 
@@ -49,8 +50,8 @@ TrackSearchContainer::TrackSearchContainer(EarUI *parentUI)
 		thisFilter->addWidget(std::make_unique <Wt::WText> (filterName));
 		auto removeButton = thisFilter->addWidget(std::make_unique <Wt::WPushButton> ("X"));
 		removeButton->clicked().connect(std::bind([=] () {
-			filtersContainer->removeWidget(thisFilter);
 			thisFilter->clear();
+			filtersContainer->removeWidget(thisFilter);
 			std::vector<Wt::WString>::iterator pos = std::find(trackModel->musts.begin(), trackModel->musts.end(), filterName);
 			if(pos!=trackModel->musts.end())
 			{
