@@ -77,8 +77,6 @@ sudo shutdown -r now
 sudo bash
 echo 'RedirectMatch "^/$" "/ear/"' >> /etc/apache2/apache.conf
 exit
-# Enable proxy modules:
-sudo a2enmod proxy proxy_http proxy_html proxy_http2
 sudo systemctl reload apache2
 
 # Set up samba
