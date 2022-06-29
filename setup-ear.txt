@@ -1,36 +1,99 @@
-Steps for installing ear on a mini-computer
+# Steps for installing ear on a mini-computer
 
-Download armbian and unpack it to sd card
-have a serial interface connected to the mini-computer
-use microcom -p /dev/ttyUSB0 to communicate with it
-boot mini-computer from the sd card
-answer all questions
+# Download Raspberry OS or armbian and unpack it to sd card
+# If you have a serial interface connected to the mini-computer:
+# communicate using:
+microcom -p /dev/ttyUSB0
+# Otherwise: connect monitor and keyboard
 
-set new simpler passwords for root and user
-run armbian-config and:
-	set hostname
-	enable avahi
-	set wifi
-apt update + upgrade
-apt install libboost-all-dev libzmq3-dev cmake build-essential dh-python libhpdf-dev asciidoc doxygen pkg-config qt5-qmake
+# boot mini-computer from the sd card
+# Walk through installation
 
-wget https://people.debian.org/~wijnen/mkdeb
+# If needed, set new simpler passwords for root and user
+# configure using:
+armbian-config
+# or
+raspi-config
+# and:
+#	resize filesystem (raspi only; armbian does this automatically)
+#	set hostname
+#	enable avahi
+#	set wifi
 
+# Reboot (mostly to make hostname and avahi work)
+sudo shutdown -r now
+
+sudo apt update
+sudo apt upgrade
+sudo apt install libboost-all-dev libzmq3-dev cmake build-essential dh-python libhpdf-dev asciidoc doxygen pkg-config qt5-qmake devscripts git debhelper python3-all python3-gst-1.0 gstreamer1.0-plugins-good gstreamer1.0-plugins-bad python3-zmq python3-simplejson gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 gstreamer1.0-alsa apache2 python3-fhs samba pulsemixer
+
+# Add 4G swap:
+sudo dd if=/dev/zero of=/root/swap bs=1M count=4k
+sudo chmod 600 /root/swap
+sudo mkswap /root/swap
+sudo swapon /root/swap
+
+# Download libwt
 wget https://github.com/emweb/wt/archive/refs/heads/master.zip
 
-Unpack and copy its debian/ into it
-run mkdeb
-sudo dpkg -i /tmp/libwt*deb
+# Unpack and repack as libwt_4.7.2.orig.tar.gz
+unzip master.zip
+mv wt-master libwt-4.7.2
+tar czf libwt_4.7.2.orig.tar.gz libwt-4.7.2
+rm master.zip
 
+# Download debian packaging into place
+wget https://github.com/wijnen/libwt-debian/archive/refs/heads/master.zip
+unzip master.zip
+mv libwt-debian-main libwt-4.7.2/debian
+rm master.zip
+
+# disable zram temp, because it is not large enough.
+# Edit /usr/lib/armbian/armbian-zram-config
+# Comment out the line saying "activate_compressed_tmp" at the end.
+sudo shutdown -r now
+
+# Build and install libwt (Note: this takes 13 hours on a Raspberry Pi 3 B+)
+cd libwt-4.7.2
+debuild -uc -us
+cd ..
+sudo dpkg -i libwt*deb
+
+# compile ear
+wget https://people.debian.org/~wijnen/mkdeb
+chmod a+x mkdeb
 git clone https://github.com/wijnen/ear
-compile ear
-	cd ear
-	mkdeb
-	sudo dpkg -i /tmp/ear*deb
+cd ear
+../mkdeb
+cd ..
+sudo dpkg -i /tmp/ear*deb
 
-copy music to /srv/ear/
+# reenable zram temp.
+# Edit /usr/lib/armbian/armbian-zram-config
+# Uncomment the line saying "activate_compressed_tmp" at the end.
+sudo shutdown -r now
 
-add to /etc/apache2/apache2.conf:
-RedirectMatch "^/$" "/ear/"
+# add to /etc/apache2/apache2.conf:
+sudo bash
+echo 'RedirectMatch "^/$" "/ear/"' >> /etc/apache2/apache.conf
+exit
+# Enable proxy modules:
+sudo a2enmod proxy proxy_http proxy_html proxy_http2
+sudo systemctl reload apache2
+
+# Set up samba
+# Edit /etc/samba/smb.conf and:
+# Add "guest account = _ear" to the global section, just after "map to guest = bad user".
+# Remove or comment out the pre-defined shares.
+# Add this one:
+cat >> /etc/samba/smb.conf << EOF
+[Ear]
+  comment = Ear Media Database
+  browseable = yes
+  path = /srv/ear
+  guest ok = yes
+  read only = no
+
+# copy music to device using samba (with anonymous login).
 
 Connect to http://localhost

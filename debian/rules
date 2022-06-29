@@ -7,6 +7,12 @@ override_dh_auto_build:
 	dh_auto_build
 	$(MAKE) -C ear-wt
 
+SUDOERS_DIR = debian/ear/etc/sudoers.d
+override_dh_auto_install:
+	dh_auto_install
+	mkdir -p ${SUDOERS_DIR}
+	cp ear.sudoers ${SUDOERS_DIR}/ear
+
 override_dh_auto_clean:
 	dh_auto_clean
 	$(MAKE) -C ear-wt clean

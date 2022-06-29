@@ -16,3 +16,8 @@ index.html /usr/lib/ear/www/
 
 # Apache configuration.
 ear.conf /etc/apache2/conf-available/
+
+# Shutdown cgi script.
+shutdown.cgi /usr/lib/cgi-bin/
+
+# Sudoers file is installed from debian/rules.

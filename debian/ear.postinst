@@ -35,5 +35,9 @@ done
 if [ -e /usr/share/apache2/apache2-maintscript-helper ] ; then
 	. /usr/share/apache2/apache2-maintscript-helper
 	# This enables the configuration and reloads it.
+	apache2_invoke enmod cgi
+	apache2_invoke enmod proxy
+	apache2_invoke enmod proxy_http
+	apache2_invoke enmod proxy_html
 	apache2_invoke enconf ear
 fi

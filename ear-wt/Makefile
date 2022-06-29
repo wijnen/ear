@@ -16,7 +16,7 @@ resources:
 	test -L resources || ln -s /usr/share/Wt/resources .
 
 %.o: %.C Makefile ${HEADERS}
-	g++ -c ${CFLAGS} $(LIBRARIES) $< -o $@
+	g++ -c ${CFLAGS} $< -o $@
 
 earUI: $(UI_OBJECTS)
 	g++ ${CFLAGS} $^ $(LIBRARIES) -o $@
