@@ -17,7 +17,7 @@ ln -s "$RET" "$pkg_db"
 # Create user.
 if ! getent passwd _ear > /dev/null ; then
 	adduser --force-badname --disabled-password --quiet --system \
-		--home /var/lib/ear/www --no-create-home \
+		--home /usr/lib/ear/www --no-create-home \
 		--gecos "Ear server" --group _ear
 	adduser _ear audio
 fi
@@ -35,7 +35,7 @@ done
 if [ -e /usr/share/apache2/apache2-maintscript-helper ] ; then
 	. /usr/share/apache2/apache2-maintscript-helper
 	# This enables the configuration and reloads it.
-	apache2_invoke enmod cgi
+	apache2_invoke enmod cgid
 	apache2_invoke enmod proxy
 	apache2_invoke enmod proxy_http
 	apache2_invoke enmod proxy_html

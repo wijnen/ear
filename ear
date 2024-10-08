@@ -23,106 +23,108 @@ import dbread
 import zmq
 import simplejson.scanner
 import subprocess
+import unicodedata
 import traceback
 
 logging.info("Imports successfull")
 
 
 try:
-    from fuzzywuzzy import process
-    fuzzy = True
-    logging.info("Imported fuzzywuzzy")
+	from fuzzywuzzy import process
+	fuzzy = True
+	logging.info("Imported fuzzywuzzy")
 except:
-    fuzzy = False
-    logging.warning ("No fuzzywuzzy")
+	fuzzy = False
+	logging.warning ("No fuzzywuzzy")
+
 #}}}
 
+def strip_accents(s):
+	return ''.join(c.lower() for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
+
 def filtered(search,musts = [],mays = []): # {{{
-    tracks = OrderedDict()
-    for i,track in enumerate(db):
-        """if track['name'] in tracks.keys():
-             print("Track double")
-             print(track['name'].encode('utf-8'), track['files'].__repr__().encode('utf-8'))
-             double = db[tracks[track['name']]]
-             print(double['name'].encode('utf-8'), double['files'].__repr__().encode('utf-8'))"""
-        if not all([(must.lower() in track['tags']) for must in musts]) and len(musts)>0:
-              logging.info("Removing something because of a filter")
-              continue
-        if len(mays)>0:
-            for tag in track['tags']:
-                if tag not in mays:
-                    continue 
-        tracks[track['name']]=i #Todo: Think of a better filter model
-    #TODO: if len(search)<0 maybe show alphabetical list?
-    toSend = []
-    if len(search)<1:
-        if len(musts)==0 and len(mays)==0:
-              logging.info('Why do we get so many doubles? %s', (len(tracks), len(db)) )
-        for k,v in tracks.items():
-            toSend.append((k,v))   
-            toSend.sort() #Sort the track names alphabetically
-        return toSend
-    if fuzzy:
-        out = process.extract(search,tracks.keys(),limit=len(tracks))
-        for res in out: #out = [("title", score)]
-             toSend.append( ( res[0],tracks[res[0]]))
-    else:
-        for track in tracks.keys():
-             if search in track:
-                  toSend.append((track,tracks[track]))
-        toSend.sort() #Sort the track names alphabetically
-    return toSend 
+	tracks = OrderedDict()
+	for i,track in enumerate(db):
+		"""if track['name'] in tracks.keys():
+			print("Track double")
+			print(track['name'].encode('utf-8'), track['files'].__repr__().encode('utf-8'))
+			double = db[tracks[track['name']]]
+			print(double['name'].encode('utf-8'), double['files'].__repr__().encode('utf-8'))"""
+		if not all([(must.lower() in track['tags']) for must in musts]) and len(musts)>0:
+			#logging.info("Removing something because of a filter")
+			continue
+		if len(mays)>0:
+			for tag in track['tags']:
+				if tag not in mays:
+					continue
+		tracks[track['name']]=i #Todo: Think of a better filter model
+	toSend = []
+	if len(search)<1:
+		for k,v in tracks.items():
+			toSend.append((k,v))
+			toSend.sort(key = lambda x:strip_accents(x[0])) #Sort the track names alphabetically
+		return toSend
+	if fuzzy:
+		out = process.extract(search,tracks.keys(),limit=len(tracks))
+		for res in out: #out = [("title", score)]
+			toSend.append( ( res[0],tracks[res[0]]))
+	else:
+		for track in tracks.keys():
+			if search.lower() in track.lower():
+				toSend.append((track, tracks[track]))
+		toSend.sort(key = lambda x:strip_accents(x[0])) #Sort the track names alphabetically
+	return toSend
 # }}}
 
 def file_new(dummy = None): # {{{
-    db.append(Track('', data['track'].dbname if data['track'] else fhs.write_data(os.path.join('db', 'default' + os.extsep + 'db'), opened = False)))
-    g.update_files = True
-    data['track'] = db[-1]
-    new_file()
+	db.append(Track('', data['track'].dbname if data['track'] else fhs.write_data(os.path.join('db', 'default' + os.extsep + 'db'), opened = False)))
+	g.update_files = True
+	data['track'] = db[-1]
+	new_file()
 # }}}
 
 def new_file(): # {{{
-    if len(data['track']['files']) > 0:
-        data['media'].load(data['track'], 0)
-        logging.info("Loading track {}".format(data['track']['name']))
-    else:
-        logging.warning("Empty track")
-        data['media'].load(data['track'], None)
-        g.length = (0, 1)
-    g.position = 0
-    g.load_markers = True
-    g.set_player = True
-    if data['track']['media'] is not None:
-        set_pos(data['track']['files'][data['track']['media']][1])
-    g.media_list = [x[0] for x in data['track']['files']]
-    g.media = 0
+	if len(data['track']['files']) > 0:
+		data['media'].load(data['track'], 0)
+		logging.info("Loading track {}".format(data['track']['name']))
+	else:
+		logging.warning("Empty track")
+		data['media'].load(data['track'], None)
+		g.length = (0, 1)
+	g.position = 0
+	g.load_markers = True
+	g.set_player = True
+	if data['track']['media'] is not None:
+		set_pos(data['track']['files'][data['track']['media']][1])
+	g.media_list = [x[0] for x in data['track']['files']]
+	g.media = 0
 # }}}
 
 setting_pos = False
 def set_pos(pos): # {{{
-    global setting_pos
-    g.status = media.mkmomentstr(pos)
-    setting_pos = True
-    g.position = pos
-    setting_pos = False
-    if not data['track']:
-        return
-    return
+	global setting_pos
+	g.status = media.mkmomentstr(pos)
+	setting_pos = True
+	g.position = pos
+	setting_pos = False
+	if not data['track']:
+		return
+	return
 # }}}
 
 def stop(stopped): # {{{
-    g.playing = not stopped
-    data['media'].play(cb = None, start = 0) #Essential to clear the callback
-    set_pos(0) 
-    data['media'].pause(stopped)
+	g.playing = not stopped
+	data['media'].play(cb = None, start = 0) #Essential to clear the callback
+	set_pos(0)
+	data['media'].pause(stopped)
 # }}}
 
 def save_all():
-    global db
-    logging.info("Saving entire database")
-    #print(db)
-    dbread.write(db)
-    dbread.clear_cache()
+	global db
+	logging.info("Saving entire database")
+	#print(db)
+	dbread.write(db)
+	dbread.clear_cache()
 
 logging.info("Reading db")
 dbrefresh = True
@@ -130,51 +132,51 @@ db = dbread.read()
 logging.info("db read")
 dbrefresh = False #TODO: Is this still needed?
 data = {
-    'db': db,
-    'track': None,
-    'tag': '',
-    'media': media.Media(set_pos, lambda min, max: setattr(g, 'offset_range', (min, max)), lambda p: setattr(g, 'marker_endtarget', p)),
-    'playing': lambda x: setattr(g, 'playing', x),
-    'position': lambda pos: setattr(g, 'position', pos),
-    }
+	'db': db,
+	'track': None,
+	'tag': '',
+	'media': media.Media(set_pos, lambda min, max: setattr(g, 'offset_range', (min, max)), lambda p: setattr(g, 'marker_endtarget', p)),
+	'playing': lambda x: setattr(g, 'playing', x),
+	'position': lambda pos: setattr(g, 'position', pos),
+	}
 data['media'].send_pixbuf = lambda pixbuf: setattr(g, 'image', pixbuf)
 # }}}
 
 def play_list(track, play_tuple): # {{{
-    logging.debug("Playing list, play_tuple {}".format(play_tuple))
-    #track.play(cb = None) #Essential to clear the callback
-    if len(play_tuple) < 1:
-        return
-    start, end = play_tuple[0][0], play_tuple[0][1]
-    if len(play_tuple[1:])>0: 
-        track.play(start, end, play = True, cb = lambda : play_list(track, play_tuple[1:]))
-    else:
-        track.play(start, end, play = True, cb = None)
+	logging.debug("Playing list, play_tuple {}".format(play_tuple))
+	#track.play(cb = None) #Essential to clear the callback
+	if len(play_tuple) < 1:
+		return
+	start, end = play_tuple[0][0], play_tuple[0][1]
+	if len(play_tuple[1:])>0:
+		track.play(start, end, play = True, cb = lambda : play_list(track, play_tuple[1:]))
+	else:
+		track.play(start, end, play = True, cb = None)
 
 kwargs = { 'data' : data ,
-        'events' : {
-            #'pause': lambda: data['media'].pause(not data['media'].playing()),
-            'pause': lambda: data['media'].pause(data['media'].playing()),
-            'save_all': save_all,
-            'stop': lambda x: stop(True),
-            'continue': lambda x: stop(False), #Right now, this means play_from_start, and clicking pause again continues
-        },
-        }
+		'events' : {
+			#'pause': lambda: data['media'].pause(not data['media'].playing()),
+			'pause': lambda: data['media'].pause(data['media'].playing()),
+			'save_all': save_all,
+			'stop': lambda x: stop(True),
+			'continue': lambda x: stop(False), #Right now, this means play_from_start, and clicking pause again continues
+		},
+		}
 # }}}
 
 class State(): # {{{
-    def __init__(self,*args,**kwargs):
-        self._add(**kwargs)
-    def _add(self,**kwargs):
-     for k,v in kwargs:
-        if type(v) == dict:
-            self._add(self,v)
-        else:
-            setattr(self,k,v)
+	def __init__(self,*args,**kwargs):
+		self._add(**kwargs)
+	def _add(self,**kwargs):
+		for k,v in kwargs:
+			if type(v) == dict:
+				self._add(self,v)
+			else:
+				setattr(self,k,v)
 # }}}
 
 
-g = State(kwargs) 
+g = State(kwargs)
 """Set defaults"""
 g.speed = 100
 g.volume = 100
@@ -185,174 +187,175 @@ logging.info("Starting zmq")
 zmqcontext=zmq.Context()
 zmq_socket=zmqcontext.socket(zmq.REP)
 if config['port'] == 0:
-    zmq_port = zmq_socket.bind_to_random_port("tcp://*")
+	zmq_port = zmq_socket.bind_to_random_port("tcp://*")
 else:
-    zmq_port = config['port']
-    zmq_socket.bind("tcp://*:" + str(zmq_port))
+	zmq_port = config['port']
+	zmq_socket.bind("tcp://*:" + str(zmq_port))
 zmq_fd=zmq_socket.getsockopt(zmq.FD)
 logging.info("Zmq port: {}".format(zmq_port))
 g.before_active = True
 def zmq_callback(fd,condition,zmq_socket): # {{{
-    global db
-    while zmq_socket.getsockopt(zmq.EVENTS) & zmq.POLLIN:
-        wt = False
-        try:
-            msg = zmq_socket.recv_json()
-        except simplejson.scanner.JSONDecodeError as e:
-            logging.warning(e)
-            zmq_socket.send_string("something recieved, please send json")
-            continue
-        except Exception as e:
-            logging.exception('Msg: {} \n Type: {}\n Exception: {}'.format(msg,type(msg),e))
-            continue
-        if type(msg) == dict:
-            if 'play' in msg.keys() and type(msg['play'])==list:
-                inp = msg['play']
-                ostop = None
-                out = []
-                for (start,stop) in inp:
-                    if start != ostop:
-                        out.append([start, stop])
-                    else:
-                        out[-1][1] = stop #the previous stop
-                    ostop = stop
-                play_list(data['media'], out)
-                zmq_socket.send_json({"dummy":"dummy"})
-            if 'fragments' in msg.keys() and type(msg['fragments'])==list:
-                data['track']['fragments'] = msg['fragments'][2] #In Wt, we need a single root. This is called 'fragments' and only has children. Children are stored in idx 2
-                data['track']['dirty'] = True
-                zmq_socket.send_json({'_':'_'})
-                save_all()
-            if 'filteredTracks?' in msg.keys():
-                if type(msg['filteredTracks?'])== dict:
-                    query = msg['filteredTracks?']
-                    zmq_socket.send_json({"options":filtered(query['searchString'],query['musts'],[])}) 
-                else:
-                    zmq_socket.send_json({"dummy":"dummy"}) 
-        if type(msg) == list:
-            if len(msg) ==1:
-                msg=msg[0]
-        if type(msg)==str:
-            if msg =="events?":
-                #The Wt JSON parser needs to know if stuff is a dict or a list before parsing (otherwise you can't assign to an Array or Object. That's why _EVERYTHING_ is a dict. We might use the second argument to describe the text on the widget instead of using the command name for that.
-                nevents = ["stop","save_all"] #Maybe just move these last two names to Wt as well?
-                events = OrderedDict ( [(k,None) for k in nevents ])
-                zmq_socket.send_json(events)
-            elif msg.startswith('event:'):
-                event=msg[len('event:'):]
-                logging.debug("Event from UI:{}".format(event))
-                if event in kwargs['events'].keys():
-                    try:
-                        logging.debug("Msg:{}".format(msg))
-                        ret=kwargs['events'][event]("foo")
-                    except TypeError:
-                        ret=kwargs['events'][event]()
-                    zmq_socket.send_json({"ret":ret})   
-                elif event == "play":
-                    g.playing = True
-                    data['media'].play()
-                    zmq_socket.send_json({"state":g.playing}) 
-                else:
-                    zmq_socket.send_json("No such event")
-                    logging.warning("No such event: {}".format(event))
-            elif msg =="inputs?":
-                inputs = {"speed":[50,200],"before":[0,10],"volume":[0,200]}
-                for inp in inputs.keys():
-                    inputs[inp].append(getattr(g,inp))
-                zmq_socket.send_json(inputs)
-            elif msg.startswith("input:"):
-                _,inp,val=msg.split(":")
-                try:
-                    val=float(val)
-                except ValueError as e:
-                    logging.exception(e)
-                    continue
-                setattr(g,inp,val)
-                if inp == "speed":
-                    data['media'].set_speed(val / 100.)
-                if inp == "volume":
-                    logging.debug("Setting volume")
-                    g.volume = data['media'].volume(val/100.)*100
-                zmq_socket.send_json({"dummy":"dummy"})
-            elif msg =="track?":
-                if not data['track']:
-                    zmq_socket.send_json({"current":-1})
-                else:
-                    zmq_socket.send_json({"current":db.index(data['track'])})
-            elif msg =="tracks?":
-                """Currently unused in Wt UI"""
-                out = OrderedDict()
-                for x,track in enumerate(db):
-                    if len(track['tags']) == 0:
-                        track['tags'].append("")
-                    out[track['name']] = [x]+track['tags'] #track index is very much needed in the Wt UI!
-                zmq_socket.send_json({'tracks': out})
-            elif msg == "tracks_refresh?":
-                newdb = dbread.read(use_cache = False) #May take a very long time!
-                db = newdb #Weird, but due to the whole callback thing we're kind of multithreaded. This might save on semaphores?
-                data['track'] = db[-1]    
-                zmq_socket.send_json({"dummy":"dummy"})
-                
-            elif msg.startswith('track:'):
-                select=msg[len('track:'):]
-                try:
-                    sel = int(select)
-                except ValueError as e:
-                    logging.exception(e)
-                    continue
-                data['track']=db[sel]    
-                new_file()
-                zmq_socket.send_json({"dummy":"dummy"})
-            elif msg == "fragments?":
-                if not data['track']:
-                    zmq_socket.send_json({"fragments":[]})
-                    continue
-                zmq_socket.send_json({"fragments":data['track']['fragments']})
-            elif msg =="markers?":
-                if not data['track']:
-                    zmq_socket.send_json({"markers":[]})
-                    continue
-                sendMarkers=[]
-                for marker in data["track"]['fragments']:
-                    sendMarkers.append({"name":marker.name, "start":marker.start})
-                zmq_socket.send_json({"markers":sendMarkers})
-            elif msg.startswith("play:"): 
-                try:
-                    startTime=float(msg[len("play:"):])
-                except Exception as e:
-                    zmq_socket.send_json({"dummy":"dummy"})
-                    logging.exception(e)
-                    continue
-                zmq_socket.send_json({"dummy":"dummy"})
-                data['media'].play(startTime, play = True)
-            elif msg.startswith("pos?"):
-                zmq_socket.send_json({"pos":data['media'].get_pos()})
-            elif msg.startswith("pos:"): 
-                try:
-                    npos = int(msg[len("pos:"):])
-                except ValueError as e:
-                    logging.exception(e)
-                    continue
-                set_pos(npos) 
-                data['media'].play(g.position, play = None)
-                zmq_socket.send_json({"pos":g.position})
-            elif msg.startswith("fragments"):
-                zmq_socket.send_json({"dummy":g.position})
-            elif msg.startswith("playing?"):
-                zmq_socket.send_json({"playing":data['media'].playing()})
-            elif msg.startswith("waveform?"):
-                zmq_socket.send_json({"waveform":data['media'].waveform}) #CAn be huge message 
-            elif msg.startswith("title?"):
-                zmq_socket.send_json({"title":data['track']['name']})
-            else:
-                logging.exception ("Event not handled:{}".format(msg))
-                zmq_socket.send_json({"dummy":g.position})
-    return True
+	global db
+	while zmq_socket.getsockopt(zmq.EVENTS) & zmq.POLLIN:
+		wt = False
+		try:
+			msg = zmq_socket.recv_json()
+		except simplejson.scanner.JSONDecodeError as e:
+			logging.warning(e)
+			zmq_socket.send_string("something recieved, please send json")
+			continue
+		except Exception as e:
+			logging.exception('Msg: {} \n Type: {}\n Exception: {}'.format(msg,type(msg),e))
+			continue
+		if type(msg) == dict:
+			if 'play' in msg.keys() and type(msg['play'])==list:
+				inp = msg['play']
+				ostop = None
+				out = []
+				for (start,stop) in inp:
+					if start != ostop:
+						out.append([start, stop])
+					else:
+						out[-1][1] = stop #the previous stop
+					ostop = stop
+				play_list(data['media'], out)
+				zmq_socket.send_json({"dummy":"dummy"})
+			if 'fragments' in msg.keys() and type(msg['fragments'])==list:
+				data['track']['fragments'] = msg['fragments'][2] #In Wt, we need a single root. This is called 'fragments' and only has children. Children are stored in idx 2
+				data['track']['dirty'] = True
+				zmq_socket.send_json({'_':'_'})
+				save_all()
+			if 'filteredTracks?' in msg.keys():
+				if type(msg['filteredTracks?'])== dict:
+					query = msg['filteredTracks?']
+					zmq_socket.send_json({"options":filtered(query['searchString'],query['musts'],[])})
+				else:
+					zmq_socket.send_json({"dummy":"dummy"})
+		if type(msg) == list:
+			if len(msg) ==1:
+				msg=msg[0]
+		if type(msg)==str:
+			if msg =="events?":
+				#The Wt JSON parser needs to know if stuff is a dict or a list before parsing (otherwise you can't assign to an Array or Object. That's why _EVERYTHING_ is a dict. We might use the second argument to describe the text on the widget instead of using the command name for that.
+				nevents = ["stop","save_all"] #Maybe just move these last two names to Wt as well?
+				events = OrderedDict ( [(k,None) for k in nevents ])
+				zmq_socket.send_json(events)
+			elif msg.startswith('event:'):
+				event=msg[len('event:'):]
+				logging.debug("Event from UI:{}".format(event))
+				if event in kwargs['events'].keys():
+					try:
+						logging.debug("Msg:{}".format(msg))
+						ret=kwargs['events'][event]("foo")
+					except TypeError:
+						ret=kwargs['events'][event]()
+					zmq_socket.send_json({"ret":ret})
+				elif event == "play":
+					g.playing = True
+					data['media'].play()
+					zmq_socket.send_json({"state":g.playing})
+				else:
+					zmq_socket.send_json("No such event")
+					logging.warning("No such event: {}".format(event))
+			elif msg =="inputs?":
+				inputs = {"speed":[50,200],"before":[0,10],"volume":[0,200]}
+				for inp in inputs.keys():
+					inputs[inp].append(getattr(g,inp))
+				zmq_socket.send_json(inputs)
+			elif msg.startswith("input:"):
+				_,inp,val=msg.split(":")
+				try:
+					val=float(val)
+				except ValueError as e:
+					logging.exception(e)
+					continue
+				setattr(g,inp,val)
+				if inp == "speed":
+					data['media'].set_speed(val / 100.)
+				if inp == "volume":
+					logging.debug("Setting volume")
+					g.volume = data['media'].volume(val/100.)*100
+				zmq_socket.send_json({"dummy":"dummy"})
+			elif msg =="track?":
+				if not data['track']:
+					zmq_socket.send_json({"current":-1})
+				else:
+					zmq_socket.send_json({"current":db.index(data['track'])})
+			elif msg =="tracks?":
+				"""Currently unused in Wt UI"""
+				out = OrderedDict()
+				for x,track in enumerate(db):
+					if len(track['tags']) == 0:
+						track['tags'].append("")
+					out[track['name']] = [x]+track['tags'] #track index is very much needed in the Wt UI!
+				zmq_socket.send_json({'tracks': out})
+			elif msg == "tracks_refresh?":
+				newdb = dbread.read(use_cache = False) #May take a very long time!
+				db = newdb #Weird, but due to the whole callback thing we're kind of multithreaded. This might save on semaphores?
+				data['track'] = db[-1]	
+				zmq_socket.send_json({"dummy":"dummy"})
+				
+			elif msg.startswith('track:'):
+				select=msg[len('track:'):]
+				try:
+					sel = int(select)
+				except ValueError as e:
+					logging.exception(e)
+					continue
+				data['track']=db[sel]	
+				new_file()
+				zmq_socket.send_json({"dummy":"dummy"})
+			elif msg == "fragments?":
+				if not data['track']:
+					zmq_socket.send_json({"fragments":[]})
+					continue
+				zmq_socket.send_json({"fragments":data['track']['fragments']})
+			elif msg =="markers?":
+				if not data['track']:
+					zmq_socket.send_json({"markers":[]})
+					continue
+				sendMarkers=[]
+				for marker in data["track"]['fragments']:
+					sendMarkers.append({"name":marker.name, "start":marker.start})
+				zmq_socket.send_json({"markers":sendMarkers})
+			elif msg.startswith("play:"):
+				try:
+					startTime=float(msg[len("play:"):])
+				except Exception as e:
+					zmq_socket.send_json({"dummy":"dummy"})
+					logging.exception(e)
+					continue
+				zmq_socket.send_json({"dummy":"dummy"})
+				data['media'].play(startTime, play = True)
+			elif msg.startswith("pos?"):
+				zmq_socket.send_json({"pos":data['media'].get_pos()})
+			elif msg.startswith("pos:"):
+				try:
+					npos = int(msg[len("pos:"):])
+				except ValueError as e:
+					logging.exception(e)
+					continue
+				set_pos(npos)
+				data['media'].play(g.position, play = None)
+				zmq_socket.send_json({"pos":g.position})
+			elif msg.startswith("fragments"):
+				zmq_socket.send_json({"dummy":g.position})
+			elif msg.startswith("playing?"):
+				zmq_socket.send_json({"playing":data['media'].playing()})
+			elif msg.startswith("waveform?"):
+				zmq_socket.send_json({"waveform":data['media'].waveform}) #CAn be huge message
+			elif msg.startswith("title?"):
+				zmq_socket.send_json({"title":data['track']['name']})
+			else:
+				logging.exception ("Event not handled:{}".format(msg))
+				zmq_socket.send_json({"dummy":g.position})
+	return True
 # }}}
 
 
 set_pos(0)
-data['track']=db[-1]    
+if len(db) > 0:
+	data['track']=db[-1]	
 new_file()
 logging.info("Track: {}. Media:{}".format(data['track']['name'],data['media']))
 logging.info ("importing gobject")
@@ -360,10 +363,10 @@ from gi.repository import GObject
 import os
 windows = 'nt'in os.name
 if windows:
-    logging.info("Trying to run on windows!")
-    GLib.timeout_add(10,lambda _:zmq_callback(zmq_socket.fd,True,zmq_socket),None)
+	logging.info("Trying to run on windows!")
+	GLib.timeout_add(10,lambda _:zmq_callback(zmq_socket.fd,True,zmq_socket),None)
 else:
-    GLib.io_add_watch(zmq_socket.fd, GLib.IO_IN, zmq_callback, zmq_socket)
+	GLib.io_add_watch(zmq_socket.fd, GLib.IO_IN, zmq_callback, zmq_socket)
 # Start the UI process with the zmq port.
 env = os.environ.copy()
 env['ZMQ_PORT'] = 'tcp://localhost:' + str(zmq_port)
@@ -373,26 +376,26 @@ wt_config = fhs.read_data(os.path.join('ear-wt', 'wt_config.xml'), opened = Fals
 
 valgrind = None	# Set to program index (0-2) to enable valgrind for that program.
 for port_offset, (flag, program) in enumerate((('webUI', 'earUI'), ('mobileUI', 'earMobileUI'), ('playlistUI', 'earPlaylistUI'))):
-    if not config['no-webUI']:
-        executable = fhs.read_data(os.path.join('ear-wt', program), opened = False)
+	if not config['no-webUI']:
+		executable = fhs.read_data(os.path.join('ear-wt', program), opened = False)
 
-        logging.info("opening subprocess " + executable)
-        try:
-            if port_offset == valgrind:
-                prefix = ('valgrind',)
-            else:
-                prefix = ()
-            UI = subprocess.Popen(prefix + (executable,
-                '--docroot', config['Wt'],
-                '--http-address=0.0.0.0',
-                '--http-port=' + str(config['http-port'] + port_offset),
-                '-c', wt_config,
-                '--accesslog','-'),
-            env = env)
-            logging.info("Popened")
-        except:
-            traceback.print_exc()
-            logging.warning("No exe found!")
+		logging.info("opening subprocess " + executable)
+		try:
+			if port_offset == valgrind:
+				prefix = ('valgrind',)
+			else:
+				prefix = ()
+			UI = subprocess.Popen(prefix + (executable,
+				'--docroot', config['Wt'],
+				'--http-address=0.0.0.0',
+				'--http-port=' + str(config['http-port'] + port_offset),
+				'-c', wt_config,
+				'--accesslog','-'),
+			env = env)
+			logging.info("Popened")
+		except:
+			traceback.print_exc()
+			logging.warning("No exe found!")
 
 logging.info("Running mainloop")
 GLib.MainLoop().run()
