@@ -146,7 +146,7 @@ def autotag(trackname, root):
 	return list(tags)
 
 def add_unfragmented_file(filename, root, usednames):
-	current = { 'root': root, 'name': filename, 'files': [(filename, 0)], 'fragments': [] , 'tags' : autotag(filename,root), "dirty" : False}
+	current = { 'root': root, 'name': os.path.splitext(filename)[0], 'files': [(filename, 0)], 'fragments': [] , 'tags' : autotag(filename,root), "dirty" : False}
 	if current['name'] in usednames:
 		origname = current['name']
 		i = 1
@@ -240,7 +240,6 @@ def load_test_tracks(tracks):
 			durations.append( media.Media.get_duration(fullpath) + offset)
 		times = []
 		end = int(max(durations))
-		#print(end, track['name'])
 		if end < 10:
 			logging.info("(last) full filename: {}".format(fullpath))
 			logging.info("removing {} from db because of length {}".format(track['name'],end))

@@ -364,7 +364,7 @@ void saveFragmentsTree(Wt::WTreeTable *markerTree) {
 	Wt::Json::Value fragmentsval = saveFragments(dynamic_cast<MyTreeTableNode*>(markerTree->tree()->treeRoot() ));
 	Wt::Json::Array& fragments = fragmentsval;
 	std::string fragstring = Wt::Json::serialize(fragments);
-	fragstring = "{ \"fragments\" : "+fragstring + "}";
+	fragstring = "{ \"fragments\" : " + fragstring + "}";
 	zmq_conn::interact(fragstring,true);
 }
 
