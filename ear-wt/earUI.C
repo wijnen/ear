@@ -10,7 +10,7 @@ EarUI::EarUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 	max_tags = 0;
 	posSliderMoving = false;
 	posSliderSetting = false;
-	setTitle("Ear interface"); 
+	setTitle("Ear interface");
 
 	auto theme = std::make_shared <Wt::WBootstrap3Theme> ();
 	theme->setResponsive(true);
@@ -20,7 +20,7 @@ EarUI::EarUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 	selectPanel->setTitle("Select new track");
 	selectPanel->resize(width, Wt::WLength::Auto);
 	selectPanel->setCollapsible(true);
-	selectPanel->setCollapsed(true); 
+	selectPanel->setCollapsed(true);
 
 	//selectPanel->setObjectName("selectionPanel");
 	//Wt::WAnimation animation(Wt::WAnimation::SlideInFromTop,
@@ -34,7 +34,7 @@ EarUI::EarUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 	sliderPanel->setTitle("Change settings");
 	sliderPanel->resize(width, Wt::WLength::Auto);
 	sliderPanel->setCollapsible(true);
-	sliderPanel->setCollapsed(true); 
+	sliderPanel->setCollapsed(true);
 
 	sliderPanel->setCentralWidget(std::make_unique <Wt::WContainerWidget> ());
 	auto inputContainer = dynamic_cast <Wt::WContainerWidget *> (sliderPanel->centralWidget());
@@ -69,20 +69,20 @@ EarUI::EarUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 
 		inputSettings = inputs.get(input_name);
 		inputSlider = thisSliderContainer->addWidget(std::make_unique <Wt::WSlider> ());
-		inputSlider->resize(width, 50); 
+		inputSlider->resize(width, 50);
 		//inputSlider->resize( Wt::WLength(100, Wt::WLength::Unit::Percentage), 50); //This kind of works. We get a huge slider (which si good) but the ticks are all in 100px or something on one side, and so is the min/max
 		//inputSlider->setNativeControl(true); //If we use this, and move the slider, the program freezes
 		inputSliders[input_name] = inputSlider;
 		int min, max;
 		min = inputSettings[0];
-		max = inputSettings[1]; 
-		inputSlider->setMinimum(min); 
-	
-		inputSlider->setMaximum(max); 
+		max = inputSettings[1];
+		inputSlider->setMinimum(min);
+
+		inputSlider->setMaximum(max);
 		inputSlider->setTickInterval( (max - min) / 6);
-		inputSlider->setValue(inputSettings[2]); 
+		inputSlider->setValue(inputSettings[2]);
 		inputSlider->setTickPosition(Wt::WSlider::TickPosition::TicksAbove);
-	
+
 		auto inputButtonContainer = thisInputBox->addWidget(std::make_unique <Wt::WContainerWidget> ());
 		auto buttonbox = inputButtonContainer->setLayout(std::make_unique <Wt::WHBoxLayout> ());
 		buttonbox->addStretch();
@@ -185,12 +185,12 @@ EarUI::EarUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 		sbutton->clicked().connect(std::bind([=]() {
 			zmq_conn::interact("pos:" + std::to_string(current_track_time() + seek * 1000));
 		}));
-	
+
 	}
 	posSlider->resize(width, 50);
 	posSlider->setTickInterval(60000); //One minute in ms
 	posSlider->setTickPosition(Wt::WSlider::TickPosition::TicksAbove);
-	posSlider->sliderMoved().connect(std::bind([this](const int &v) { 
+	posSlider->sliderMoved().connect(std::bind([this](const int &v) {
 		this->posText->setTime(v); //So we can move and see where we'll end up before releasing
 		if (posSliderSetting) {
 			// Only handle user-caused events here.
@@ -217,9 +217,9 @@ EarUI::EarUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 
 	markerTree = markerContainer->addWidget(std::make_unique <Wt::WTreeTable> ());
 	//markerTree->setObjectName("markertree"); //TODO: Still something weird with the columns, they are sometimes offset
-	markerTree->tree()->setSelectionMode(Wt::SelectionMode::Extended); 
+	markerTree->tree()->setSelectionMode(Wt::SelectionMode::Extended);
 	markerTree->resize(750, 1000);
- 
+
 	markerTree->addColumn("", 400);
 	markerTree->addColumn("", 100);
 	markerTree->addColumn("", 100);
@@ -236,10 +236,10 @@ EarUI::EarUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 	auto tabButton = groupButtonsContainer->addWidget(std::make_unique <Wt::WPushButton> ("Group selection >>>>"));
 
 	tabButton->setMargin(5, Wt::Side::Left);
-	tabButton->clicked().connect(std::bind([=]() { 
+	tabButton->clicked().connect(std::bind([=]() {
 		groupMarkers(markerTree);
 	}));
-	
+
 	auto untabButton = groupButtonsContainer->addWidget(std::make_unique <Wt::WPushButton> ("Ungroup selection <<<<<"));
 	untabButton->setMargin(5, Wt::Side::Left);
 	untabButton->clicked().connect(std::bind([=]() {
@@ -248,7 +248,7 @@ EarUI::EarUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 
 	auto splitButton = splitJoinButtonsContainer->addWidget(std::make_unique <Wt::WPushButton> ("Split fragment here"));
 	//splitButton->setMargin(5, Wt::Side::Left);
-	splitButton->clicked().connect(std::bind([=]() {	
+	splitButton->clicked().connect(std::bind([=]() {
 		long pos = current_track_time();
 		splitFragment(markerTree, pos);
 	}));
@@ -258,7 +258,7 @@ EarUI::EarUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 	joinButton->clicked().connect(std::bind([=]() {
 		joinSelectedFragments(markerTree);
 	}));
- 
+
 	auto delgrpButton = groupButtonsContainer->addWidget(std::make_unique <Wt::WPushButton> ("Delete empty group"));
 	delgrpButton->setMargin(5, Wt::Side::Left);
 	delgrpButton->clicked().connect(std::bind([=]() {
@@ -267,7 +267,7 @@ EarUI::EarUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 
 	auto saveButton = splitJoinButtonsContainer->addWidget(std::make_unique <Wt::WPushButton> ("Save fragments"));
 	saveButton->setMargin(5, Wt::Side::Left);
-	saveButton->clicked().connect(std::bind([=]() {	
+	saveButton->clicked().connect(std::bind([=]() {
 		saveFragmentsTree(markerTree);
 	}));
 
@@ -295,7 +295,7 @@ EarUI::EarUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 			posText->setTime(track_time);
 			posSliderSetting = false;
 		}
-		
+
 		playing = playingj.get("playing");
 		if (playing) {
 			playPauseButton->setText("Pause");
@@ -308,7 +308,7 @@ EarUI::EarUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 				playPauseButton->setText("Play from start");
 			}
 		}
-		mark_current_fragment(markerTree, track_time); 
+		mark_current_fragment(markerTree, track_time);
 	}));
 
 	timer->start();
@@ -354,14 +354,14 @@ void EarUI::loadWaveform() {
 		i++;
 		//std::cerr << "Adding waveform row " << i << " " << timestamp << " " << l << " " << r << std::endl;
 	}
-	
+
 	waveformChart->resize(width, 100); //This is needed to render the modlel, but causes a crash on my laptop. This is because of some font issues with libharu. Retry on more recent OS's first to see if that fixes things.
 	//https://sourceforge.net/p/witty/mailman/message/30272114/ //Won't work on Debian for now
 	//http://witty-interest.narkive.com/1FcaBlfE/wt-interest-wpdfimage-error-102b
 }
 #endif
 
-void EarUI::updateInputs() {	
+void EarUI::updateInputs() {
 	//this->log("debug") <<"Updating inputs";
 	zmq::socket_t *socket = zmq_conn::connect();
 	Wt::Json::Object responses;
@@ -384,7 +384,7 @@ void EarUI::updateInputs() {
 	}
 	Wt::Json::Object response;
 	response = zmq_conn::interact("track?", socket);
-	
+
 	int server_track_idx = response.get("current");
 	if (ui_track_idx != server_track_idx) {
 		loadFragments(markerTree, false, socket);
@@ -395,7 +395,7 @@ void EarUI::updateInputs() {
 		posSlider->setMaximum(lastW->time());
 
 		ui_track_idx = server_track_idx;
-	}	
+	}
 	zmq_conn::disconnect(socket);
 }
 

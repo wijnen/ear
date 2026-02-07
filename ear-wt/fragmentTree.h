@@ -20,7 +20,7 @@ class MyTreeTableNode : public Wt::WTreeTableNode
 public:
 	MyTreeTableNode(const Wt::WString& labelText, const long start, const long stop, bool mini);
 	using Wt::WTreeTableNode::labelArea;
-	Wt::WString text;		
+	Wt::WString text;
 	Wt::WInPlaceEdit *editWidget;
 	static MyTreeTableNode *addNode(Wt::WTreeTableNode *parentNode, Wt::WString name, const long start, const long stop, bool mini = false ) ;
 	Wt::WPushButton *startButton;
@@ -43,7 +43,7 @@ void ungroupMarkers(Wt::WTreeTable *markerTree);
 void splitFragment(Wt::WTreeTable *markerTree, long pos);
 void joinSelectedFragments(Wt::WTreeTable *markerTree);
 void deleteEmptyGroups(Wt::WTreeTable *markerTree);
-void saveFragmentsTree(Wt::WTreeTable *markerTree); 
+void saveFragmentsTree(Wt::WTreeTable *markerTree);
 void loadGroup(Wt::WTreeTableNode *current_root, Wt::Json::Array fragments, bool mini = false);
 void loadFragments(Wt::WTreeTable *markerTree, bool mini = false, zmq::socket_t *socket = 0 );
 void mark_current_fragment(Wt::WTreeTable *markerTree, long long track_time);

@@ -1,4 +1,4 @@
-LIBRARIES = -l wt -l zmq -l wthttp 
+LIBRARIES = -l wt `pkgconf --libs cppzmq` -l wthttp
 HEADERS = earUI_base.h earUI.h earzmq.h filteredStringModel.h fragmentTree.h TimeWidget.h trackSearchContainer.h
 
 SHARED_OBJ = earzmq.o TimeWidget.o fragmentTree.o
@@ -6,7 +6,7 @@ UI_OBJECTS = $(SHARED_OBJ) filteredStringModel.o trackSearchContainer.o earUI.o
 MOBILE_OBJECTS = $(SHARED_OBJ) earMobileUI.o
 PLAYLIST_OBJECTS = $(SHARED_OBJ) earPlaylistUI.o trackSearchContainer.o filteredStringModel.o
 
-CFLAGS = -std=c++14 -Wall -Wextra -ggdb3 -rdynamic -O3
+CFLAGS = -std=c++14 -Wall -Wextra -ggdb3 -rdynamic -O3 `pkgconf --cflags cppzmq`
 
 TARGETS = earUI earMobileUI earPlaylistUI resources
 

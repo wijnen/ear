@@ -17,6 +17,7 @@ from collections import OrderedDict
 import gi
 gi.require_version('GLib', '2.0')
 from gi.repository import GLib
+import sys
 import os
 import media
 import dbread
@@ -295,9 +296,9 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
 			elif msg == "tracks_refresh?":
 				newdb = dbread.read(use_cache = False) #May take a very long time!
 				db = newdb #Weird, but due to the whole callback thing we're kind of multithreaded. This might save on semaphores?
-				data['track'] = db[-1]	
+				data['track'] = db[-1]
 				zmq_socket.send_json({"dummy":"dummy"})
-				
+
 			elif msg.startswith('track:'):
 				select=msg[len('track:'):]
 				try:
@@ -305,7 +306,7 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
 				except ValueError as e:
 					logging.exception(e)
 					continue
-				data['track']=db[sel]	
+				data['track']=db[sel]
 				new_file()
 				zmq_socket.send_json({"dummy":"dummy"})
 			elif msg == "fragments?":
@@ -357,8 +358,10 @@ def zmq_callback(fd,condition,zmq_socket): # {{{
 
 
 set_pos(0)
-if len(db) > 0:
-	data['track']=db[-1]	
+if len(db) == 0:
+	print('no tracks found; exiting')
+	sys.exit(1)
+data['track']=db[-1]
 new_file()
 logging.info("Track: {}. Media:{}".format(data['track']['name'],data['media']))
 logging.info ("importing gobject")

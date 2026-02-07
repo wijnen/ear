@@ -12,7 +12,7 @@ zmq::socket_t* zmq_conn::connect() {
 	//show_backtrace("connect");
 	if (zmq_port == 0) {
 		zmq_port = getenv("ZMQ_PORT");
-	} 
+	}
 	zmq::socket_t *socket = new zmq::socket_t (context, ZMQ_REQ);
 
 	socket->connect (zmq_conn::zmq_port);
@@ -71,7 +71,7 @@ Wt::Json::Object zmq_conn::interact(std::string value, bool raw, zmq::socket_t *
 
 void zmq_conn::send(std::string value, zmq::socket_t *socket, bool raw) {
 	bool disconn = false;
-	if(socket == 0) { 
+	if(socket == 0) {
 		socket = connect();
 		disconn = true;
 	}

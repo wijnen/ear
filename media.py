@@ -70,7 +70,7 @@ class Media:
         self.convert2 = Gst.ElementFactory.make('audioconvert')
         self.audiosink = Gst.ElementFactory.make('autoaudiosink')
         self.gstvolume = Gst.ElementFactory.make("volume")
-        self.gstvolume.set_property('volume',1.0) 
+        self.gstvolume.set_property('volume',1.0)
         self.audiobin.add(self.convert)
         self.audiobin.add(self.pitch)
         self.audiobin.add(self.convert2)
@@ -80,7 +80,7 @@ class Media:
         self.pitch.link(self.convert2)
         self.convert2.link(self.gstvolume)
         self.gstvolume.link(self.audiosink)
-        
+
         pad = Gst.GhostPad.new('sink', self.convert.get_static_pad('sink'))
         pad.set_active(True)
         self.audiobin.add_pad(pad)
@@ -188,11 +188,11 @@ class Media:
             wait = -1 *(start - self.offset)
             loop = GLib.MainLoop()
             start = self.offset
-            if self.timeout != None: 
+            if self.timeout != None:
                 GLib.source_remove(self.timeout) #Only do one timeout at a time to prevent weird re-starting issues
-                self.timeout = None 
-            if self.playing(): 
-                self.pause(True) 
+                self.timeout = None
+            if self.playing():
+                self.pause(True)
             self.timeout = GLib.timeout_add(wait, lambda _: self.play(start = start, end=end, cb=cb,play=play, timed = True), None)
             self.countdown_end = time.time() + wait/1000.
             return True
@@ -210,7 +210,7 @@ class Media:
                 if not ret:
                     ret = self.pipeline.seek_simple(Gst.Format.TIME, Gst.SeekFlags.KEY_UNIT | Gst.SeekFlags.FLUSH, start * Gst.MSECOND)
                     logging.warning("Simple seeking")
-                    #self.playbin.seek_simple(Gst.Format.TIME,  Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, seek_time_secs * Gst.SECOND) 
+                    #self.playbin.seek_simple(Gst.Format.TIME,  Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, seek_time_secs * Gst.SECOND)
             else:
                 ret = self.pipeline.seek(1.0, Gst.Format(Gst.Format.TIME), Gst.SeekFlags.ACCURATE | Gst.SeekFlags.FLUSH, Gst.SeekType.SET, start * Gst.MSECOND, Gst.SeekType.END, 0)
                 if not ret:
@@ -238,7 +238,7 @@ class Media:
             else:
                 logging.debug("Stopping because end of track reached, and resetting position to start of track.")
                 self.play(start=0,play=False)
-            
+
             #Do not change the position but make sure the playing state is off, and allow us to continue where we left off
         return False
 
@@ -256,7 +256,7 @@ class Media:
             self.pipeline.set_state(Gst.State.PLAYING)
             self.updater = GLib.timeout_add(100, self.update)
     def update(self):
-        self.pipeline.get_state(Gst.CLOCK_TIME_NONE) 
+        self.pipeline.get_state(Gst.CLOCK_TIME_NONE)
         do_callback = False
         try:
             pos = self.pipeline.query_position(Gst.Format(Gst.Format.TIME))[1] / Gst.MSECOND * self.speed + self.offset
@@ -284,4 +284,3 @@ Media.probesink = Gst.ElementFactory.make('gdkpixbufsink')
 Media.prober.set_property('video-sink', Media.probesink)
 
 # vim: set expandtab tabstop=4 shiftwidth=4 :
- 

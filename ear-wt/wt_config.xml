@@ -194,7 +194,7 @@
 	    <num-threads>10</num-threads>
 
 	    <!-- Maximum Request Size spooled in memory (Kb)
-        
+
                Normally, Wt keeps incoming requests (POST data) in memory.
                However, malicious users could send a big POST and as such
                use up all memory of your HTTP server. With this parameter,
@@ -336,7 +336,7 @@
            communication between client and server. WebSockets are
            currently only supported by the built-in httpd Connector,
 	   which acts as both an HTTP and WebSocket server. The WebSocket
-	   protocol is intentionally not compatible with HTTP, through 
+	   protocol is intentionally not compatible with HTTP, through
 	   a special hand-shake mechanism, and requires
            that all (reverse) proxy servers also have explicit support
            for this protocol.
@@ -369,7 +369,7 @@
           -->
 	<redirect-message>Load basic HTML</redirect-message>
 
-	<!-- Whether we are sitting behind a reverse proxy 
+	<!-- Whether we are sitting behind a reverse proxy
 
 	   When deployed behind a reverse proxy (such as Apache or Squid),
 	   the server location is not read from the "Host" header,
@@ -520,7 +520,7 @@
 	</meta-headers>
 
 	<!-- Runtime Properties
-     
+
            These properties may be used to adapt applications to their
 	   deployment environment. Typical use is for paths to resources
 	   that may or may not be shared between several applications.

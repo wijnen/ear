@@ -5,7 +5,7 @@
 TrackSearchContainer::TrackSearchContainer(EarUI_base *parentUI)
 {
 	this->parentUI = parentUI;
-	//Wt::WContainerWidget *trackSearchContainer = new Wt::WContainerWidget(); 
+	//Wt::WContainerWidget *trackSearchContainer = new Wt::WContainerWidget();
 	//resize(parentUI->width,500);
 	//Make this a GridLayout and add a second column showing the track settings TODO
 
@@ -42,7 +42,7 @@ TrackSearchContainer::TrackSearchContainer(EarUI_base *parentUI)
 	auto searchContainer = filterContainer->addWidget(std::make_unique <WContainerWidget> ());
 	auto filtersContainer = filterContainer->addWidget(std::make_unique <WContainerWidget> ());
 	auto filterBox = searchContainer->addWidget(std::make_unique <Wt::WLineEdit> ());
-	filterBox->setPlaceholderText("Filter"); 
+	filterBox->setPlaceholderText("Filter");
 	auto addFilter = searchContainer->addWidget(std::make_unique <Wt::WPushButton> ("Add"));
 	addFilter->clicked().connect(std::bind([=] () {
 		auto thisFilter = filtersContainer->addWidget(std::make_unique <Wt::WContainerWidget> ());
@@ -59,7 +59,7 @@ TrackSearchContainer::TrackSearchContainer(EarUI_base *parentUI)
 				trackModel->update();
 			}
 		}));
-		trackModel->musts.push_back(filterName);  
+		trackModel->musts.push_back(filterName);
 					trackModel->update();
 		filterBox->setText("");
 		filterBox->setPlaceholderText("Filter"); //TODO: Autofill/autocomplete

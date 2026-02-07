@@ -20,7 +20,7 @@ class FilteredStringModel : public Wt::WStringListModel
 Class to make a stringlistmodel that filters itsself based on filters set previously. Uses zeroMQ to talk to the Python Ear implementation and let Python (fuzzywuzzy) do the actual heavy lifting
 */
     public:
-	FilteredStringModel(std::string zmqString = std::string("filteredTracks?")); 
+	FilteredStringModel(std::string zmqString = std::string("filteredTracks?"));
 	std::vector<Wt::WString> musts;
 	std::vector<Wt::WString> mays;
 	Wt::WString searchString;

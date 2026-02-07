@@ -1,7 +1,7 @@
 /*
  * Example used: Copyright (C) 2008 Emweb bvba, Heverlee, Belgium.
  *
- * Code copyright Kasper Loopstra, 2019  
+ * Code copyright Kasper Loopstra, 2019
  * Copyright 2022 Bas Wijnen <wijnen@debian.org>
  */
 
@@ -21,14 +21,14 @@ class EarPlaylistUI : public EarUI_base
 public:
 	EarPlaylistUI(const Wt::WEnvironment& env);
 private:
-	TrackSearchContainer *trackSearchContainer; 
+	TrackSearchContainer *trackSearchContainer;
 	int ui_track_idx;
 	void updateInputs();
 };
 
 
 EarPlaylistUI::EarPlaylistUI(const Wt::WEnvironment& env) : EarUI_base(env) {
-	setTitle("Ear Playlist/ballroom interface"); 
+	setTitle("Ear Playlist/ballroom interface");
 	auto theme = std::make_shared <Wt::WBootstrap3Theme> ();
 	theme->setResponsive(true);
 	setTheme(theme);

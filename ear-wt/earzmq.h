@@ -3,7 +3,7 @@
 #ifndef earzmq_included
 #define earzmq_included
 
- 
+
 #include <zmq.hpp>
 #include <Wt/Json/Array.h>
 #include <Wt/Json/Parser.h>
@@ -12,12 +12,12 @@
 #include <iostream>
 #include <execinfo.h>
 #include <unistd.h>	 // for STDERR_FILENO
-#define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here. 
+#define MAXSIZE 1048576 //Maximum size of ZMQ read buffer used here.
 
 /*
 
 ZeroMQ handling below.
-An interact function can take a socket or not. If provided with a socket, it will be used. If not, one will be opened and closed for this interaction. 
+An interact function can take a socket or not. If provided with a socket, it will be used. If not, one will be opened and closed for this interaction.
 Send and recieve always need a socket.
 When sending more than one interaction, preferably create a socket and use that.
 WStrings, strings are both handled

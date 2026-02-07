@@ -59,7 +59,7 @@ private:
 	bool posSliderMoving;
 	bool posSliderSetting;
 	TimeWidget *posText;
-	Wt::WLength width = Wt::WLength::Auto; 
+	Wt::WLength width = Wt::WLength::Auto;
 	std::vector<MyTreeTableNode*> fragment_set;
 	void clicked(Wt::WPushButton* source );
 	Wt::WTreeTable *markerTree;

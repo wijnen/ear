@@ -26,7 +26,7 @@ private:
 
 EarMobileUI::EarMobileUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 	ui_track_idx = -1;
-	setTitle("Ear Mobile interface"); 
+	setTitle("Ear Mobile interface");
 	this->log("info") << "Making mobile UI";
 	auto theme = std::make_shared <Wt::WBootstrap3Theme> ();
 	theme->setResponsive(true);
@@ -66,7 +66,7 @@ EarMobileUI::EarMobileUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 	//    fragmentTree->resize(
 	//			Wt::WLength(100,Wt::WLength::Unit::Percentage), //Width
 	//			Wt::WLength(80,Wt::WLength::Unit::Percentage)); //Heigth
-	/*   Wt::WTimer *inputtimer = new Wt::WTimer();   
+	/*   Wt::WTimer *inputtimer = new Wt::WTimer();
 	inputtimer->setInterval(2500); //For some reason, this actually segfaults (on a RPi) when it fires, before calling updateInputs. Calling updateInputs from any other place works, including the other timer. I'll try and find out the cause later, now it runs
 	inputtimer->timeout().connect(std::bind([=] () {
 		std::cout<< "updating inputs " <<std::endl;
@@ -77,7 +77,7 @@ EarMobileUI::EarMobileUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 
 	updateInputs();
 
-	Wt::WTimer *timer = new Wt::WTimer();  
+	Wt::WTimer *timer = new Wt::WTimer();
 	timer->setInterval(std::chrono::milliseconds(100));
 	timer->timeout().connect(std::bind([=] () {
 		Wt::Json::Object posj ;
@@ -89,7 +89,7 @@ EarMobileUI::EarMobileUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 		playingj = zmq_conn::interact(std::string("playing?"), socket);
 		zmq_conn::disconnect(socket);
 
-		Wt::Json::Value posjv = posj.get("pos");	
+		Wt::Json::Value posjv = posj.get("pos");
 		const long long track_time = posjv;
 		posText->setTime(track_time);
 		mark_current_fragment(fragmentTree, track_time);
@@ -111,14 +111,14 @@ EarMobileUI::EarMobileUI(const Wt::WEnvironment& env) : EarUI_base(env) {
 	timer->start();
 }
 
-void EarMobileUI::updateInputs() {	
+void EarMobileUI::updateInputs() {
 	Wt::Json::Object response;
 	response = zmq_conn::interact("track?");
 	int server_track_idx = response.get("current");
 	if (ui_track_idx != server_track_idx) {
 		loadFragments(fragmentTree, true);
 		ui_track_idx = server_track_idx;
-	}	
+	}
 
 }
 

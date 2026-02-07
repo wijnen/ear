@@ -1,20 +1,8 @@
-   
 /*
-
-
-
 Start of a filesViewer class, which should be used in a future trackViewer class, that will allow advanced file-system manipulation of the tracks. Currently not included, as I assume that ear will be run from a local PC anyway, and if you need to upload new stuff, it's better to do it by moving it to the correct folder in the filesystem. Also, saves on security issues etc on delete
-
-
-
-
-
-
-
 */
 
 
- 
 #include <Wt/WFileUpload>
 //#include <Wt/WFileDropWidget> //This returns file not found, what's the problem?
 #include <Wt/WProgressBar>
@@ -22,7 +10,7 @@ Start of a filesViewer class, which should be used in a future trackViewer class
 
 WContainerWidget *fileContainer = new WContainerWidget(root());
 
-//TODO: Make multiple upload widgets, if possible using the drag/drop interface or the clicky interface. 
+//TODO: Make multiple upload widgets, if possible using the drag/drop interface or the clicky interface.
 //One upload widget should be for media files (as in actual audio or video tracks)
 //One should be for a fragments.txt (single file)
 //One should be for annotations/
@@ -51,7 +39,7 @@ Wt::WAnchor *anchor = new Wt::WAnchor(csvFile, "CSV data");
 Wt::WFileResource *imageFile = new Wt::WFileResource("image/png", "/opt/files/image.png");
 imageFile->suggestFileName("data.png");
 Wt::WImage *image = new Wt::WImage(imageFile, "PNG version");
-*/	
+*/
 };
 
 const std::vector<Wt::Http::UploadedFile>  OptionalMultiFileUploader::uploadedFiles()
@@ -68,7 +56,7 @@ FilesViewer::FilesViewer(Wt::WContainerWidget *parent, Wt::WString title) : Wt::
 	Wt::WContainerWidget *titleContainer = new Wt::WContainerWidget(this);
   	titleText = new Wt::WText(title, titleContainer);
 	Wt::WContainerWidget *uploadersContainer = new Wt::WContainerWidget(this);
-	Wt::WContainerWidget *listContainer = new Wt::WContainerWidget(this); 
+	Wt::WContainerWidget *listContainer = new Wt::WContainerWidget(this);
 	Wt::WContainerWidget *container = new Wt::WContainerWidget(uploadersContainer);
 
 	Wt::WFileUpload *fu = new Wt::WFileUpload(container);
@@ -96,9 +84,9 @@ FilesViewer::FilesViewer(Wt::WContainerWidget *parent, Wt::WString title) : Wt::
 		}
             }
 	    listContainer->clear()
-	    for(auto file:this->files) 
+	    for(auto file:this->files)
 	    {
-		listContainer->addWidget(Wt::WText(file->clientFileName())); 
+		listContainer->addWidget(Wt::WText(file->clientFileName()));
 	    }
 	}));
 
@@ -118,12 +106,12 @@ FilesViewer::FilesViewer(Wt::WContainerWidget *parent, Wt::WString title) : Wt::
 	      dropWidget->cancelUpload(files[i]);
 	      continue;
 	    }
-	    
+
 	    Wt::WContainerWidget *block = new Wt::WContainerWidget(dropWidget);
 	    block->setToolTip(files[i]->clientFileName());
 	    block->addStyleClass("upload-block spinner");
 	  }
-	  
+
 	  if (dropWidget->uploads().size() >= maxFiles)
 	    dropWidget->setAcceptDrops(false);
 	}, std::placeholders::_1));

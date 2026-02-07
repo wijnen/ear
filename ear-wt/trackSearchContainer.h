@@ -16,14 +16,14 @@
 #include "earUI_base.h"
 
 
-class TrackSearchContainer : public Wt::WContainerWidget 
+class TrackSearchContainer : public Wt::WContainerWidget
 {
 	public:
 		TrackSearchContainer(EarUI_base *parentUI);
 	private:
 		EarUI_base *parentUI;
 		std::shared_ptr <FilteredStringModel> trackModel;
-		
+
 };
 
 #endif

@@ -157,7 +157,7 @@ void groupMarkers(Wt::WTreeTable *markerTree) {
 	std::sort(selectedNodes.begin(),selectedNodes.end(), fragmentAbeforeB);
 
 	std::vector< Wt::WTreeNode*> siblings;
- 
+
 	Wt::WTreeNode *firstNode = *selectedNodes.begin();
 	if(firstNode == markerTree->tree()->treeRoot())
 		return;

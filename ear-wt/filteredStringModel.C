@@ -42,10 +42,10 @@ void FilteredStringModel::update()
 /*
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
- 
+
     socket.connect (zmq_port);
     Wt::Json::Object response;
-	socket.send(retval.c_str(),retval.size());	
+	socket.send(retval.c_str(),retval.size());
 	char buffer[MAXSIZE];
     int nbytes = socket.recv(buffer, MAXSIZE);
       Wt::Json::parse(std::string(buffer, nbytes),response);
